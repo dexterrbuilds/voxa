@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./lib/auth-context";
 import RootLayout from "./routes/__root";
 import HomePage from "./routes/index";
 import ProductPage from "./routes/product";
@@ -14,24 +15,26 @@ import VoxaSettingsPage from "./routes/voxa/settings";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<RootLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="product" element={<ProductPage />} />
-          <Route path="developers" element={<DevelopersPage />} />
-          <Route path="use-cases" element={<UseCasesPage />} />
-          <Route path="waitlist" element={<WaitlistPage />} />
-          <Route path="*" element={<RootLayout />} />
-        </Route>
-        <Route path="voxa" element={<VoxaLayout />}>
-          <Route path="login" element={<VoxaLoginPage />} />
-          <Route index element={<VoxaDashboard />} />
-          <Route path="room/:roomId" element={<VoxaRoomPage />} />
-          <Route path="profile" element={<VoxaProfilePage />} />
-          <Route path="settings" element={<VoxaSettingsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="product" element={<ProductPage />} />
+            <Route path="developers" element={<DevelopersPage />} />
+            <Route path="use-cases" element={<UseCasesPage />} />
+            <Route path="waitlist" element={<WaitlistPage />} />
+            <Route path="*" element={<RootLayout />} />
+          </Route>
+          <Route path="voxa" element={<VoxaLayout />}>
+            <Route path="login" element={<VoxaLoginPage />} />
+            <Route index element={<VoxaDashboard />} />
+            <Route path="room/:roomId" element={<VoxaRoomPage />} />
+            <Route path="profile" element={<VoxaProfilePage />} />
+            <Route path="settings" element={<VoxaSettingsPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
