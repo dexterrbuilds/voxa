@@ -11,7 +11,12 @@ export function ArchitectureVisual() {
   return (
     <div className="relative w-full max-w-3xl mx-auto aspect-[5/4] sm:aspect-[16/10]">
       {/* SVG connection lines */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 400" fill="none" preserveAspectRatio="none">
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 600 400"
+        fill="none"
+        preserveAspectRatio="none"
+      >
         <defs>
           <linearGradient id="line" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="oklch(0.72 0.20 245)" stopOpacity="0" />
@@ -23,16 +28,24 @@ export function ArchitectureVisual() {
           <g key={i}>
             <line x1={x} y1="60" x2="300" y2="200" stroke="oklch(1 0 0 / 0.08)" strokeWidth="1" />
             <line
-              x1={x} y1="60" x2="300" y2="200"
-              stroke="url(#line)" strokeWidth="1.5"
+              x1={x}
+              y1="60"
+              x2="300"
+              y2="200"
+              stroke="url(#line)"
+              strokeWidth="1.5"
               strokeDasharray="4 6"
               className="animate-flow"
               style={{ animationDelay: `${i * 0.4}s` }}
             />
             <line x1="300" y1="240" x2={x} y2="360" stroke="oklch(1 0 0 / 0.08)" strokeWidth="1" />
             <line
-              x1="300" y1="240" x2={x} y2="360"
-              stroke="url(#line)" strokeWidth="1.5"
+              x1="300"
+              y1="240"
+              x2={x}
+              y2="360"
+              stroke="url(#line)"
+              strokeWidth="1.5"
               strokeDasharray="4 6"
               className="animate-flow"
               style={{ animationDelay: `${i * 0.4 + 0.6}s` }}
@@ -52,7 +65,10 @@ export function ArchitectureVisual() {
             transition={{ delay: i * 0.1 }}
             className="glass rounded-xl px-3 sm:px-4 py-2.5 flex items-center gap-2 min-w-[100px] sm:min-w-[130px]"
           >
-            <div className="h-2 w-2 rounded-full" style={{ background: p.color, boxShadow: `0 0 10px ${p.color}` }} />
+            <div
+              className="h-2 w-2 rounded-full"
+              style={{ background: p.color, boxShadow: `0 0 10px ${p.color}` }}
+            />
             <span className="text-xs sm:text-sm font-medium">{p.name}</span>
           </motion.div>
         ))}
@@ -72,7 +88,9 @@ export function ArchitectureVisual() {
               <Radio className="h-4 w-4 text-background" />
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Runtime</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Runtime
+              </div>
               <div className="font-semibold text-sm">Voxa</div>
             </div>
           </div>

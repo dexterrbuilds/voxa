@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BETA_APP_URL } from "@/lib/links";
 
 const links = [
   { to: "/product", label: "Product" },
@@ -36,11 +37,17 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
-          <Link to="/developers" className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
+          <Link
+            to="/developers"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3"
+          >
             Docs
           </Link>
-          <Button asChild variant="electric" size="sm">
-            <Link to="/waitlist">Join Waitlist</Link>
+          <Button asChild variant="electric" size="sm" className="flex items-center gap-1">
+            <a href={BETA_APP_URL} className="flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              Start Room
+            </a>
           </Button>
         </div>
 
@@ -65,8 +72,17 @@ export function Navbar() {
               {l.label}
             </Link>
           ))}
-          <Button asChild variant="electric" size="sm" className="mt-3">
-            <Link to="/waitlist" onClick={() => setOpen(false)}>Join Waitlist</Link>
+          <a
+            href={BETA_APP_URL}
+            onClick={() => setOpen(false)}
+            className="py-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Start Room
+          </a>
+          <Button asChild variant="electric" size="sm" className="mt-3 w-full">
+            <a href={BETA_APP_URL} onClick={() => setOpen(false)}>
+              Start Room
+            </a>
           </Button>
         </div>
       )}

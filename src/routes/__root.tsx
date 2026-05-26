@@ -28,8 +28,8 @@ export default function RootLayout() {
 
   // Check if route is valid
   const validRoutes = ["/", "/product", "/developers", "/use-cases", "/waitlist"];
-  const isValidRoute = validRoutes.some((route) =>
-    location.pathname === route || location.pathname.startsWith(route + "/")
+  const isValidRoute = validRoutes.some(
+    (route) => location.pathname === route || location.pathname.startsWith(route + "/"),
   );
 
   if (!isValidRoute && location.pathname !== "/") {
@@ -42,21 +42,13 @@ export default function RootLayout() {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         />
       </Helmet>
-      <html lang="en">
-        <body>
-          <Outlet />
-        </body>
-      </html>
+      <Outlet />
     </>
   );
 }

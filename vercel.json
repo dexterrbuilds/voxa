@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ],
+  "github": {
+    "silent": true
+  }
+}

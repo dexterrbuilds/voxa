@@ -37,7 +37,9 @@ export function SectionHeader({
   align?: "center" | "left";
 }) {
   return (
-    <div className={`flex flex-col ${align === "center" ? "items-center text-center" : "items-start text-left"} gap-5 max-w-3xl ${align === "center" ? "mx-auto" : ""}`}>
+    <div
+      className={`flex flex-col ${align === "center" ? "items-center text-center" : "items-start text-left"} gap-5 max-w-3xl ${align === "center" ? "mx-auto" : ""}`}
+    >
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
       <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-gradient leading-[1.05]">
         {title}

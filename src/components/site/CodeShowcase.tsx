@@ -25,10 +25,15 @@ function CodeBlock({ title, code, lang }: { title: string; code: string; lang: s
           </div>
           <span className="text-xs text-muted-foreground ml-2">{title}</span>
         </div>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{lang}</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+          {lang}
+        </span>
       </div>
       <pre className="p-5 text-[12.5px] font-mono leading-relaxed overflow-x-auto">
-        <code className="text-foreground/90" dangerouslySetInnerHTML={{ __html: highlight(code) }} />
+        <code
+          className="text-foreground/90"
+          dangerouslySetInnerHTML={{ __html: highlight(code) }}
+        />
       </pre>
     </div>
   );
@@ -36,7 +41,7 @@ function CodeBlock({ title, code, lang }: { title: string; code: string; lang: s
 
 function highlight(code: string) {
   return code
-    .replace(/(&|<|>)/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!))
+    .replace(/(&|<|>)/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)
     .replace(/("(?:\\.|[^"\\])*")(\s*:)/g, '<span style="color:oklch(0.78 0.18 235)">$1</span>$2')
     .replace(/:\s*("(?:\\.|[^"\\])*")/g, ': <span style="color:oklch(0.85 0.12 145)">$1</span>')
     .replace(/:\s*(\d+)/g, ': <span style="color:oklch(0.80 0.18 60)">$1</span>');
