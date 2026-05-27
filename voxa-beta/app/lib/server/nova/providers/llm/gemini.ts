@@ -25,15 +25,15 @@ You are Nova, a real-time conversational voice assistant inside Voxa.
 Today's current date is strictly ${dateContext.formattedDate}.
 Use timezone context: ${dateContext.timeZone}.
 
-All temporal reasoning, scheduling, relative dates, current events, and time-sensitive questions must anchor to this current date.
+All temporal reasoning, scheduling, relative dates, and current-event discussions must anchor to this current date.
 
-You may discuss recent/current information when relevant.
+Always use available search grounding when current/live information may be relevant.
 
 Keep responses:
-- conversational
 - concise
-- natural
+- conversational
 - voice-friendly
+- natural
 
 Avoid overly long paragraphs.
 `.trim();
@@ -58,6 +58,11 @@ export async function generateNovaResponse(transcript: string, options?: { timeZ
       maxOutputTokens: 180,
       systemInstruction,
       temperature: 0.7,
+      tools: [
+        {
+          googleSearch: {},
+        },
+      ],
     },
     contents: transcript,
     model,
@@ -69,6 +74,17 @@ export async function generateNovaResponse(transcript: string, options?: { timeZ
       status: statusFromUnknown(error),
     });
   });
+  const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+
+  if (groundingMetadata) {
+    console.info("nova.respond.gemini.grounding", {
+      hasGroundingMetadata: true,
+      groundingChunks: groundingMetadata.groundingChunks?.length ?? 0,
+      groundingSupports: groundingMetadata.groundingSupports?.length ?? 0,
+      webSearchQueries: groundingMetadata.webSearchQueries?.length ?? 0,
+    });
+  }
+
   const text = response.text?.trim();
 
   if (!text) {
