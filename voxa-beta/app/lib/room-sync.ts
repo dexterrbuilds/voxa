@@ -110,10 +110,22 @@ function roomFromRows(
   participants: RoomParticipantRow[],
   events: RoomEventRow[],
 ): Room {
-  const mappedParticipants = participants.map(participantFromRow);
-  const invitedAgents = mappedParticipants
-    .filter((participant) => participant.participantType === "agent")
-    .map((participant) => participant.id);
+  const uniqueParticipants = participants.filter(
+    (participant, index, allParticipants) =>
+      allParticipants.findIndex(
+        (existingParticipant) =>
+          existingParticipant.user_id === participant.user_id &&
+          existingParticipant.participant_type === participant.participant_type,
+      ) === index,
+  );
+  const mappedParticipants = uniqueParticipants.map(participantFromRow);
+  const invitedAgents = Array.from(
+    new Set(
+      mappedParticipants
+        .filter((participant) => participant.participantType === "agent")
+        .map((participant) => participant.id),
+    ),
+  );
 
   return {
     id: room.room_id,
@@ -475,6 +487,22 @@ export async function inviteAgentToSharedRoom(roomId: string, agent: AgentInvite
 
   if (!supabase) {
     throw new Error("Supabase is not configured.");
+  }
+
+  const existing = await supabase
+    .from("room_participants")
+    .select("id")
+    .eq("room_id", roomId)
+    .eq("user_id", agent.id)
+    .eq("participant_type", "agent")
+    .limit(1);
+
+  if (existing.error) {
+    throw existing.error;
+  }
+
+  if ((existing.data?.length ?? 0) > 0) {
+    return loadRoomRows(roomId);
   }
 
   const now = new Date().toISOString();

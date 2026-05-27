@@ -30,7 +30,7 @@ export default function RoomLobby() {
 
     setIsCreatingRoom(true);
     const newRoom = createRoom(user, { inviteNova });
-    router.push(`/room/${newRoom.id}`);
+    router.push(inviteNova ? `/room/${newRoom.id}?invite=nova` : `/room/${newRoom.id}`);
   };
 
   const parseRoomId = (value: string) => {

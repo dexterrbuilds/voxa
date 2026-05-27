@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 interface AIPersonalityProps {
   inRoom?: boolean;
   name: string;
-  status: "online" | "thinking" | "listening" | "away" | "offline";
+  status: "online" | "joining" | "in-room" | "thinking" | "listening" | "away" | "offline";
   onInvite?: () => void;
 }
 
@@ -30,6 +30,10 @@ export default function AIPersonality({
     switch (status) {
       case "online":
         return "oklch(0.72 0.2 245)";
+      case "joining":
+        return "oklch(0.78 0.18 235)";
+      case "in-room":
+        return "oklch(0.72 0.2 245)";
       case "thinking":
         return "oklch(0.78 0.18 235)";
       case "listening":
@@ -45,6 +49,14 @@ export default function AIPersonality({
 
   const statusColor = getStatusColor();
   const initials = name === "Nova" ? "NV" : name.slice(0, 2).toUpperCase();
+  const statusLabel =
+    status === "in-room"
+      ? "In Room"
+      : status
+          .split("-")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+  const inviteDisabled = inRoom || status === "joining";
 
   return (
     <div className="beta-premium-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-white/10">
@@ -69,7 +81,7 @@ export default function AIPersonality({
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xl font-semibold tracking-tight text-white">{name}</h3>
             <span className="rounded-full border border-[oklch(0.72_0.2_245/0.24)] bg-[oklch(0.72_0.2_245/0.1)] px-2.5 py-1 text-xs font-medium text-[oklch(0.78_0.18_235)]">
-              {inRoom ? "In Room" : "Online"}
+              {inRoom ? statusLabel : status === "joining" ? "Joining" : "Online"}
             </span>
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
@@ -83,13 +95,13 @@ export default function AIPersonality({
           </div>
           <button
             className={`beta-button-electric mt-4 min-h-10 w-full px-4 text-sm ${
-              inRoom ? "pointer-events-none opacity-60" : ""
+              inviteDisabled ? "pointer-events-none opacity-60" : ""
             }`}
-            disabled={inRoom}
+            disabled={inviteDisabled}
             onClick={onInvite}
             type="button"
           >
-            {inRoom ? "In Room" : "Invite"}
+            {inRoom ? "In Room" : status === "joining" ? "Joining..." : "Invite"}
           </button>
         </div>
       </div>

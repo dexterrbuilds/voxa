@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AudioLines,
@@ -31,7 +31,19 @@ type RoomPageProps = {
   params: Promise<{
     roomId: string;
   }>;
+  searchParams: Promise<{
+    invite?: string | string[];
+  }>;
 };
+
+type AgentVisualState = "online" | "joining" | "in-room" | "listening" | "thinking";
+
+function formatAgentState(state: AgentVisualState) {
+  return state
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function initialsFor(name: string) {
   const initials = name
@@ -45,18 +57,22 @@ function initialsFor(name: string) {
 }
 
 function ParticipantCard({
+  agentState,
   participant,
   voice,
 }: {
+  agentState?: AgentVisualState;
   participant: Participant;
   voice?: VoiceParticipantState;
 }) {
   const isAgent = participant.participantType === "agent";
   const isSpeaking = !!voice?.isSpeaking;
+  const agentIsAnimating = isAgent && (agentState === "listening" || agentState === "thinking");
+  const cardIsActive = isSpeaking || agentIsAnimating;
   const isVoiceConnected = !!voice?.isConnected;
   const isMuted = voice?.isMuted ?? true;
   const status = isAgent
-    ? "Agent"
+    ? formatAgentState(agentState ?? "in-room")
     : isVoiceConnected
       ? isMuted
         ? "Mic muted"
@@ -70,7 +86,7 @@ function ParticipantCard({
       className={[
         "relative overflow-hidden rounded-xl border p-5 text-left transition-all duration-300",
         "bg-[oklch(0.12_0.018_260/0.72)] shadow-[0_24px_70px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-xl",
-        isSpeaking
+        cardIsActive
           ? "animate-[beta-pulse-glow_1.6s_ease-in-out_infinite] border-[oklch(0.72_0.2_245/0.62)]"
           : "border-white/[0.075]",
       ].join(" ")}
@@ -81,7 +97,7 @@ function ParticipantCard({
           <div
             className={[
               "grid h-12 w-12 shrink-0 place-items-center rounded-xl border text-sm font-semibold text-white",
-              isSpeaking
+              cardIsActive
                 ? "border-[oklch(0.72_0.2_245/0.7)] bg-[oklch(0.72_0.2_245/0.22)]"
                 : "border-white/[0.08] bg-white/[0.045]",
             ].join(" ")}
@@ -114,11 +130,13 @@ function ParticipantCard({
               <span
                 className={[
                   "block w-1 rounded-full bg-[oklch(0.72_0.2_245)] transition-all",
-                  isSpeaking ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]" : "opacity-30",
+                  cardIsActive
+                    ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]"
+                    : "opacity-30",
                 ].join(" ")}
                 key={bar}
                 style={{
-                  height: isSpeaking ? `${12 + bar * 7}px` : "8px",
+                  height: cardIsActive ? `${12 + bar * 7}px` : "8px",
                   animationDelay: `${bar * 120}ms`,
                 }}
               />
@@ -130,8 +148,12 @@ function ParticipantCard({
   );
 }
 
-export default function RoomPage({ params }: RoomPageProps) {
+export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const { roomId } = use(params);
+  const resolvedSearchParams = use(searchParams);
+  const inviteRequest = Array.isArray(resolvedSearchParams.invite)
+    ? resolvedSearchParams.invite[0]
+    : resolvedSearchParams.invite;
   const { user, loading: authLoading } = useAuth();
   const {
     room,
@@ -151,6 +173,9 @@ export default function RoomPage({ params }: RoomPageProps) {
   const [sharedRoomEnabled, setSharedRoomEnabled] = useState(false);
   const [roomUnavailable, setRoomUnavailable] = useState(false);
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipantState[]>([]);
+  const [novaVisualState, setNovaVisualState] = useState<AgentVisualState>("online");
+  const [isInvitingNova, setIsInvitingNova] = useState(false);
+  const consumedInviteRequest = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -256,6 +281,15 @@ export default function RoomPage({ params }: RoomPageProps) {
   );
   const novaInRoom = room?.invitedAgents.includes("nova") ?? false;
   const participants = room?.participants ?? [];
+  const agentStates = useMemo(() => {
+    const nextStates = new Map<string, AgentVisualState>();
+
+    if (novaInRoom) {
+      nextStates.set("nova", novaVisualState);
+    }
+
+    return nextStates;
+  }, [novaInRoom, novaVisualState]);
   const voiceByParticipantId = useMemo(
     () => new Map(voiceParticipants.map((participant) => [participant.id, participant])),
     [voiceParticipants],
@@ -264,18 +298,78 @@ export default function RoomPage({ params }: RoomPageProps) {
     setVoiceParticipants(nextParticipants);
   }, []);
 
-  const handleInviteNova = () => {
+  useEffect(() => {
+    if (!novaInRoom) {
+      if (!isInvitingNova) {
+        setNovaVisualState("online");
+      }
+
+      return;
+    }
+
+    setIsInvitingNova(false);
+    setNovaVisualState("in-room");
+
+    const intervalId = window.setInterval(() => {
+      setNovaVisualState((currentState) => {
+        if (currentState === "listening") {
+          return "thinking";
+        }
+
+        if (currentState === "thinking") {
+          return "in-room";
+        }
+
+        return "listening";
+      });
+    }, 6500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isInvitingNova, novaInRoom]);
+
+  const handleInviteNova = useCallback(async () => {
     if (!room) {
       return;
     }
 
-    if (!sharedRoomEnabled) {
-      inviteNova(room.id);
+    if (novaInRoom || isInvitingNova) {
       return;
     }
 
-    void inviteNovaShared(room.id);
-  };
+    setIsInvitingNova(true);
+    setNovaVisualState("joining");
+
+    if (!sharedRoomEnabled) {
+      inviteNova(room.id);
+      setIsInvitingNova(false);
+      setNovaVisualState("in-room");
+      return;
+    }
+
+    const nextRoom = await inviteNovaShared(room.id);
+
+    if (!nextRoom) {
+      setIsInvitingNova(false);
+      setNovaVisualState("online");
+    }
+  }, [inviteNova, inviteNovaShared, isInvitingNova, novaInRoom, room, sharedRoomEnabled]);
+
+  useEffect(() => {
+    if (
+      consumedInviteRequest.current ||
+      inviteRequest !== "nova" ||
+      !room ||
+      !sharedRoomEnabled ||
+      novaInRoom
+    ) {
+      return;
+    }
+
+    consumedInviteRequest.current = true;
+    void handleInviteNova();
+  }, [handleInviteNova, inviteRequest, novaInRoom, room, sharedRoomEnabled]);
 
   const handleLeaveRoom = () => {
     if (room && user) {
@@ -402,6 +496,7 @@ export default function RoomPage({ params }: RoomPageProps) {
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {participants.map((participant) => (
                       <ParticipantCard
+                        agentState={agentStates.get(participant.id)}
                         key={participant.id}
                         participant={participant}
                         voice={voiceByParticipantId.get(participant.id)}
@@ -414,7 +509,16 @@ export default function RoomPage({ params }: RoomPageProps) {
               <div className="absolute bottom-6 left-6 right-6 grid gap-3 sm:grid-cols-3">
                 <BetaStat label="Participants" value={String(participants.length)} />
                 <BetaStat label="Privacy" value="Invite-only" />
-                <BetaStat label="Nova" value={novaInRoom ? "In Room" : "Online"} />
+                <BetaStat
+                  label="Nova"
+                  value={
+                    isInvitingNova
+                      ? "Joining"
+                      : novaInRoom
+                        ? formatAgentState(novaVisualState)
+                        : "Online"
+                  }
+                />
               </div>
             </div>
           </BetaPanel>
@@ -431,7 +535,9 @@ export default function RoomPage({ params }: RoomPageProps) {
                 <div className="h-2.5 w-2.5 rounded-full bg-[oklch(0.72_0.2_245)] shadow-[0_0_18px_2px_oklch(0.72_0.2_245/0.65)]" />
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
-                {novaInRoom
+                {isInvitingNova
+                  ? "Nova is joining this room."
+                  : novaInRoom
                   ? "Nova joined the room."
                   : "Nova is online and ready to join this room."}
               </p>
@@ -441,7 +547,7 @@ export default function RoomPage({ params }: RoomPageProps) {
               inRoom={novaInRoom}
               name={nova.name}
               onInvite={handleInviteNova}
-              status="online"
+              status={isInvitingNova ? "joining" : novaInRoom ? novaVisualState : "online"}
             />
 
             <BetaPanel className="p-5">
