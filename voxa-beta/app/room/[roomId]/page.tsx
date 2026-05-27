@@ -22,7 +22,7 @@ import {
   BetaStat,
 } from "@/components/BetaChrome";
 import InviteLink from "@/components/InviteLink";
-import RoomVoice, { type VoiceParticipantState } from "@/components/RoomVoice";
+import RoomVoice, { type NovaState, type VoiceParticipantState } from "@/components/RoomVoice";
 import { useAuth } from "@/lib/auth";
 import { type NovaRoomMode, useRoom } from "@/lib/room";
 import { novaParticipant, type Participant } from "@/lib/store";
@@ -36,7 +36,14 @@ type RoomPageProps = {
   }>;
 };
 
-type AgentVisualState = "online" | "joining" | "in-room" | "listening" | "thinking" | "speaking";
+type AgentVisualState =
+  | "online"
+  | "joining"
+  | "in-room"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "error";
 type NovaControlMode = NovaRoomMode | "co-host";
 
 function agentStateFromVoice(voice?: VoiceParticipantState): AgentVisualState | null {
@@ -56,6 +63,10 @@ function agentStateFromVoice(voice?: VoiceParticipantState): AgentVisualState | 
 }
 
 function formatAgentState(state: AgentVisualState) {
+  if (state === "error") {
+    return "Error";
+  }
+
   return state
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -332,28 +343,6 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
 
     setIsInvitingNova(false);
     setNovaVisualState("in-room");
-
-    const intervalId = window.setInterval(() => {
-      setNovaVisualState((currentState) => {
-        if (currentState === "speaking") {
-          return "listening";
-        }
-
-        if (currentState === "listening") {
-          return "thinking";
-        }
-
-        if (currentState === "thinking") {
-          return "in-room";
-        }
-
-        return "listening";
-      });
-    }, 6500);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
   }, [isInvitingNova, novaInRoom]);
 
   const handleInviteNova = useCallback(async () => {
@@ -387,9 +376,20 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const novaVoice = voiceByParticipantId.get("nova");
   const liveNovaState = novaInRoom ? agentStateFromVoice(novaVoice) : null;
   const effectiveNovaState: AgentVisualState =
+    (novaVoice?.isSpeaking && novaInRoom ? "speaking" : null) ??
     manualNovaState ??
     liveNovaState ??
-    (novaVoice?.isSpeaking && novaInRoom ? "speaking" : novaVisualState);
+    novaVisualState;
+
+  const handleNovaStateChange = useCallback((state: NovaState) => {
+    if (state === "in_room") {
+      setManualNovaState(null);
+      setNovaVisualState("in-room");
+      return;
+    }
+
+    setManualNovaState(state === "error" ? "error" : state);
+  }, []);
 
   useEffect(() => {
     if (
@@ -510,16 +510,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
               <div className="absolute left-6 right-6 top-16 z-20 flex justify-start">
                 <RoomVoice
                   enabled={sharedRoomEnabled && room.status === "active"}
-                  onNovaStateChange={(state) => {
-                    if (!state || state === "idle") {
-                      setManualNovaState(null);
-                      return;
-                    }
-
-                    setManualNovaState(
-                      state === "initializing" ? "joining" : state,
-                    );
-                  }}
+                  onNovaStateChange={handleNovaStateChange}
                   onVoiceParticipantsChange={handleVoiceParticipantsChange}
                   roomId={room.id}
                 />

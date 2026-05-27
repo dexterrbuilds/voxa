@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -12,12 +12,14 @@ import { ConnectionState, Track } from "livekit-client";
 import { Mic, MicOff, Radio, Volume2 } from "lucide-react";
 import { BetaButton } from "@/components/BetaChrome";
 import { getSupabaseClient } from "@/lib/supabase";
-import { getNovaListenWindowMs, MicStateController } from "@/lib/voice-activation";
+import { getNovaListenWindowMs } from "@/lib/voice-activation";
+
+export type NovaState = "in_room" | "listening" | "thinking" | "speaking" | "error";
 
 type RoomVoiceProps = {
   roomId: string;
   enabled: boolean;
-  onNovaStateChange?: (state: VoiceParticipantState["agentState"]) => void;
+  onNovaStateChange?: (state: NovaState) => void;
   onVoiceParticipantsChange?: (participants: VoiceParticipantState[]) => void;
 };
 
@@ -57,24 +59,38 @@ function VoiceSession({
   onVoiceParticipantsChange,
   roomId,
 }: {
-  onNovaStateChange?: (state: VoiceParticipantState["agentState"]) => void;
+  onNovaStateChange?: (state: NovaState) => void;
   onVoiceParticipantsChange?: (participants: VoiceParticipantState[]) => void;
   roomId: string;
 }) {
   const connectionState = useConnectionState();
   const participants = useParticipants();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
-  const micPrimedRef = useRef(false);
+  const onNovaStateChangeRef = useRef(onNovaStateChange);
+  const micInitializedRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
   const stopTimerRef = useRef<number | null>(null);
-  const [isUpdatingMic, setIsUpdatingMic] = useState(false);
+  const recordingEndsAtRef = useRef<number | null>(null);
+  const captureIdRef = useRef(0);
+  const novaStateRef = useRef<NovaState>("in_room");
+  const isSendingNovaRef = useRef(false);
+  const [isUpdatingRoomMic, setIsUpdatingRoomMic] = useState(false);
+  const [isUpdatingNova, setIsUpdatingNova] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
-  const [activationState, setActivationState] = useState<
-    "sleeping" | "listening" | "thinking" | "speaking"
-  >("sleeping");
+  const [novaState, setNovaState] = useState<NovaState>("in_room");
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const connected = connectionState === ConnectionState.Connected;
+
+  useEffect(() => {
+    onNovaStateChangeRef.current = onNovaStateChange;
+  }, [onNovaStateChange]);
+
+  const transitionNova = useCallback((nextState: NovaState) => {
+    novaStateRef.current = nextState;
+    setNovaState(nextState);
+    onNovaStateChangeRef.current?.(nextState);
+  }, []);
 
   const participantRows = useMemo(
     () =>
@@ -99,58 +115,80 @@ function VoiceSession({
     onVoiceParticipantsChange?.(participantRows);
   }, [onVoiceParticipantsChange, participantRows]);
 
+  function clearStopTimer() {
+    if (stopTimerRef.current) {
+      window.clearTimeout(stopTimerRef.current);
+      stopTimerRef.current = null;
+    }
+  }
+
+  function cleanupNovaStream() {
+    audioStreamRef.current?.getTracks().forEach((track) => track.stop());
+    audioStreamRef.current = null;
+  }
+
+  function cancelNovaCapture(updateUi = true) {
+    clearStopTimer();
+    captureIdRef.current += 1;
+
+    const recorder = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
+    recorder?.stream.getTracks().forEach((track) => track.stop());
+
+    if (recorder && recorder.state !== "inactive") {
+      recorder.onstop = null;
+      recorder.onerror = null;
+      recorder.stop();
+    }
+
+    cleanupNovaStream();
+    isSendingNovaRef.current = false;
+
+    if (updateUi) {
+      setRemainingSeconds(0);
+      setIsUpdatingNova(false);
+    }
+  }
+
+  function stopNovaRecording() {
+    clearStopTimer();
+    const recorder = mediaRecorderRef.current;
+
+    if (recorder && recorder.state !== "inactive") {
+      recorder.requestData();
+      recorder.stop();
+    }
+  }
+
   useEffect(() => {
-    if (!connected || !localParticipant || micPrimedRef.current) {
+    if (!connected || !localParticipant || micInitializedRef.current) {
       return;
     }
 
-    let isActive = true;
-    micPrimedRef.current = true;
-
-    async function setupActivation() {
-      setMicError(null);
-
-      try {
-        const mic = new MicStateController(localParticipant);
-        await mic.primeMutedTrack();
-
-        if (!isActive) {
-          await mic.mute().catch(() => undefined);
-          return;
-        }
-
-        await mic.mute();
-        setActivationState("sleeping");
-      } catch (error) {
-        if (!isActive) {
-          return;
-        }
-
-        const permissionDenied =
-          error instanceof Error && /permission|denied|notallowed/i.test(error.message);
-        setMicError(
-          permissionDenied
-            ? "Permission denied. Allow microphone access to use Nova wake activation."
-            : error instanceof Error
-              ? error.message
-              : "Unable to prepare Nova wake activation.",
-        );
-      }
-    }
-
-    void setupActivation();
+    micInitializedRef.current = true;
+    void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
 
     return () => {
-      isActive = false;
-      stopRecorder();
-      audioStreamRef.current?.getTracks().forEach((track) => track.stop());
-      audioStreamRef.current = null;
+      cancelNovaCapture(false);
       void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
     };
   }, [connected, localParticipant]);
 
   useEffect(() => {
-    if (activationState !== "listening") {
+    const novaVoice = participantRows.find((participant) => participant.id === "nova");
+
+    if (novaVoice?.isSpeaking) {
+      transitionNova("speaking");
+      return;
+    }
+
+    if (novaStateRef.current === "speaking" && !isSendingNovaRef.current) {
+      transitionNova("in_room");
+    }
+  }, [participantRows, transitionNova]);
+
+  useEffect(() => {
+    if (novaState !== "listening") {
       return;
     }
 
@@ -165,25 +203,7 @@ function VoiceSession({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [activationState]);
-
-  const recordingEndsAtRef = useRef<number | null>(null);
-
-  function clearStopTimer() {
-    if (stopTimerRef.current) {
-      window.clearTimeout(stopTimerRef.current);
-      stopTimerRef.current = null;
-    }
-  }
-
-  function stopRecorder() {
-    clearStopTimer();
-    const recorder = mediaRecorderRef.current;
-
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
-  }
+  }, [novaState]);
 
   async function sendNovaAudio(audio: Blob) {
     const supabase = getSupabaseClient();
@@ -229,15 +249,19 @@ function VoiceSession({
   }
 
   async function startNovaRecording() {
+    if (novaStateRef.current === "listening" || isSendingNovaRef.current) {
+      return;
+    }
+
     const listenWindowMs = getNovaListenWindowMs();
-    const stream =
-      audioStreamRef.current ??
-      (await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      }));
+    const captureId = captureIdRef.current + 1;
+    captureIdRef.current = captureId;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+      },
+    });
     audioStreamRef.current = stream;
 
     const recorder = new MediaRecorder(stream, {
@@ -253,74 +277,129 @@ function VoiceSession({
         chunks.push(event.data);
       }
     };
+
+    recorder.onerror = () => {
+      if (captureIdRef.current !== captureId) {
+        return;
+      }
+
+      clearStopTimer();
+      cleanupNovaStream();
+      setRemainingSeconds(0);
+      mediaRecorderRef.current = null;
+      isSendingNovaRef.current = false;
+      setIsUpdatingNova(false);
+      transitionNova("error");
+      setMicError("Nova recording failed. Try again.");
+    };
+
     recorder.onstop = () => {
+      if (captureIdRef.current !== captureId) {
+        return;
+      }
+
       clearStopTimer();
       setRemainingSeconds(0);
       mediaRecorderRef.current = null;
+      cleanupNovaStream();
 
       const audio = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
 
       if (audio.size === 0) {
-        setActivationState("sleeping");
-        onNovaStateChange?.("idle");
+        isSendingNovaRef.current = false;
+        setIsUpdatingNova(false);
+        transitionNova("error");
         setMicError("Nova did not capture any audio.");
         return;
       }
 
-      setActivationState("thinking");
-      onNovaStateChange?.("thinking");
+      isSendingNovaRef.current = true;
+      setIsUpdatingNova(true);
+      transitionNova("thinking");
       void sendNovaAudio(audio)
         .then(() => {
-          setActivationState("sleeping");
-          onNovaStateChange?.("idle");
+          isSendingNovaRef.current = false;
+          setIsUpdatingNova(false);
+          transitionNova("in_room");
         })
         .catch((error) => {
-          setActivationState("sleeping");
-          onNovaStateChange?.("idle");
+          isSendingNovaRef.current = false;
+          setIsUpdatingNova(false);
+          transitionNova("error");
           setMicError(error instanceof Error ? error.message : "Nova could not respond.");
         });
     };
 
     recorder.start();
     recordingEndsAtRef.current = Date.now() + listenWindowMs;
-    setActivationState("listening");
-    onNovaStateChange?.("listening");
+    setIsUpdatingNova(false);
+    setMicError(null);
+    transitionNova("listening");
     stopTimerRef.current = window.setTimeout(() => {
-      stopRecorder();
+      stopNovaRecording();
     }, listenWindowMs);
   }
 
-  const handleActivateNova = async () => {
-    setIsUpdatingMic(true);
+  const handleToggleRoomMic = async () => {
+    if (!localParticipant) {
+      return;
+    }
+
+    setIsUpdatingRoomMic(true);
     setMicError(null);
 
     try {
-      if (activationState === "listening") {
-        stopRecorder();
-      } else {
-        await startNovaRecording();
-      }
+      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
     } catch (error) {
       const permissionDenied =
         error instanceof Error && /permission|denied|notallowed/i.test(error.message);
       setMicError(
         permissionDenied
           ? "Microphone permission was denied. Allow mic access in your browser and try again."
-          : "Unable to update your microphone. Try again.",
+          : "Unable to update your room microphone. Try again.",
       );
     } finally {
-      setIsUpdatingMic(false);
+      setIsUpdatingRoomMic(false);
     }
   };
 
-  const activationLabel =
-    activationState === "listening"
+  const handleActivateNova = async () => {
+    setMicError(null);
+
+    try {
+      if (novaState === "listening") {
+        stopNovaRecording();
+      } else if (novaState === "in_room" || novaState === "error") {
+        setIsUpdatingNova(true);
+        await startNovaRecording();
+      }
+    } catch (error) {
+      setIsUpdatingNova(false);
+      transitionNova("error");
+      const permissionDenied =
+        error instanceof Error && /permission|denied|notallowed/i.test(error.message);
+      setMicError(
+        permissionDenied
+          ? "Microphone permission was denied. Allow mic access in your browser and try again."
+          : "Unable to start Nova capture. Try again.",
+      );
+    }
+  };
+
+  const novaLabel =
+    novaState === "listening"
       ? `Listening for ${remainingSeconds || Math.ceil(getNovaListenWindowMs() / 1000)}s`
-      : activationState === "thinking"
+      : novaState === "thinking"
         ? "Thinking"
-        : activationState === "speaking"
+        : novaState === "speaking"
           ? "Speaking"
-          : "Sleeping";
+          : novaState === "error"
+            ? "Error"
+            : "In Room";
+  const novaButtonLabel =
+    novaState === "listening" ? "Stop" : novaState === "error" ? "Retry" : "Talk to Nova";
+  const novaButtonDisabled =
+    !connected || isUpdatingNova || novaState === "thinking" || novaState === "speaking";
 
   return (
     <>
@@ -334,24 +413,35 @@ function VoiceSession({
           {isMicrophoneEnabled ? (
             <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
           ) : (
-            <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+            <MicOff className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
           )}
-          {activationLabel}
+          {isMicrophoneEnabled ? "Mic live" : "Mic muted"}
+        </span>
+        <span className="beta-status-pill">
+          <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+          Nova {novaLabel}
         </span>
         <BetaButton
           className="min-h-9 px-3 text-xs"
-          disabled={!connected || isUpdatingMic}
-          onClick={handleActivateNova}
+          disabled={!connected || isUpdatingRoomMic}
+          onClick={handleToggleRoomMic}
           variant={isMicrophoneEnabled ? "glass" : "quiet"}
         >
-          {activationState === "listening" || activationState === "speaking" ? (
+          {isMicrophoneEnabled ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          {isMicrophoneEnabled ? "Mute" : "Unmute"}
+        </BetaButton>
+        <BetaButton
+          className="min-h-9 px-3 text-xs"
+          disabled={novaButtonDisabled}
+          onClick={handleActivateNova}
+          variant={novaState === "listening" ? "glass" : "quiet"}
+        >
+          {novaState === "listening" ? (
             <Mic className="h-4 w-4" />
           ) : (
             <MicOff className="h-4 w-4" />
           )}
-          {activationState === "listening" || activationState === "speaking"
-            ? "Stop"
-            : "Talk to Nova"}
+          {novaButtonLabel}
         </BetaButton>
         {micError && (
           <span className="text-xs text-[oklch(0.78_0.18_35)]">

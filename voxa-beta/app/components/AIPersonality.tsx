@@ -12,6 +12,7 @@ interface AIPersonalityProps {
     | "thinking"
     | "listening"
     | "speaking"
+    | "error"
     | "away"
     | "offline";
   onInvite?: () => void;
@@ -48,6 +49,8 @@ export default function AIPersonality({
         return "oklch(0.76 0.18 180)";
       case "speaking":
         return "oklch(0.82 0.19 145)";
+      case "error":
+        return "oklch(0.78 0.18 35)";
       case "away":
         return "oklch(0.78 0.14 80)";
       case "offline":
