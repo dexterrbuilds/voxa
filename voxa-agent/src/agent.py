@@ -38,7 +38,7 @@ NOVA_WAKE_WORD = "nova"
 NOVA_STT_MODEL = os.getenv("NOVA_STT_MODEL", "gpt-4o-mini-transcribe")
 NOVA_LLM_MODEL = os.getenv("NOVA_LLM_MODEL", "gpt-4.1-mini")
 NOVA_TTS_MODEL = os.getenv("NOVA_TTS_MODEL", "gpt-4o-mini-tts")
-NOVA_TTS_VOICE = os.getenv("NOVA_TTS_VOICE", "ash")
+NOVA_TTS_VOICE = os.getenv("NOVA_TTS_VOICE", "coral")
 
 DIRECT_ADDRESS_PATTERN = re.compile(
     r"^\s*(?:hey|hi|hello|ok|okay|yo)?\s*,?\s*nova\b|^\s*nova\b",
