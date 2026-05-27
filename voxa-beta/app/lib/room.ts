@@ -16,7 +16,9 @@ import {
 import { getSupabaseClient } from "@/lib/supabase";
 import { useRoomStore, type Participant, type User } from "@/lib/store";
 
-async function dispatchNovaAgent(roomId: string) {
+export type NovaRoomMode = "manual" | "silent";
+
+async function dispatchNovaAgent(roomId: string, mode: NovaRoomMode) {
   const supabase = getSupabaseClient();
 
   if (!supabase) {
@@ -33,7 +35,7 @@ async function dispatchNovaAgent(roomId: string) {
   }
 
   const response = await fetch("/api/agents/nova/dispatch", {
-    body: JSON.stringify({ roomId }),
+    body: JSON.stringify({ mode, roomId }),
     headers: {
       Authorization: `Bearer ${session.access_token}`,
       "Content-Type": "application/json",
@@ -49,6 +51,7 @@ async function dispatchNovaAgent(roomId: string) {
   return response.json() as Promise<{
     agentName: string;
     dispatchId: string;
+    mode: NovaRoomMode;
     status: "already-dispatched" | "dispatched";
   }>;
 }
@@ -133,13 +136,13 @@ export function useRoom() {
   );
 
   const inviteNovaShared = useCallback(
-    async (roomId: string) => {
+    async (roomId: string, mode: NovaRoomMode = "manual") => {
       try {
         const nextRoom = await inviteNovaToSharedRoom(roomId);
         setCurrentRoom(nextRoom);
 
         try {
-          await dispatchNovaAgent(roomId);
+          await dispatchNovaAgent(roomId, mode);
         } catch (dispatchError) {
           console.warn("Nova was added to the room, but LiveKit dispatch failed.", dispatchError);
         }

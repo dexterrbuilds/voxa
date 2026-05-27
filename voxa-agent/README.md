@@ -6,14 +6,20 @@ This project is intentionally separate from the Voxa marketing site and the `vox
 
 ## Current Scope
 
-Nova is implemented as a presence-first LiveKit Agent:
+Nova is implemented as a guarded LiveKit voice agent:
 
 - dispatch name: `nova`
 - display name: `Nova`
 - participant identity: `agent:nova`
 - participant type attribute: `agent`
 
-The current worker joins the LiveKit room when dispatched and stays connected. It does not run STT, LLM, TTS, or AI voice yet.
+The current worker joins the LiveKit room when dispatched and runs an STT -> LLM -> TTS pipeline through the LiveKit Agents framework. Manual mode is the default MVP behavior, so Nova does not respond unless the user directly addresses “Nova”.
+
+Dispatch metadata controls the response policy:
+
+- `mode = "manual"`: default MVP behavior. Future voice logic must only respond when the transcript directly addresses “Nova”.
+- `mode = "silent"`: Nova may join/listen, but must not synthesize responses.
+- co-host behavior is intentionally not supported yet.
 
 ## Structure
 
@@ -39,12 +45,11 @@ LIVEKIT_URL=
 LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 LIVEKIT_AGENT_NAME=nova
-```
-
-Reserved for the next voice-intelligence step:
-
-```bash
 OPENAI_API_KEY=
+NOVA_STT_MODEL=gpt-4o-mini-transcribe
+NOVA_LLM_MODEL=gpt-4.1-mini
+NOVA_TTS_MODEL=gpt-4o-mini-tts
+NOVA_TTS_VOICE=ash
 ```
 
 Do not commit `.env`, `.env.local`, API keys, or generated secrets.
@@ -151,20 +156,26 @@ The endpoint should:
 2. verify the user is in the room
 3. use `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` server-side only
 4. call LiveKit Agent Dispatch with `agent_name = "nova"`
-5. pass metadata such as Voxa room ID, requester user ID, and agent ID
+5. pass metadata such as Voxa room ID, requester user ID, agent ID, and Nova mode
 6. return a clean success/error response
 
 Do not expose `LIVEKIT_API_SECRET` to the browser.
 
-## Future Voice Pipeline
+## Voice Pipeline
 
-The next implementation step is replacing the presence-only wait loop in `src/agent.py` with an `AgentSession` that wires:
+`src/agent.py` uses an `AgentSession` with:
 
-- STT
-- LLM
-- TTS
-- VAD / turn detection
-- interruption handling
+- OpenAI STT
+- OpenAI LLM
+- OpenAI TTS
+- Silero VAD
+- multilingual turn detection
+- a wake-word gate in `on_user_turn_completed`
+
+The wake-word gate raises `StopResponse` before LLM generation unless Manual mode is active and the latest transcript directly addresses “Nova”. Silent mode always raises `StopResponse`.
+
+Future work:
+
 - room event/state callbacks
 - future multi-agent routing
 

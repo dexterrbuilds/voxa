@@ -24,7 +24,7 @@ import {
 import InviteLink from "@/components/InviteLink";
 import RoomVoice, { type VoiceParticipantState } from "@/components/RoomVoice";
 import { useAuth } from "@/lib/auth";
-import { useRoom } from "@/lib/room";
+import { type NovaRoomMode, useRoom } from "@/lib/room";
 import { novaParticipant, type Participant } from "@/lib/store";
 
 type RoomPageProps = {
@@ -36,7 +36,24 @@ type RoomPageProps = {
   }>;
 };
 
-type AgentVisualState = "online" | "joining" | "in-room" | "listening" | "thinking";
+type AgentVisualState = "online" | "joining" | "in-room" | "listening" | "thinking" | "speaking";
+type NovaControlMode = NovaRoomMode | "co-host";
+
+function agentStateFromVoice(voice?: VoiceParticipantState): AgentVisualState | null {
+  if (!voice?.agentState) {
+    return null;
+  }
+
+  if (voice.agentState === "initializing") {
+    return "joining";
+  }
+
+  if (voice.agentState === "idle") {
+    return "in-room";
+  }
+
+  return voice.agentState;
+}
 
 function formatAgentState(state: AgentVisualState) {
   return state
@@ -67,12 +84,16 @@ function ParticipantCard({
 }) {
   const isAgent = participant.participantType === "agent";
   const isSpeaking = !!voice?.isSpeaking;
-  const agentIsAnimating = isAgent && (agentState === "listening" || agentState === "thinking");
+  const agentIsAnimating =
+    isAgent &&
+    (agentState === "listening" || agentState === "thinking" || agentState === "speaking");
   const cardIsActive = isSpeaking || agentIsAnimating;
   const isVoiceConnected = !!voice?.isConnected;
   const isMuted = voice?.isMuted ?? true;
   const status = isAgent
-    ? formatAgentState(agentState ?? "in-room")
+    ? isSpeaking
+      ? "Speaking"
+      : formatAgentState(agentState ?? "in-room")
     : isVoiceConnected
       ? isMuted
         ? "Mic muted"
@@ -174,6 +195,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [roomUnavailable, setRoomUnavailable] = useState(false);
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipantState[]>([]);
   const [novaVisualState, setNovaVisualState] = useState<AgentVisualState>("online");
+  const [novaMode, setNovaMode] = useState<NovaControlMode>("manual");
   const [isInvitingNova, setIsInvitingNova] = useState(false);
   const consumedInviteRequest = useRef(false);
   const router = useRouter();
@@ -312,6 +334,10 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
 
     const intervalId = window.setInterval(() => {
       setNovaVisualState((currentState) => {
+        if (currentState === "speaking") {
+          return "listening";
+        }
+
         if (currentState === "listening") {
           return "thinking";
         }
@@ -348,13 +374,19 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       return;
     }
 
-    const nextRoom = await inviteNovaShared(room.id);
+    const dispatchMode: NovaRoomMode = novaMode === "silent" ? "silent" : "manual";
+    const nextRoom = await inviteNovaShared(room.id, dispatchMode);
 
     if (!nextRoom) {
       setIsInvitingNova(false);
       setNovaVisualState("online");
     }
-  }, [inviteNova, inviteNovaShared, isInvitingNova, novaInRoom, room, sharedRoomEnabled]);
+  }, [inviteNova, inviteNovaShared, isInvitingNova, novaInRoom, novaMode, room, sharedRoomEnabled]);
+
+  const novaVoice = voiceByParticipantId.get("nova");
+  const liveNovaState = novaInRoom ? agentStateFromVoice(novaVoice) : null;
+  const effectiveNovaState: AgentVisualState =
+    liveNovaState ?? (novaVoice?.isSpeaking && novaInRoom ? "speaking" : novaVisualState);
 
   useEffect(() => {
     if (
@@ -496,7 +528,11 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {participants.map((participant) => (
                       <ParticipantCard
-                        agentState={agentStates.get(participant.id)}
+                        agentState={
+                          participant.id === "nova"
+                            ? effectiveNovaState
+                            : agentStates.get(participant.id)
+                        }
                         key={participant.id}
                         participant={participant}
                         voice={voiceByParticipantId.get(participant.id)}
@@ -515,7 +551,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
                     isInvitingNova
                       ? "Joining"
                       : novaInRoom
-                        ? formatAgentState(novaVisualState)
+                        ? formatAgentState(effectiveNovaState)
                         : "Online"
                   }
                 />
@@ -543,11 +579,48 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
               </p>
             </BetaPanel>
 
+            <BetaPanel className="p-5">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
+                Nova mode
+              </div>
+              <div className="mt-4 grid gap-2">
+                {[
+                  { label: "Manual", mode: "manual", note: "Responds only when addressed by name." },
+                  { label: "Silent", mode: "silent", note: "Joins and listens without responding." },
+                  { label: "Co-host", mode: "co-host", note: "Later" },
+                ].map((option) => {
+                  const disabled = option.mode === "co-host" || novaInRoom || isInvitingNova;
+                  const active = novaMode === option.mode;
+
+                  return (
+                    <button
+                      className={[
+                        "rounded-xl border px-4 py-3 text-left transition",
+                        active
+                          ? "border-[oklch(0.72_0.2_245/0.5)] bg-[oklch(0.72_0.2_245/0.12)]"
+                          : "border-white/[0.07] bg-white/[0.035] hover:border-white/[0.14]",
+                        disabled ? "cursor-not-allowed opacity-55" : "",
+                      ].join(" ")}
+                      disabled={disabled}
+                      key={option.mode}
+                      onClick={() => setNovaMode(option.mode as NovaControlMode)}
+                      type="button"
+                    >
+                      <span className="block text-sm font-semibold text-white">{option.label}</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-[oklch(0.65_0.02_260)]">
+                        {option.note}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </BetaPanel>
+
             <AIPersonality
               inRoom={novaInRoom}
               name={nova.name}
               onInvite={handleInviteNova}
-              status={isInvitingNova ? "joining" : novaInRoom ? novaVisualState : "online"}
+              status={isInvitingNova ? "joining" : novaInRoom ? effectiveNovaState : "online"}
             />
 
             <BetaPanel className="p-5">

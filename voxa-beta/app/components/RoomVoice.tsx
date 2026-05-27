@@ -27,11 +27,16 @@ type VoiceToken = {
 export type VoiceParticipantState = {
   id: string;
   name: string;
+  agentState?: "idle" | "initializing" | "listening" | "thinking" | "speaking";
   isLocal: boolean;
   isMuted: boolean;
   isSpeaking: boolean;
   isConnected: boolean;
 };
+
+function normalizeLiveKitIdentity(identity: string) {
+  return identity.startsWith("agent:") ? identity.slice("agent:".length) : identity;
+}
 
 function formatConnectionState(state: ConnectionState) {
   if (state === ConnectionState.Connected) {
@@ -63,8 +68,11 @@ function VoiceSession({
       participants.map((participant) => {
         const micPublication = participant.getTrackPublication(Track.Source.Microphone);
         return {
-          id: participant.identity,
+          id: normalizeLiveKitIdentity(participant.identity),
           name: participant.name || participant.identity,
+          agentState: participant.attributes["lk.agent.state"] as
+            | VoiceParticipantState["agentState"]
+            | undefined,
           isLocal: participant.isLocal,
           isMuted: participant.isLocal ? !isMicrophoneEnabled : (micPublication?.isMuted ?? true),
           isSpeaking: participant.isSpeaking,

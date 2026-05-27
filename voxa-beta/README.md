@@ -44,6 +44,12 @@ The endpoint:
 
 When the user clicks Invite on Nova, Voxa first adds Nova to Supabase `room_participants`, then asks LiveKit to dispatch the deployed agent into the same room.
 
+Nova dispatch modes:
+
+- `Manual` is the MVP default. Nova should only respond when directly addressed by name, for example “Nova...”.
+- `Silent` dispatches Nova as a present/listening agent but tells the worker not to synthesize responses.
+- `Co-host` is intentionally disabled for now.
+
 ## Local Development
 
 ```bash

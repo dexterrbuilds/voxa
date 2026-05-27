@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 
 const novaAgentName = process.env.LIVEKIT_NOVA_AGENT_NAME ?? "nova";
 const roomIdPattern = /^[a-zA-Z0-9_-]{6,80}$/;
+const supportedNovaModes = new Set(["manual", "silent"]);
 
 function normalizeSupabaseUrl(url: string) {
   return url
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     return jsonError("Sign in before inviting Nova.", 401);
   }
 
-  let body: { roomId?: unknown };
+  let body: { mode?: unknown; roomId?: unknown };
   try {
     body = (await request.json()) as { roomId?: unknown };
   } catch {
@@ -51,6 +52,8 @@ export async function POST(request: NextRequest) {
   if (!roomIdPattern.test(roomId)) {
     return jsonError("Invalid room id.", 400);
   }
+  const requestedMode = typeof body.mode === "string" ? body.mode.trim().toLowerCase() : "manual";
+  const novaMode = supportedNovaModes.has(requestedMode) ? requestedMode : "manual";
 
   const supabase = createClient(normalizeSupabaseUrl(supabaseUrl), supabaseAnonKey, {
     auth: {
@@ -109,6 +112,8 @@ export async function POST(request: NextRequest) {
 
   const metadata = JSON.stringify({
     agent_id: "nova",
+    direct_address_required: novaMode === "manual",
+    mode: novaMode,
     requested_by: user.id,
     room_id: roomId,
     source: "voxa",
@@ -125,6 +130,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         agentName: novaAgentName,
         dispatchId: existingNovaDispatch.id,
+        mode: novaMode,
         status: "already-dispatched",
       });
     }
@@ -134,6 +140,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       agentName: novaAgentName,
       dispatchId: dispatch.id,
+      mode: novaMode,
       status: "dispatched",
     });
   } catch (error) {

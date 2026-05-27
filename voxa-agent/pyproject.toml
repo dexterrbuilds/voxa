@@ -8,14 +8,11 @@ version = "0.1.0"
 description = "LiveKit Agent workers for Voxa AI participants."
 requires-python = ">=3.10,<3.15"
 dependencies = [
-  "livekit-agents~=1.5",
+  "livekit-agents[openai,silero,turn-detector]~=1.5",
   "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]
-voice = [
-  "livekit-agents[openai,silero,turn-detector]~=1.5",
-]
 dev = [
   "ruff>=0.8",
 ]
