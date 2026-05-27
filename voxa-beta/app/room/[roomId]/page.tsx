@@ -160,9 +160,7 @@ export default function RoomPage({ params }: RoomPageProps) {
       return;
     }
 
-    void inviteNovaShared(room.id).catch(() => {
-      inviteNova(room.id);
-    });
+    void inviteNovaShared(room.id);
   };
 
   const handleLeaveRoom = () => {
@@ -253,6 +251,8 @@ export default function RoomPage({ params }: RoomPageProps) {
             </div>
           </div>
         </div>
+
+        <RoomVoice enabled={sharedRoomEnabled && room.status === "active"} roomId={room.id} />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,22rem]">
           <BetaPanel className="p-4 sm:p-6">
@@ -349,12 +349,6 @@ export default function RoomPage({ params }: RoomPageProps) {
             </BetaPanel>
           </aside>
         </div>
-
-        <RoomVoice
-          enabled={sharedRoomEnabled && room.status === "active"}
-          onLeaveRoom={handleLeaveRoom}
-          roomId={room.id}
-        />
 
         <InviteLink roomId={room.id} />
       </div>

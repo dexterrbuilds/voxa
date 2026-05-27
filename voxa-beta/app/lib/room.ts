@@ -67,12 +67,15 @@ export function useRoom() {
           return null;
         }
 
-        if (!isSharedRoomSchemaError(error)) {
-          console.warn("Shared room join failed. Falling back to local room state.", error);
+        if (isSharedRoomSchemaError(error)) {
+          console.warn("Shared room schema is not installed. Falling back to local room state.");
+          const room = joinExistingRoom(roomId, user);
+          return room ? { room, usedSharedState: false } : null;
         }
 
-        const room = joinExistingRoom(roomId, user);
-        return room ? { room, usedSharedState: false } : null;
+        console.warn("Shared room join failed. Refusing local fallback for production sync.", error);
+        setCurrentRoom(null);
+        return null;
       }
     },
     [joinExistingRoom, setCurrentRoom],
@@ -98,11 +101,13 @@ export function useRoom() {
         setCurrentRoom(nextRoom);
         return nextRoom;
       } catch (error) {
-        if (!isSharedRoomSchemaError(error)) {
-          console.warn("Shared Nova invite failed. Falling back to local room state.", error);
+        if (isSharedRoomSchemaError(error)) {
+          console.warn("Shared Nova invite failed because room schema is missing.");
+          return inviteNova(roomId);
         }
 
-        return inviteNova(roomId);
+        console.warn("Shared Nova invite failed. Refusing local fallback for production sync.", error);
+        return null;
       }
     },
     [inviteNova, setCurrentRoom],

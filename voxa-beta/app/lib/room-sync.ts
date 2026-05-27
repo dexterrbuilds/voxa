@@ -64,6 +64,7 @@ export const roomPresenceConfig = {
   staleTimeoutMs: 60_000,
 };
 const novaAgent: AgentInvite = { id: "nova", name: "Nova" };
+let staleCleanupUnavailable = false;
 
 function displayNameForUser(user: User) {
   return user.name || user.email || "Guest";
@@ -138,6 +139,17 @@ export function isSharedRoomSchemaError(error: unknown) {
     roomError?.code === "PGRST205" ||
     /does not exist/i.test(roomError?.message ?? "") ||
     /schema cache/i.test(roomError?.message ?? "")
+  );
+}
+
+function isOptionalStaleCleanupError(error: unknown) {
+  const roomError = error as { code?: string; message?: string } | null;
+  const message = roomError?.message ?? "";
+
+  return (
+    roomError?.code === "PGRST202" ||
+    /cleanup_stale_room_participants/i.test(message) ||
+    /function.*schema cache/i.test(message)
   );
 }
 
@@ -309,6 +321,10 @@ export async function cleanupStaleParticipants(roomId: string) {
     throw new Error("Supabase is not configured.");
   }
 
+  if (staleCleanupUnavailable) {
+    return null;
+  }
+
   const staleBefore = new Date(Date.now() - roomPresenceConfig.staleTimeoutMs).toISOString();
   const result = await supabase.rpc("cleanup_stale_room_participants", {
     target_room_id: roomId,
@@ -316,6 +332,14 @@ export async function cleanupStaleParticipants(roomId: string) {
   });
 
   if (result.error) {
+    if (isOptionalStaleCleanupError(result.error)) {
+      staleCleanupUnavailable = true;
+      console.warn(
+        "Stale participant cleanup is not installed in Supabase yet. Shared room sync will continue without stale cleanup.",
+      );
+      return null;
+    }
+
     throw result.error;
   }
 

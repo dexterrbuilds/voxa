@@ -16,7 +16,6 @@ import { getSupabaseClient } from "@/lib/supabase";
 type RoomVoiceProps = {
   roomId: string;
   enabled: boolean;
-  onLeaveRoom: () => void;
 };
 
 type VoiceToken = {
@@ -36,7 +35,7 @@ function formatConnectionState(state: ConnectionState) {
   return "Voice idle";
 }
 
-function VoiceSession({ onLeaveRoom }: { onLeaveRoom: () => void }) {
+function VoiceSession({ onLeaveVoice }: { onLeaveVoice: () => void }) {
   const connectionState = useConnectionState();
   const participants = useParticipants();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
@@ -122,9 +121,9 @@ function VoiceSession({ onLeaveRoom }: { onLeaveRoom: () => void }) {
             )}
             {isMicrophoneEnabled ? "Mute" : "Unmute"}
           </BetaButton>
-          <BetaButton onClick={onLeaveRoom} variant="quiet">
+          <BetaButton onClick={onLeaveVoice} variant="quiet">
             <PhoneOff className="h-4 w-4" />
-            Leave
+            Leave Voice
           </BetaButton>
         </div>
       </div>
@@ -155,14 +154,15 @@ function VoiceSession({ onLeaveRoom }: { onLeaveRoom: () => void }) {
   );
 }
 
-export default function RoomVoice({ roomId, enabled, onLeaveRoom }: RoomVoiceProps) {
+export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
+  const [joinedVoice, setJoinedVoice] = useState(false);
   const [voiceToken, setVoiceToken] = useState<VoiceToken | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !joinedVoice) {
       setVoiceToken(null);
       return;
     }
@@ -224,10 +224,57 @@ export default function RoomVoice({ roomId, enabled, onLeaveRoom }: RoomVoicePro
     return () => {
       isActive = false;
     };
-  }, [enabled, retryCount, roomId]);
+  }, [enabled, joinedVoice, retryCount, roomId]);
 
   if (!enabled) {
-    return null;
+    return (
+      <BetaPanel className="mt-8 p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
+              <Radio className="h-3.5 w-3.5" />
+              Human voice
+            </div>
+            <p className="mt-2 text-sm text-[oklch(0.65_0.02_260)]">
+              Voice unlocks when the shared room is connected.
+            </p>
+          </div>
+          <BetaButton disabled variant="quiet">
+            <MicOff className="h-4 w-4" />
+            Voice unavailable
+          </BetaButton>
+        </div>
+      </BetaPanel>
+    );
+  }
+
+  if (!joinedVoice) {
+    return (
+      <BetaPanel className="mt-8 p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
+              <Radio className="h-3.5 w-3.5" />
+              Human voice
+            </div>
+            <p className="mt-2 text-lg font-semibold tracking-tight text-white">Voice ready</p>
+            <p className="mt-3 max-w-xl text-sm text-[oklch(0.65_0.02_260)]">
+              Join voice to grant microphone permission and talk with people in this room.
+            </p>
+          </div>
+          <BetaButton
+            onClick={() => {
+              setError(null);
+              setJoinedVoice(true);
+            }}
+            variant="electric"
+          >
+            <Mic className="h-4 w-4" />
+            Join Voice
+          </BetaButton>
+        </div>
+      </BetaPanel>
+    );
   }
 
   if (error) {
@@ -239,6 +286,7 @@ export default function RoomVoice({ roomId, enabled, onLeaveRoom }: RoomVoicePro
             onClick={() => {
               setVoiceToken(null);
               setError(null);
+              setJoinedVoice(true);
               setRetryCount((count) => count + 1);
             }}
             variant="glass"
@@ -275,7 +323,12 @@ export default function RoomVoice({ roomId, enabled, onLeaveRoom }: RoomVoicePro
       token={voiceToken.token}
       video={false}
     >
-      <VoiceSession onLeaveRoom={onLeaveRoom} />
+      <VoiceSession
+        onLeaveVoice={() => {
+          setJoinedVoice(false);
+          setVoiceToken(null);
+        }}
+      />
     </LiveKitRoom>
   );
 }
