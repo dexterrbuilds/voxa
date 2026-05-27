@@ -1,12 +1,45 @@
 import { GoogleGenAI } from "@google/genai";
 import { NovaProviderError, sanitizeErrorMessage, statusFromUnknown } from "@/lib/server/nova/errors";
 
-const novaSystemPrompt =
-  "You are Nova, a calm, intelligent, warm AI voice participant in a private Voxa room. " +
-  "Respond concisely and conversationally. You only speak when directly activated. " +
-  "Keep responses short unless asked for detail.";
+function getCurrentDateContext(timeZone = "UTC") {
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone,
+    year: "numeric",
+  });
 
-export async function generateNovaResponse(transcript: string) {
+  return {
+    formattedDate,
+    timeZone,
+  };
+}
+
+function buildNovaSystemInstruction(timeZone?: string) {
+  const dateContext = getCurrentDateContext(timeZone || "UTC");
+
+  return `
+You are Nova, a real-time conversational voice assistant inside Voxa.
+
+Today's current date is strictly ${dateContext.formattedDate}.
+Use timezone context: ${dateContext.timeZone}.
+
+All temporal reasoning, scheduling, relative dates, current events, and time-sensitive questions must anchor to this current date.
+
+You may discuss recent/current information when relevant.
+
+Keep responses:
+- conversational
+- concise
+- natural
+- voice-friendly
+
+Avoid overly long paragraphs.
+`.trim();
+}
+
+export async function generateNovaResponse(transcript: string, options?: { timeZone?: string }) {
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
@@ -18,11 +51,12 @@ export async function generateNovaResponse(transcript: string) {
   }
 
   const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+  const systemInstruction = buildNovaSystemInstruction(options?.timeZone);
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     config: {
       maxOutputTokens: 180,
-      systemInstruction: novaSystemPrompt,
+      systemInstruction,
       temperature: 0.7,
     },
     contents: transcript,
