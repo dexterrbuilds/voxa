@@ -7,9 +7,6 @@ const nextConfig = {
       bodySizeLimit: "1mb",
     },
   },
-  turbopack: {
-    root: __dirname,
-  },
 };
 
 module.exports = nextConfig;
