@@ -101,7 +101,7 @@ export default function RoomPage({ params }: RoomPageProps) {
     };
 
     const channel = subscribeToRoom(room.id, refresh);
-    const intervalId = window.setInterval(refresh, 4000);
+    const intervalId = window.setInterval(refresh, 3000);
 
     return () => {
       window.clearInterval(intervalId);

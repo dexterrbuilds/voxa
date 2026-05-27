@@ -68,9 +68,9 @@ export function useRoom() {
         }
 
         if (isSharedRoomSchemaError(error)) {
-          console.warn("Shared room schema is not installed. Falling back to local room state.");
-          const room = joinExistingRoom(roomId, user);
-          return room ? { room, usedSharedState: false } : null;
+          console.warn("Shared room schema is not installed. Supabase participant sync is required.");
+          setCurrentRoom(null);
+          return null;
         }
 
         console.warn("Shared room join failed. Refusing local fallback for production sync.", error);
@@ -103,7 +103,7 @@ export function useRoom() {
       } catch (error) {
         if (isSharedRoomSchemaError(error)) {
           console.warn("Shared Nova invite failed because room schema is missing.");
-          return inviteNova(roomId);
+          return null;
         }
 
         console.warn("Shared Nova invite failed. Refusing local fallback for production sync.", error);
