@@ -13,7 +13,45 @@ import {
   unsubscribeFromSharedRoom,
   updateSharedRoomHeartbeat,
 } from "@/lib/room-sync";
+import { getSupabaseClient } from "@/lib/supabase";
 import { useRoomStore, type Participant, type User } from "@/lib/store";
+
+async function dispatchNovaAgent(roomId: string) {
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error || !session?.access_token) {
+    throw new Error("Sign in before inviting Nova.");
+  }
+
+  const response = await fetch("/api/agents/nova/dispatch", {
+    body: JSON.stringify({ roomId }),
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(payload?.error ?? "Nova could not join voice yet.");
+  }
+
+  return response.json() as Promise<{
+    agentName: string;
+    dispatchId: string;
+    status: "already-dispatched" | "dispatched";
+  }>;
+}
 
 export function useRoom() {
   const {
@@ -99,6 +137,13 @@ export function useRoom() {
       try {
         const nextRoom = await inviteNovaToSharedRoom(roomId);
         setCurrentRoom(nextRoom);
+
+        try {
+          await dispatchNovaAgent(roomId);
+        } catch (dispatchError) {
+          console.warn("Nova was added to the room, but LiveKit dispatch failed.", dispatchError);
+        }
+
         return nextRoom;
       } catch (error) {
         if (isSharedRoomSchemaError(error)) {

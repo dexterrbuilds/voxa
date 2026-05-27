@@ -1,0 +1,10 @@
+# The LiveKit CLI creates the real livekit.toml when you run:
+# lk agent create
+#
+# Do not fill this example with real project IDs or secrets.
+
+[project]
+subdomain = "<your-livekit-project-subdomain>"
+
+[agent]
+id = "<created-by-lk-agent-create>"
