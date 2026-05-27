@@ -46,7 +46,7 @@ export function Navbar() {
           <Button asChild variant="electric" size="sm" className="flex items-center gap-1">
             <a href={BETA_APP_URL} className="flex items-center gap-1">
               <Zap className="h-3 w-3" />
-              Start Room
+              Use Voxa
             </a>
           </Button>
         </div>
@@ -77,11 +77,11 @@ export function Navbar() {
             onClick={() => setOpen(false)}
             className="py-2 text-sm text-muted-foreground hover:text-foreground"
           >
-            Start Room
+            Use Voxa
           </a>
           <Button asChild variant="electric" size="sm" className="mt-3 w-full">
             <a href={BETA_APP_URL} onClick={() => setOpen(false)}>
-              Start Room
+              Use Voxa
             </a>
           </Button>
         </div>

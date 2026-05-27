@@ -71,7 +71,7 @@ export function Footer() {
           <div className="flex items-center gap-3">
             <span>Conversational infrastructure for autonomous agents.</span>
             <Button asChild variant="electric" size="sm">
-              <a href={BETA_APP_URL}>Start Room</a>
+              <a href={BETA_APP_URL}>Use Voxa</a>
             </Button>
           </div>
         </div>

@@ -144,7 +144,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
                 <Button asChild variant="electric" size="lg">
                   <a href={BETA_APP_URL}>
-                    Start Room <ArrowRight className="h-4 w-4" />
+                    Use Voxa <ArrowRight className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button asChild variant="glass" size="lg">
@@ -412,7 +412,7 @@ export default function HomePage() {
               <div className="mt-8">
                 <Button asChild variant="electric" size="lg">
                   <a href={BETA_APP_URL}>
-                    Start Room <ArrowRight className="h-4 w-4" />
+                    Use Voxa <ArrowRight className="h-4 w-4" />
                   </a>
                 </Button>
               </div>
