@@ -195,6 +195,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [roomUnavailable, setRoomUnavailable] = useState(false);
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipantState[]>([]);
   const [novaVisualState, setNovaVisualState] = useState<AgentVisualState>("online");
+  const [manualNovaState, setManualNovaState] = useState<AgentVisualState | null>(null);
   const [novaMode, setNovaMode] = useState<NovaControlMode>("manual");
   const [isInvitingNova, setIsInvitingNova] = useState(false);
   const consumedInviteRequest = useRef(false);
@@ -386,7 +387,9 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const novaVoice = voiceByParticipantId.get("nova");
   const liveNovaState = novaInRoom ? agentStateFromVoice(novaVoice) : null;
   const effectiveNovaState: AgentVisualState =
-    liveNovaState ?? (novaVoice?.isSpeaking && novaInRoom ? "speaking" : novaVisualState);
+    manualNovaState ??
+    liveNovaState ??
+    (novaVoice?.isSpeaking && novaInRoom ? "speaking" : novaVisualState);
 
   useEffect(() => {
     if (
@@ -507,6 +510,16 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
               <div className="absolute left-6 right-6 top-16 z-20 flex justify-start">
                 <RoomVoice
                   enabled={sharedRoomEnabled && room.status === "active"}
+                  onNovaStateChange={(state) => {
+                    if (!state || state === "idle") {
+                      setManualNovaState(null);
+                      return;
+                    }
+
+                    setManualNovaState(
+                      state === "initializing" ? "joining" : state,
+                    );
+                  }}
                   onVoiceParticipantsChange={handleVoiceParticipantsChange}
                   roomId={room.id}
                 />

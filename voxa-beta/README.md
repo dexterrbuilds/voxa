@@ -12,13 +12,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 LIVEKIT_URL=your_livekit_cloud_url
 LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
-LIVEKIT_NOVA_AGENT_NAME=nova
 NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS=10000
-NEXT_PUBLIC_WAKE_WORD=Nova
-NEXT_PUBLIC_PICOVOICE_ACCESS_KEY=your_picovoice_access_key
-NEXT_PUBLIC_PICOVOICE_KEYWORD_PATH=/wake/nova_web.ppn
-NEXT_PUBLIC_PICOVOICE_MODEL_PATH=/wake/porcupine_params.pv
-NEXT_PUBLIC_PICOVOICE_SENSITIVITY=0.65
+DEEPGRAM_API_KEY=your_deepgram_key
+GOOGLE_API_KEY=your_google_gemini_key
+GEMINI_MODEL=gemini-3.1-flash-lite
+NOVA_TTS_PROVIDER=edge
+NOVA_TTS_VOICE=en-US-JennyNeural
+NOVA_TTS_SPEED=1.15
 ```
 
 In Supabase:
@@ -33,41 +33,32 @@ In Supabase:
 
 Google sign-in remains visible in the UI, but it is intentionally not the active test path yet.
 
-## Nova LiveKit Agent Dispatch
+## Nova Pipeline
 
-Nova is deployed as a separate LiveKit Agent from `../voxa-agent`. The beta app dispatches Nova through:
+Nova uses a decoupled tap-to-talk pipeline for MVP control and cost:
 
 ```http
-POST /api/agents/nova/dispatch
+POST /api/agents/nova/respond
 ```
 
 The endpoint:
 
 - requires a signed-in Supabase user
 - verifies the user is a human participant in the room
-- uses `LIVEKIT_API_SECRET` only on the server
-- dispatches the LiveKit agent with dispatch name `nova`
+- verifies Nova is present in the room
+- transcribes the captured audio with Deepgram
+- generates a concise Nova response with Gemini Flash-Lite
+- synthesizes an MP3 response with Edge TTS
+- publishes the synthesized response into the LiveKit room as Nova
+- returns playback metadata, transcript, and response text
 
-When the user clicks Invite on Nova, Voxa first adds Nova to Supabase `room_participants`, then asks LiveKit to dispatch the deployed agent into the same room.
+Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, or Edge TTS can be swapped later.
 
 ## Nova Activation
 
-While Picovoice access is pending, Voxa uses a push-to-talk / timed activation fallback. The LiveKit microphone track is created when the user joins voice, then muted immediately. Clicking `Talk to Nova` unmutes the mic for `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS` and then auto-mutes it again. The user can click `Stop` earlier.
+Voxa uses push-to-talk / timed activation. Clicking `Talk to Nova` records a bounded audio clip for `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS`, sends it to the server pipeline, shows Nova as Thinking, and publishes Nova's generated voice back into the LiveKit room so everyone connected to voice can hear it.
 
-Future wake-word detection will use Picovoice Porcupine locally in the browser with the same mic gating behavior.
-
-Required public assets:
-
-- `voxa-beta/public/wake/nova_web.ppn`: custom Picovoice wake-word model for “Nova”, exported for Web/WASM.
-- `voxa-beta/public/wake/porcupine_params.pv`: Porcupine parameter model.
-
-Picovoice is not required for the current push-to-talk fallback.
-
-Nova dispatch modes:
-
-- `Manual` is the MVP default. Push-to-talk activates audio before it reaches Nova.
-- `Silent` dispatches Nova as a present/listening agent but tells the worker not to synthesize responses.
-- `Co-host` is intentionally disabled for now.
+The older persistent LiveKit Agent dispatch path is not required for this MVP pipeline. Nova's generated response is published into the room from the Next.js server route.
 
 ## Local Development
 
@@ -88,7 +79,7 @@ The app supports:
 - start room and join room flow
 - shareable room links
 - browser-session room state
-- Nova invite state, timed push-to-talk activation, and LiveKit agent dispatch
+- Nova invite state and timed push-to-talk response pipeline
 - participant and room event display
 
-Human voice rooms and Nova voice intelligence are supported. Nova only receives microphone audio during the timed activation window.
+Human voice rooms and Nova voice intelligence are supported. Nova only receives captured audio clips during the timed activation window.

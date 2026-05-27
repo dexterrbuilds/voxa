@@ -9,11 +9,13 @@
     "demo": "node server.js"
   },
   "dependencies": {
+    "@audio/decode-mp3": "^1.1.0",
+    "@google/genai": "^2.6.0",
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",
-    "@picovoice/porcupine-web": "^4.0.0",
-    "@picovoice/web-voice-processor": "^4.0.10",
+    "@livekit/rtc-node": "^0.13.29",
     "@supabase/supabase-js": "^2.106.2",
+    "edge-tts": "^1.0.1",
     "framer-motion": "^12.40.0",
     "livekit-client": "^2.19.0",
     "livekit-server-sdk": "^2.15.3",

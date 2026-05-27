@@ -7,6 +7,7 @@ const nextConfig = {
       bodySizeLimit: "1mb",
     },
   },
+  serverExternalPackages: ["@livekit/rtc-node", "@livekit/rtc-ffi-bindings"],
 };
 
 module.exports = nextConfig;

@@ -18,6 +18,10 @@ import { useRoomStore, type Participant, type User } from "@/lib/store";
 
 export type NovaRoomMode = "manual" | "silent";
 
+function shouldDispatchPersistentNovaAgent() {
+  return process.env.NEXT_PUBLIC_NOVA_LIVEKIT_AGENT_ENABLED === "true";
+}
+
 async function dispatchNovaAgent(roomId: string, mode: NovaRoomMode) {
   const supabase = getSupabaseClient();
 
@@ -141,10 +145,12 @@ export function useRoom() {
         const nextRoom = await inviteNovaToSharedRoom(roomId);
         setCurrentRoom(nextRoom);
 
-        try {
-          await dispatchNovaAgent(roomId, mode);
-        } catch (dispatchError) {
-          console.warn("Nova was added to the room, but LiveKit dispatch failed.", dispatchError);
+        if (shouldDispatchPersistentNovaAgent()) {
+          try {
+            await dispatchNovaAgent(roomId, mode);
+          } catch (dispatchError) {
+            console.warn("Nova was added to the room, but LiveKit dispatch failed.", dispatchError);
+          }
         }
 
         return nextRoom;

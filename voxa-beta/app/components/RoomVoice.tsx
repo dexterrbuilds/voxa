@@ -12,15 +12,12 @@ import { ConnectionState, Track } from "livekit-client";
 import { Mic, MicOff, Radio, Volume2 } from "lucide-react";
 import { BetaButton } from "@/components/BetaChrome";
 import { getSupabaseClient } from "@/lib/supabase";
-import {
-  getNovaListenWindowMs,
-  MicStateController,
-  VoiceActivationController,
-} from "@/lib/voice-activation";
+import { getNovaListenWindowMs, MicStateController } from "@/lib/voice-activation";
 
 type RoomVoiceProps = {
   roomId: string;
   enabled: boolean;
+  onNovaStateChange?: (state: VoiceParticipantState["agentState"]) => void;
   onVoiceParticipantsChange?: (participants: VoiceParticipantState[]) => void;
 };
 
@@ -56,18 +53,26 @@ function formatConnectionState(state: ConnectionState) {
 }
 
 function VoiceSession({
+  onNovaStateChange,
   onVoiceParticipantsChange,
+  roomId,
 }: {
+  onNovaStateChange?: (state: VoiceParticipantState["agentState"]) => void;
   onVoiceParticipantsChange?: (participants: VoiceParticipantState[]) => void;
+  roomId: string;
 }) {
   const connectionState = useConnectionState();
   const participants = useParticipants();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const micPrimedRef = useRef(false);
-  const activationControllerRef = useRef<VoiceActivationController | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const stopTimerRef = useRef<number | null>(null);
   const [isUpdatingMic, setIsUpdatingMic] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
-  const [activationState, setActivationState] = useState<"sleeping" | "listening">("sleeping");
+  const [activationState, setActivationState] = useState<
+    "sleeping" | "listening" | "thinking" | "speaking"
+  >("sleeping");
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const connected = connectionState === ConnectionState.Connected;
 
@@ -114,20 +119,7 @@ function VoiceSession({
           return;
         }
 
-        const activation = new VoiceActivationController(
-          mic,
-          getNovaListenWindowMs(),
-          {
-            onActivate: () => {
-              setActivationState("listening");
-            },
-            onDeactivate: () => {
-              setActivationState("sleeping");
-              setRemainingSeconds(0);
-            },
-          },
-        );
-        activationControllerRef.current = activation;
+        await mic.mute();
         setActivationState("sleeping");
       } catch (error) {
         if (!isActive) {
@@ -150,8 +142,9 @@ function VoiceSession({
 
     return () => {
       isActive = false;
-      activationControllerRef.current?.dispose();
-      activationControllerRef.current = null;
+      stopRecorder();
+      audioStreamRef.current?.getTracks().forEach((track) => track.stop());
+      audioStreamRef.current = null;
       void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
     };
   }, [connected, localParticipant]);
@@ -162,9 +155,8 @@ function VoiceSession({
     }
 
     const updateRemaining = () => {
-      setRemainingSeconds(
-        Math.ceil((activationControllerRef.current?.getRemainingMs() ?? 0) / 1000),
-      );
+      const remainingMs = Math.max(0, (recordingEndsAtRef.current ?? 0) - Date.now());
+      setRemainingSeconds(Math.ceil(remainingMs / 1000));
     };
 
     updateRemaining();
@@ -175,19 +167,138 @@ function VoiceSession({
     };
   }, [activationState]);
 
-  const handleActivateNova = async () => {
-    if (!activationControllerRef.current) {
-      return;
+  const recordingEndsAtRef = useRef<number | null>(null);
+
+  function clearStopTimer() {
+    if (stopTimerRef.current) {
+      window.clearTimeout(stopTimerRef.current);
+      stopTimerRef.current = null;
+    }
+  }
+
+  function stopRecorder() {
+    clearStopTimer();
+    const recorder = mediaRecorderRef.current;
+
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }
+
+  async function sendNovaAudio(audio: Blob) {
+    const supabase = getSupabaseClient();
+
+    if (!supabase) {
+      throw new Error("Nova needs Supabase auth to be configured.");
     }
 
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error || !session?.access_token) {
+      throw new Error("Sign in again to talk to Nova.");
+    }
+
+    const formData = new FormData();
+    formData.set("roomId", roomId);
+    formData.set("audio", audio, `nova-${Date.now()}.webm`);
+
+    const response = await fetch("/api/agents/nova/respond", {
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      method: "POST",
+    });
+    const payload = (await response.json()) as {
+      audioContentType?: string;
+      error?: string;
+      playback?: "livekit";
+      playbackDurationMs?: number;
+      responseText?: string;
+      transcript?: string;
+    };
+
+    if (!response.ok || payload.playback !== "livekit") {
+      throw new Error(payload.error || "Nova could not respond.");
+    }
+
+    return payload;
+  }
+
+  async function startNovaRecording() {
+    const listenWindowMs = getNovaListenWindowMs();
+    const stream =
+      audioStreamRef.current ??
+      (await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      }));
+    audioStreamRef.current = stream;
+
+    const recorder = new MediaRecorder(stream, {
+      mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm",
+    });
+    const chunks: Blob[] = [];
+    mediaRecorderRef.current = recorder;
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+    recorder.onstop = () => {
+      clearStopTimer();
+      setRemainingSeconds(0);
+      mediaRecorderRef.current = null;
+
+      const audio = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+
+      if (audio.size === 0) {
+        setActivationState("sleeping");
+        onNovaStateChange?.("idle");
+        setMicError("Nova did not capture any audio.");
+        return;
+      }
+
+      setActivationState("thinking");
+      onNovaStateChange?.("thinking");
+      void sendNovaAudio(audio)
+        .then(() => {
+          setActivationState("sleeping");
+          onNovaStateChange?.("idle");
+        })
+        .catch((error) => {
+          setActivationState("sleeping");
+          onNovaStateChange?.("idle");
+          setMicError(error instanceof Error ? error.message : "Nova could not respond.");
+        });
+    };
+
+    recorder.start();
+    recordingEndsAtRef.current = Date.now() + listenWindowMs;
+    setActivationState("listening");
+    onNovaStateChange?.("listening");
+    stopTimerRef.current = window.setTimeout(() => {
+      stopRecorder();
+    }, listenWindowMs);
+  }
+
+  const handleActivateNova = async () => {
     setIsUpdatingMic(true);
     setMicError(null);
 
     try {
-      if (isMicrophoneEnabled) {
-        await activationControllerRef.current.deactivate();
+      if (activationState === "listening") {
+        stopRecorder();
       } else {
-        await activationControllerRef.current.activate();
+        await startNovaRecording();
       }
     } catch (error) {
       const permissionDenied =
@@ -205,7 +316,11 @@ function VoiceSession({
   const activationLabel =
     activationState === "listening"
       ? `Listening for ${remainingSeconds || Math.ceil(getNovaListenWindowMs() / 1000)}s`
-      : "Sleeping";
+      : activationState === "thinking"
+        ? "Thinking"
+        : activationState === "speaking"
+          ? "Speaking"
+          : "Sleeping";
 
   return (
     <>
@@ -229,8 +344,14 @@ function VoiceSession({
           onClick={handleActivateNova}
           variant={isMicrophoneEnabled ? "glass" : "quiet"}
         >
-          {isMicrophoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-          {isMicrophoneEnabled ? "Stop" : "Talk to Nova"}
+          {activationState === "listening" || activationState === "speaking" ? (
+            <Mic className="h-4 w-4" />
+          ) : (
+            <MicOff className="h-4 w-4" />
+          )}
+          {activationState === "listening" || activationState === "speaking"
+            ? "Stop"
+            : "Talk to Nova"}
         </BetaButton>
         {micError && (
           <span className="text-xs text-[oklch(0.78_0.18_35)]">
@@ -245,6 +366,7 @@ function VoiceSession({
 export default function RoomVoice({
   roomId,
   enabled,
+  onNovaStateChange,
   onVoiceParticipantsChange,
 }: RoomVoiceProps) {
   const [voiceToken, setVoiceToken] = useState<VoiceToken | null>(null);
@@ -364,7 +486,11 @@ export default function RoomVoice({
       token={voiceToken.token}
       video={false}
     >
-      <VoiceSession onVoiceParticipantsChange={onVoiceParticipantsChange} />
+      <VoiceSession
+        onNovaStateChange={onNovaStateChange}
+        onVoiceParticipantsChange={onVoiceParticipantsChange}
+        roomId={roomId}
+      />
     </LiveKitRoom>
   );
 }
