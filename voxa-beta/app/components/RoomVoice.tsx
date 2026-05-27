@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -12,6 +12,11 @@ import { ConnectionState, Track } from "livekit-client";
 import { Mic, MicOff, Radio, Volume2 } from "lucide-react";
 import { BetaButton } from "@/components/BetaChrome";
 import { getSupabaseClient } from "@/lib/supabase";
+import {
+  getNovaListenWindowMs,
+  MicStateController,
+  VoiceActivationController,
+} from "@/lib/voice-activation";
 
 type RoomVoiceProps = {
   roomId: string;
@@ -58,9 +63,12 @@ function VoiceSession({
   const connectionState = useConnectionState();
   const participants = useParticipants();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
-  const [micAttempted, setMicAttempted] = useState(false);
+  const micPrimedRef = useRef(false);
+  const activationControllerRef = useRef<VoiceActivationController | null>(null);
   const [isUpdatingMic, setIsUpdatingMic] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
+  const [activationState, setActivationState] = useState<"sleeping" | "listening">("sleeping");
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const connected = connectionState === ConnectionState.Connected;
 
   const participantRows = useMemo(
@@ -87,34 +95,88 @@ function VoiceSession({
   }, [onVoiceParticipantsChange, participantRows]);
 
   useEffect(() => {
-    if (!connected || !localParticipant || micAttempted) {
+    if (!connected || !localParticipant || micPrimedRef.current) {
       return;
     }
 
     let isActive = true;
-    setMicAttempted(true);
+    micPrimedRef.current = true;
 
-    localParticipant.setMicrophoneEnabled(true).catch((error) => {
-      if (!isActive) {
-        return;
+    async function setupActivation() {
+      setMicError(null);
+
+      try {
+        const mic = new MicStateController(localParticipant);
+        await mic.primeMutedTrack();
+
+        if (!isActive) {
+          await mic.mute().catch(() => undefined);
+          return;
+        }
+
+        const activation = new VoiceActivationController(
+          mic,
+          getNovaListenWindowMs(),
+          {
+            onActivate: () => {
+              setActivationState("listening");
+            },
+            onDeactivate: () => {
+              setActivationState("sleeping");
+              setRemainingSeconds(0);
+            },
+          },
+        );
+        activationControllerRef.current = activation;
+        setActivationState("sleeping");
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        const permissionDenied =
+          error instanceof Error && /permission|denied|notallowed/i.test(error.message);
+        setMicError(
+          permissionDenied
+            ? "Permission denied. Allow microphone access to use Nova wake activation."
+            : error instanceof Error
+              ? error.message
+              : "Unable to prepare Nova wake activation.",
+        );
       }
+    }
 
-      const permissionDenied =
-        error instanceof Error && /permission|denied|notallowed/i.test(error.message);
-      setMicError(
-        permissionDenied
-          ? "Permission denied. You can listen now, and retry mic access if your browser allows it."
-          : "Unable to start your microphone. You can still listen.",
-      );
-    });
+    void setupActivation();
 
     return () => {
       isActive = false;
+      activationControllerRef.current?.dispose();
+      activationControllerRef.current = null;
+      void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
     };
-  }, [connected, localParticipant, micAttempted]);
+  }, [connected, localParticipant]);
 
-  const handleToggleMic = async () => {
-    if (!localParticipant) {
+  useEffect(() => {
+    if (activationState !== "listening") {
+      return;
+    }
+
+    const updateRemaining = () => {
+      setRemainingSeconds(
+        Math.ceil((activationControllerRef.current?.getRemainingMs() ?? 0) / 1000),
+      );
+    };
+
+    updateRemaining();
+    const intervalId = window.setInterval(updateRemaining, 250);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [activationState]);
+
+  const handleActivateNova = async () => {
+    if (!activationControllerRef.current) {
       return;
     }
 
@@ -122,7 +184,11 @@ function VoiceSession({
     setMicError(null);
 
     try {
-      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+      if (isMicrophoneEnabled) {
+        await activationControllerRef.current.deactivate();
+      } else {
+        await activationControllerRef.current.activate();
+      }
     } catch (error) {
       const permissionDenied =
         error instanceof Error && /permission|denied|notallowed/i.test(error.message);
@@ -135,6 +201,11 @@ function VoiceSession({
       setIsUpdatingMic(false);
     }
   };
+
+  const activationLabel =
+    activationState === "listening"
+      ? `Listening for ${remainingSeconds || Math.ceil(getNovaListenWindowMs() / 1000)}s`
+      : "Sleeping";
 
   return (
     <>
@@ -150,16 +221,16 @@ function VoiceSession({
           ) : (
             <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
           )}
-          {isMicrophoneEnabled ? "Mic live" : connected ? "Listening only" : "Mic muted"}
+          {activationLabel}
         </span>
         <BetaButton
           className="min-h-9 px-3 text-xs"
           disabled={!connected || isUpdatingMic}
-          onClick={handleToggleMic}
+          onClick={handleActivateNova}
           variant={isMicrophoneEnabled ? "glass" : "quiet"}
         >
           {isMicrophoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-          {isMicrophoneEnabled ? "Mute" : "Unmute"}
+          {isMicrophoneEnabled ? "Stop" : "Talk to Nova"}
         </BetaButton>
         {micError && (
           <span className="text-xs text-[oklch(0.78_0.18_35)]">

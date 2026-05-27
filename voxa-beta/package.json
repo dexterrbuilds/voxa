@@ -11,6 +11,8 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",
+    "@picovoice/porcupine-web": "^4.0.0",
+    "@picovoice/web-voice-processor": "^4.0.10",
     "@supabase/supabase-js": "^2.106.2",
     "framer-motion": "^12.40.0",
     "livekit-client": "^2.19.0",

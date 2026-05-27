@@ -3,27 +3,20 @@ import json
 import logging
 import os
 import re
-from typing import AsyncIterable
 
 from dotenv import load_dotenv
-from livekit import rtc
 from livekit.agents import (
     Agent,
     AgentServer,
     AgentSession,
     ChatContext,
     ChatMessage,
-    FunctionTool,
     JobContext,
     JobRequest,
-    ModelSettings,
     StopResponse,
     cli,
-    llm,
 )
-from livekit.agents import stt as agents_stt
-from livekit.plugins import openai, silero
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from livekit.plugins import google
 
 load_dotenv(".env.local")
 load_dotenv()
@@ -34,12 +27,11 @@ NOVA_DISPATCH_NAME = os.getenv("LIVEKIT_AGENT_NAME", "nova")
 NOVA_DISPLAY_NAME = "Nova"
 NOVA_PARTICIPANT_IDENTITY = "agent:nova"
 NOVA_DEFAULT_MODE = "manual"
-NOVA_WAKE_WORD = "nova"
-NOVA_STT_MODEL = os.getenv("NOVA_STT_MODEL", "gpt-4o-mini-transcribe")
-NOVA_LLM_MODEL = os.getenv("NOVA_LLM_MODEL", "gpt-4.1-mini")
-NOVA_TTS_MODEL = os.getenv("NOVA_TTS_MODEL", "gpt-4o-mini-tts")
-NOVA_TTS_VOICE = os.getenv("NOVA_TTS_VOICE", "shimmer")
-NOVA_TTS_SPEED = float(os.getenv("NOVA_TTS_SPEED", "1.15"))
+NOVA_WAKE_WORD = os.getenv("NOVA_WAKE_WORD", "Nova")
+NOVA_GEMINI_MODEL = os.getenv("NOVA_GEMINI_MODEL", "gemini-2.5-flash-native-audio-preview-12-2025")
+NOVA_GEMINI_VOICE = os.getenv("NOVA_GEMINI_VOICE", "Kore")
+NOVA_GEMINI_TEMPERATURE = float(os.getenv("NOVA_GEMINI_TEMPERATURE", "0.8"))
+NOVA_ENABLE_GOOGLE_SEARCH = os.getenv("NOVA_ENABLE_GOOGLE_SEARCH", "true").lower() == "true"
 
 DIRECT_ADDRESS_PATTERN = re.compile(
     r"^\s*(?:hey|hi|hello|ok|okay|yo)?\s*,?\s*nova\b|^\s*nova\b",
@@ -53,19 +45,6 @@ def directly_addresses_nova(text: str) -> bool:
     return bool(DIRECT_ADDRESS_PATTERN.search(text.strip()))
 
 
-def chunk_text(chunk: object) -> str:
-    delta = getattr(chunk, "delta", None)
-    content = getattr(delta, "content", None)
-
-    if isinstance(content, str):
-        return content
-
-    if isinstance(content, list):
-        return "".join(str(part) for part in content if part)
-
-    return ""
-
-
 def message_role(item: object) -> str:
     return str(getattr(item, "role", "unknown"))
 
@@ -74,55 +53,64 @@ def message_text(item: object) -> str:
     return str(getattr(item, "text_content", "") or "")
 
 
+def google_search_tools() -> list[object]:
+    if not NOVA_ENABLE_GOOGLE_SEARCH:
+        return []
+
+    try:
+        return [google.tools.GoogleSearch()]
+    except Exception:
+        logger.exception("Google Search grounding tool is unavailable in this plugin version.")
+        return []
+
+
+def gemini_realtime_model() -> object:
+    instructions = (
+        "You are Nova, Voxa's first AI room participant. "
+        "You are calm, concise, intelligent, warm, modern, and conversational. "
+        "You are in a private LiveKit voice room. "
+        "The browser only sends microphone audio after the local wake word activates, "
+        "so if audio reaches you, assume the user intentionally wants Nova. "
+        "Answer quickly and naturally. Keep responses short by default. "
+        "Do not dominate the room. Do not speak unprompted."
+    )
+
+    realtime = getattr(google, "realtime", None)
+    if realtime and hasattr(realtime, "RealtimeModel"):
+        return realtime.RealtimeModel(
+            model=NOVA_GEMINI_MODEL,
+            voice=NOVA_GEMINI_VOICE,
+            temperature=NOVA_GEMINI_TEMPERATURE,
+            instructions=instructions,
+        )
+
+    beta_model = getattr(google, "BetaRealtimeModel", None)
+    if beta_model:
+        return beta_model(
+            model=NOVA_GEMINI_MODEL,
+            voice=NOVA_GEMINI_VOICE,
+            temperature=NOVA_GEMINI_TEMPERATURE,
+            instructions=instructions,
+        )
+
+    raise RuntimeError("LiveKit Google realtime model is unavailable. Install livekit-agents[google].")
+
+
 class NovaAgent(Agent):
     def __init__(self, *, mode: str, direct_address_required: bool) -> None:
         self.mode = mode
         self.direct_address_required = direct_address_required
         super().__init__(
             instructions=(
-                "You are Nova, Voxa's first AI room participant. "
-                "You are calm, concise, intelligent, helpful, conversational, and present. "
-                "You are in a live voice room with humans. "
-                "Keep responses short unless the user asks for depth. "
-                "Do not dominate the room. Do not speak unless directly addressed by name. "
-                "If a user addresses you as Nova, answer naturally and briefly."
+                "You are Nova. Use a clear, concise, feminine, modern assistant persona. "
+                "The browser gates audio with a local wake word. "
+                "If you receive audio, respond as if the user intentionally activated Nova."
             ),
+            tools=google_search_tools(),
         )
 
     async def on_enter(self) -> None:
-        logger.info("Nova agent session started in %s mode.", self.mode)
-
-    async def stt_node(
-        self,
-        audio: AsyncIterable[rtc.AudioFrame],
-        model_settings: ModelSettings,
-    ) -> AsyncIterable[agents_stt.SpeechEvent] | None:
-        logger.info("Nova STT start.")
-        events = Agent.default.stt_node(self, audio, model_settings)
-
-        if events is None:
-            logger.error("Nova STT returned no event stream.")
-            return
-
-        try:
-            async for event in events:
-                alternatives = getattr(event, "alternatives", None) or []
-                transcript = ""
-                if alternatives:
-                    transcript = str(getattr(alternatives[0], "text", "") or "")
-                event_type = getattr(event, "type", "unknown")
-
-                if transcript:
-                    logger.info("Nova STT event type=%s transcript=%r", event_type, transcript)
-                else:
-                    logger.debug("Nova STT event type=%s with no transcript yet.", event_type)
-
-                yield event
-        except Exception:
-            logger.exception("Nova STT failed.")
-            raise
-        finally:
-            logger.info("Nova STT end.")
+        logger.info("Nova Gemini Live session started in %s mode.", self.mode)
 
     async def on_user_turn_completed(
         self,
@@ -134,71 +122,16 @@ class NovaAgent(Agent):
         user_text = new_message.text_content or ""
 
         if self.mode == "silent":
-            logger.info("Nova transcript received but ignored because room mode is silent: %r", user_text)
+            logger.info("Nova ignored user turn because room mode is silent: %r", user_text)
             raise StopResponse()
 
-        if self.direct_address_required and not directly_addresses_nova(user_text):
-            logger.info("Nova transcript received but ignored because it was not directly addressed: %r", user_text)
-            raise StopResponse()
-
-        logger.info("Nova accepted addressed turn: %r", user_text)
-
-    async def llm_node(
-        self,
-        chat_ctx: llm.ChatContext,
-        tools: list[FunctionTool],
-        model_settings: ModelSettings,
-    ) -> AsyncIterable[llm.ChatChunk]:
-        logger.info("Nova LLM request start.")
-        response_parts: list[str] = []
-
-        try:
-            async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
-                text = chunk_text(chunk)
-                if text:
-                    response_parts.append(text)
-                    logger.debug("Nova LLM delta: %r", text)
-                yield chunk
-        except Exception:
-            logger.exception("Nova LLM failed.")
-            raise
-        finally:
-            response_text = "".join(response_parts).strip()
-            if response_text:
-                logger.info("Nova LLM response text: %r", response_text)
-            else:
-                logger.warning("Nova LLM ended without response text.")
-
-    async def tts_node(
-        self,
-        text: AsyncIterable[str],
-        model_settings: ModelSettings,
-    ) -> AsyncIterable[rtc.AudioFrame]:
-        logger.info("Nova TTS start.")
-        text_parts: list[str] = []
-        frame_count = 0
-
-        async def logged_text() -> AsyncIterable[str]:
-            async for segment in text:
-                if segment:
-                    text_parts.append(segment)
-                    logger.info("Nova TTS input text chunk: %r", segment)
-                yield segment
-
-        try:
-            async for frame in Agent.default.tts_node(self, logged_text(), model_settings):
-                frame_count += 1
-                if frame_count == 1:
-                    logger.info("Nova TTS produced first audio frame; publishing output audio.")
-                yield frame
-        except Exception:
-            logger.exception("Nova TTS/audio publish failed.")
-            raise
-        finally:
+        # With frontend wake-word activation, direct addressing is handled locally before audio
+        # reaches Gemini. This transcript gate remains as a defensive fallback if text is present.
+        if user_text and self.direct_address_required and not directly_addresses_nova(user_text):
             logger.info(
-                "Nova TTS end. input=%r audio_frames=%s",
-                "".join(text_parts).strip(),
-                frame_count,
+                "Nova received non-addressed transcript after wake gate; allowing because frontend "
+                "activation is source of truth: %r",
+                user_text,
             )
 
 
@@ -239,37 +172,24 @@ async def nova_agent(ctx: JobContext) -> None:
     def on_disconnected(*_: object) -> None:
         disconnected.set()
 
-    logger.info("Nova dispatch accepted; starting guarded voice pipeline.")
+    logger.info("Nova dispatch accepted; starting Gemini Live realtime session.")
     logger.info(
-        "Nova model config stt=%s llm=%s tts=%s voice=%s speed=%s openai_key_present=%s",
-        NOVA_STT_MODEL,
-        NOVA_LLM_MODEL,
-        NOVA_TTS_MODEL,
-        NOVA_TTS_VOICE,
-        NOVA_TTS_SPEED,
-        bool(os.getenv("OPENAI_API_KEY")),
+        "Nova Gemini config model=%s voice=%s temperature=%s google_key_present=%s search=%s",
+        NOVA_GEMINI_MODEL,
+        NOVA_GEMINI_VOICE,
+        NOVA_GEMINI_TEMPERATURE,
+        bool(os.getenv("GOOGLE_API_KEY")),
+        NOVA_ENABLE_GOOGLE_SEARCH,
     )
 
     session = AgentSession(
-        stt=openai.STT(model=NOVA_STT_MODEL),
-        llm=openai.responses.LLM(model=NOVA_LLM_MODEL),
-        tts=openai.TTS(
-            model=NOVA_TTS_MODEL,
-            voice=NOVA_TTS_VOICE,
-            speed=NOVA_TTS_SPEED,
-            instructions=(
-                "Speak as Nova: a clear, warm, feminine, modern AI assistant. "
-                "Use a natural, lively pace without sounding rushed."
-            ),
-        ),
-        vad=silero.VAD.load(),
-        turn_detection=MultilingualModel(),
+        llm=gemini_realtime_model(),
     )
 
     @session.on("user_input_transcribed")
     def on_user_input_transcribed(event: object) -> None:
         logger.info(
-            "Nova transcript event final=%s speaker=%s language=%s transcript=%r",
+            "Nova Gemini transcript final=%s speaker=%s language=%s transcript=%r",
             getattr(event, "is_final", None),
             getattr(event, "speaker_id", None),
             getattr(event, "language", None),
@@ -279,15 +199,7 @@ async def nova_agent(ctx: JobContext) -> None:
     @session.on("conversation_item_added")
     def on_conversation_item_added(event: object) -> None:
         item = getattr(event, "item", None)
-        logger.info(
-            "Nova conversation item role=%s text=%r",
-            message_role(item),
-            message_text(item),
-        )
-
-    @session.on("speech_created")
-    def on_speech_created(event: object) -> None:
-        logger.info("Nova speech created: %s", event)
+        logger.info("Nova conversation item role=%s text=%r", message_role(item), message_text(item))
 
     @session.on("agent_state_changed")
     def on_agent_state_changed(event: object) -> None:
@@ -297,18 +209,14 @@ async def nova_agent(ctx: JobContext) -> None:
             getattr(event, "new_state", None),
         )
 
-    @session.on("user_state_changed")
-    def on_user_state_changed(event: object) -> None:
-        logger.info(
-            "Nova user state changed old=%s new=%s",
-            getattr(event, "old_state", None),
-            getattr(event, "new_state", None),
-        )
+    @session.on("speech_created")
+    def on_speech_created(event: object) -> None:
+        logger.info("Nova Gemini speech created: %s", event)
 
     @session.on("error")
     def on_agent_error(event: object) -> None:
         logger.error(
-            "Nova session error error=%r recoverable=%s source=%s",
+            "Nova Gemini session error error=%r recoverable=%s source=%s",
             getattr(event, "error", None),
             getattr(event, "recoverable", None),
             getattr(event, "source", None),
@@ -316,7 +224,7 @@ async def nova_agent(ctx: JobContext) -> None:
 
     @session.on("close")
     def on_agent_close(event: object) -> None:
-        logger.info("Nova session closed: %s", event)
+        logger.info("Nova Gemini session closed: %s", event)
 
     await session.start(
         room=ctx.room,
@@ -324,10 +232,8 @@ async def nova_agent(ctx: JobContext) -> None:
     )
 
     logger.info(
-        "Nova connected to room with guarded voice intelligence. "
-        "Mode=%s direct_address_required=%s wake_word=%s",
+        "Nova connected to room with Gemini Live. mode=%s wake_word=%s",
         mode,
-        direct_address_required,
         NOVA_WAKE_WORD,
     )
 

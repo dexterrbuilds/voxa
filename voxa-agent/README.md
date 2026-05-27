@@ -6,14 +6,14 @@ This project is intentionally separate from the Voxa marketing site and the `vox
 
 ## Current Scope
 
-Nova is implemented as a guarded LiveKit voice agent:
+Nova is implemented as a guarded Gemini Live realtime agent:
 
 - dispatch name: `nova`
 - display name: `Nova`
 - participant identity: `agent:nova`
 - participant type attribute: `agent`
 
-The current worker joins the LiveKit room when dispatched and runs an STT -> LLM -> TTS pipeline through the LiveKit Agents framework. Manual mode is the default MVP behavior, so Nova does not respond unless the user directly addresses “Nova”.
+The current worker joins the LiveKit room when dispatched and uses Gemini Live through the LiveKit Google plugin for low-latency native audio input/output. The browser gates microphone audio with local wake-word detection before audio reaches Nova.
 
 Dispatch metadata controls the response policy:
 
@@ -45,17 +45,17 @@ LIVEKIT_URL=
 LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 LIVEKIT_AGENT_NAME=nova
-OPENAI_API_KEY=
-NOVA_STT_MODEL=gpt-4o-mini-transcribe
-NOVA_LLM_MODEL=gpt-4.1-mini
-NOVA_TTS_MODEL=gpt-4o-mini-tts
-NOVA_TTS_VOICE=shimmer
-NOVA_TTS_SPEED=1.15
+GOOGLE_API_KEY=
+NOVA_GEMINI_MODEL=gemini-2.5-flash-native-audio-preview-12-2025
+NOVA_GEMINI_VOICE=Kore
+NOVA_GEMINI_TEMPERATURE=0.8
+NOVA_ENABLE_GOOGLE_SEARCH=true
+NOVA_WAKE_WORD=Nova
 ```
 
 Do not commit `.env`, `.env.local`, API keys, or generated secrets.
 
-Nova uses OpenAI TTS through the LiveKit OpenAI plugin. `NOVA_TTS_VOICE=shimmer` is the current default for a clear, warm, feminine voice, and `NOVA_TTS_SPEED=1.15` gives her a faster natural pace. You can override either value in `.env.local` without changing code.
+Nova uses Gemini Live through the LiveKit Google plugin. Gemini Live owns the realtime speech input and audio output; `NOVA_GEMINI_VOICE=Kore` is the current default voice. You can override the model and voice in `.env.local` without changing code.
 
 ## Local Setup
 
@@ -168,14 +168,12 @@ Do not expose `LIVEKIT_API_SECRET` to the browser.
 
 `src/agent.py` uses an `AgentSession` with:
 
-- OpenAI STT
-- OpenAI LLM
-- OpenAI TTS
-- Silero VAD
-- multilingual turn detection
-- a wake-word gate in `on_user_turn_completed`
+- `google.realtime.RealtimeModel`
+- model: `gemini-2.5-flash-native-audio-preview-12-2025`
+- LiveKit room audio input/output
+- optional Google Search grounding through `google.tools.GoogleSearch`
 
-The wake-word gate raises `StopResponse` before LLM generation unless Manual mode is active and the latest transcript directly addresses “Nova”. Silent mode always raises `StopResponse`.
+The browser wake-word gate is the source of truth. The browser keeps the LiveKit microphone muted by default and only unmutes it after the local “Nova” wake word is detected. If audio reaches Gemini, Nova assumes the user intentionally activated her.
 
 Future work:
 
