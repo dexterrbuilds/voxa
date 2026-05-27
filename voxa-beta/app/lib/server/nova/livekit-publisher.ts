@@ -12,6 +12,20 @@ import { AccessToken, TrackSource as TokenTrackSource } from "livekit-server-sdk
 const NOVA_NAME = "Nova";
 const FRAME_DURATION_MS = 20;
 
+function normalizeLiveKitWebSocketUrl(url: string) {
+  const trimmedUrl = url.trim();
+
+  if (trimmedUrl.startsWith("https://")) {
+    return `wss://${trimmedUrl.slice("https://".length)}`;
+  }
+
+  if (trimmedUrl.startsWith("http://")) {
+    return `ws://${trimmedUrl.slice("http://".length)}`;
+  }
+
+  return trimmedUrl;
+}
+
 function requireLiveKitEnv() {
   const url = process.env.LIVEKIT_URL;
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -21,7 +35,7 @@ function requireLiveKitEnv() {
     throw new Error("LiveKit is not configured for shared Nova playback.");
   }
 
-  return { apiKey, apiSecret, url };
+  return { apiKey, apiSecret, url: normalizeLiveKitWebSocketUrl(url) };
 }
 
 function bufferToUint8Array(audio: Buffer) {
