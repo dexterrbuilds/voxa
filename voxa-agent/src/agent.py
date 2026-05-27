@@ -38,7 +38,8 @@ NOVA_WAKE_WORD = "nova"
 NOVA_STT_MODEL = os.getenv("NOVA_STT_MODEL", "gpt-4o-mini-transcribe")
 NOVA_LLM_MODEL = os.getenv("NOVA_LLM_MODEL", "gpt-4.1-mini")
 NOVA_TTS_MODEL = os.getenv("NOVA_TTS_MODEL", "gpt-4o-mini-tts")
-NOVA_TTS_VOICE = os.getenv("NOVA_TTS_VOICE", "coral")
+NOVA_TTS_VOICE = os.getenv("NOVA_TTS_VOICE", "shimmer")
+NOVA_TTS_SPEED = float(os.getenv("NOVA_TTS_SPEED", "1.15"))
 
 DIRECT_ADDRESS_PATTERN = re.compile(
     r"^\s*(?:hey|hi|hello|ok|okay|yo)?\s*,?\s*nova\b|^\s*nova\b",
@@ -240,11 +241,12 @@ async def nova_agent(ctx: JobContext) -> None:
 
     logger.info("Nova dispatch accepted; starting guarded voice pipeline.")
     logger.info(
-        "Nova model config stt=%s llm=%s tts=%s voice=%s openai_key_present=%s",
+        "Nova model config stt=%s llm=%s tts=%s voice=%s speed=%s openai_key_present=%s",
         NOVA_STT_MODEL,
         NOVA_LLM_MODEL,
         NOVA_TTS_MODEL,
         NOVA_TTS_VOICE,
+        NOVA_TTS_SPEED,
         bool(os.getenv("OPENAI_API_KEY")),
     )
 
@@ -254,7 +256,11 @@ async def nova_agent(ctx: JobContext) -> None:
         tts=openai.TTS(
             model=NOVA_TTS_MODEL,
             voice=NOVA_TTS_VOICE,
-            instructions="Speak calmly, clearly, and briefly with a premium cinematic tone.",
+            speed=NOVA_TTS_SPEED,
+            instructions=(
+                "Speak as Nova: a clear, warm, feminine, modern AI assistant. "
+                "Use a natural, lively pace without sounding rushed."
+            ),
         ),
         vad=silero.VAD.load(),
         turn_detection=MultilingualModel(),

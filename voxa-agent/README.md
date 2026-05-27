@@ -49,12 +49,13 @@ OPENAI_API_KEY=
 NOVA_STT_MODEL=gpt-4o-mini-transcribe
 NOVA_LLM_MODEL=gpt-4.1-mini
 NOVA_TTS_MODEL=gpt-4o-mini-tts
-NOVA_TTS_VOICE=coral
+NOVA_TTS_VOICE=shimmer
+NOVA_TTS_SPEED=1.15
 ```
 
 Do not commit `.env`, `.env.local`, API keys, or generated secrets.
 
-Nova uses OpenAI TTS through the LiveKit OpenAI plugin. `NOVA_TTS_VOICE=coral` is the current default for a warm, clear, feminine voice. You can override it in `.env.local` without changing code.
+Nova uses OpenAI TTS through the LiveKit OpenAI plugin. `NOVA_TTS_VOICE=shimmer` is the current default for a clear, warm, feminine voice, and `NOVA_TTS_SPEED=1.15` gives her a faster natural pace. You can override either value in `.env.local` without changing code.
 
 ## Local Setup
 
