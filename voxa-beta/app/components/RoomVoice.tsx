@@ -9,18 +9,28 @@ import {
   useParticipants,
 } from "@livekit/components-react";
 import { ConnectionState, Track } from "livekit-client";
-import { Mic, MicOff, PhoneOff, Radio, Volume2 } from "lucide-react";
+import { Mic, MicOff, Radio, Volume2 } from "lucide-react";
 import { BetaButton, BetaPanel } from "@/components/BetaChrome";
 import { getSupabaseClient } from "@/lib/supabase";
 
 type RoomVoiceProps = {
   roomId: string;
   enabled: boolean;
+  onVoiceParticipantsChange?: (participants: VoiceParticipantState[]) => void;
 };
 
 type VoiceToken = {
   token: string;
   url: string;
+};
+
+export type VoiceParticipantState = {
+  id: string;
+  name: string;
+  isLocal: boolean;
+  isMuted: boolean;
+  isSpeaking: boolean;
+  isConnected: boolean;
 };
 
 function formatConnectionState(state: ConnectionState) {
@@ -35,10 +45,15 @@ function formatConnectionState(state: ConnectionState) {
   return "Voice idle";
 }
 
-function VoiceSession({ onLeaveVoice }: { onLeaveVoice: () => void }) {
+function VoiceSession({
+  onVoiceParticipantsChange,
+}: {
+  onVoiceParticipantsChange?: (participants: VoiceParticipantState[]) => void;
+}) {
   const connectionState = useConnectionState();
   const participants = useParticipants();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+  const [micAttempted, setMicAttempted] = useState(false);
   const [isUpdatingMic, setIsUpdatingMic] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const connected = connectionState === ConnectionState.Connected;
@@ -51,12 +66,44 @@ function VoiceSession({ onLeaveVoice }: { onLeaveVoice: () => void }) {
           id: participant.identity,
           name: participant.name || participant.identity,
           isLocal: participant.isLocal,
-          isMuted: micPublication?.isMuted ?? true,
+          isMuted: participant.isLocal ? !isMicrophoneEnabled : (micPublication?.isMuted ?? true),
           isSpeaking: participant.isSpeaking,
+          isConnected: true,
         };
       }),
-    [participants],
+    [isMicrophoneEnabled, participants],
   );
+
+  useEffect(() => {
+    onVoiceParticipantsChange?.(participantRows);
+  }, [onVoiceParticipantsChange, participantRows]);
+
+  useEffect(() => {
+    if (!connected || !localParticipant || micAttempted) {
+      return;
+    }
+
+    let isActive = true;
+    setMicAttempted(true);
+
+    localParticipant.setMicrophoneEnabled(true).catch((error) => {
+      if (!isActive) {
+        return;
+      }
+
+      const permissionDenied =
+        error instanceof Error && /permission|denied|notallowed/i.test(error.message);
+      setMicError(
+        permissionDenied
+          ? "Permission denied. You can listen now, and retry mic access if your browser allows it."
+          : "Unable to start your microphone. You can still listen.",
+      );
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [connected, localParticipant, micAttempted]);
 
   const handleToggleMic = async () => {
     if (!localParticipant) {
@@ -95,15 +142,20 @@ function VoiceSession({ onLeaveVoice }: { onLeaveVoice: () => void }) {
               {formatConnectionState(connectionState)}
             </p>
             <span className="beta-status-pill">
-              <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-              {participantRows.length} on voice
+              {isMicrophoneEnabled ? (
+                <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+              ) : (
+                <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+              )}
+              {isMicrophoneEnabled ? "Mic live" : connected ? "Listening only" : "Mic muted"}
             </span>
           </div>
           {micError ? (
             <p className="mt-3 max-w-xl text-sm text-[oklch(0.78_0.18_35)]">{micError}</p>
           ) : (
             <p className="mt-3 max-w-xl text-sm text-[oklch(0.65_0.02_260)]">
-              Your microphone connects only for people in this Voxa Room.
+              Voice connects automatically. Allow microphone access to speak, or stay muted to
+              listen.
             </p>
           )}
         </div>
@@ -120,10 +172,6 @@ function VoiceSession({ onLeaveVoice }: { onLeaveVoice: () => void }) {
               <MicOff className="h-4 w-4" />
             )}
             {isMicrophoneEnabled ? "Mute" : "Unmute"}
-          </BetaButton>
-          <BetaButton onClick={onLeaveVoice} variant="quiet">
-            <PhoneOff className="h-4 w-4" />
-            Leave Voice
           </BetaButton>
         </div>
       </div>
@@ -154,16 +202,20 @@ function VoiceSession({ onLeaveVoice }: { onLeaveVoice: () => void }) {
   );
 }
 
-export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
-  const [joinedVoice, setJoinedVoice] = useState(false);
+export default function RoomVoice({
+  roomId,
+  enabled,
+  onVoiceParticipantsChange,
+}: RoomVoiceProps) {
   const [voiceToken, setVoiceToken] = useState<VoiceToken | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    if (!enabled || !joinedVoice) {
+    if (!enabled) {
       setVoiceToken(null);
+      onVoiceParticipantsChange?.([]);
       return;
     }
 
@@ -224,7 +276,7 @@ export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
     return () => {
       isActive = false;
     };
-  }, [enabled, joinedVoice, retryCount, roomId]);
+  }, [enabled, onVoiceParticipantsChange, retryCount, roomId]);
 
   if (!enabled) {
     return (
@@ -248,35 +300,6 @@ export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
     );
   }
 
-  if (!joinedVoice) {
-    return (
-      <BetaPanel className="mt-8 p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-              <Radio className="h-3.5 w-3.5" />
-              Human voice
-            </div>
-            <p className="mt-2 text-lg font-semibold tracking-tight text-white">Voice ready</p>
-            <p className="mt-3 max-w-xl text-sm text-[oklch(0.65_0.02_260)]">
-              Join voice to grant microphone permission and talk with people in this room.
-            </p>
-          </div>
-          <BetaButton
-            onClick={() => {
-              setError(null);
-              setJoinedVoice(true);
-            }}
-            variant="electric"
-          >
-            <Mic className="h-4 w-4" />
-            Join Voice
-          </BetaButton>
-        </div>
-      </BetaPanel>
-    );
-  }
-
   if (error) {
     return (
       <BetaPanel className="mt-8 p-5">
@@ -286,7 +309,6 @@ export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
             onClick={() => {
               setVoiceToken(null);
               setError(null);
-              setJoinedVoice(true);
               setRetryCount((count) => count + 1);
             }}
             variant="glass"
@@ -311,7 +333,7 @@ export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
 
   return (
     <LiveKitRoom
-      audio
+      audio={false}
       connect
       onError={(livekitError) => {
         setError(livekitError.message || "Voice connection failed.");
@@ -323,12 +345,7 @@ export default function RoomVoice({ roomId, enabled }: RoomVoiceProps) {
       token={voiceToken.token}
       video={false}
     >
-      <VoiceSession
-        onLeaveVoice={() => {
-          setJoinedVoice(false);
-          setVoiceToken(null);
-        }}
-      />
+      <VoiceSession onVoiceParticipantsChange={onVoiceParticipantsChange} />
     </LiveKitRoom>
   );
 }

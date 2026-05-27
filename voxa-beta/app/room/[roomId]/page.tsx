@@ -1,8 +1,17 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AudioLines, Headphones, Link as LinkIcon, LogOut, Shield, Sparkles } from "lucide-react";
+import {
+  AudioLines,
+  Headphones,
+  Link as LinkIcon,
+  LogOut,
+  Mic,
+  MicOff,
+  Shield,
+  Sparkles,
+} from "lucide-react";
 import AIPersonality from "@/components/AIPersonality";
 import {
   BetaButton,
@@ -13,16 +22,108 @@ import {
   BetaStat,
 } from "@/components/BetaChrome";
 import InviteLink from "@/components/InviteLink";
-import RoomVoice from "@/components/RoomVoice";
+import RoomVoice, { type VoiceParticipantState } from "@/components/RoomVoice";
 import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
-import { novaParticipant } from "@/lib/store";
+import { novaParticipant, type Participant } from "@/lib/store";
 
 type RoomPageProps = {
   params: Promise<{
     roomId: string;
   }>;
 };
+
+function initialsFor(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || "V";
+}
+
+function ParticipantCard({
+  participant,
+  voice,
+}: {
+  participant: Participant;
+  voice?: VoiceParticipantState;
+}) {
+  const isAgent = participant.participantType === "agent";
+  const isSpeaking = !!voice?.isSpeaking;
+  const isVoiceConnected = !!voice?.isConnected;
+  const isMuted = voice?.isMuted ?? true;
+  const status = isAgent
+    ? "Agent"
+    : isVoiceConnected
+      ? isMuted
+        ? "Mic muted"
+        : isSpeaking
+          ? "Speaking"
+          : "Mic live"
+      : "In room";
+
+  return (
+    <div
+      className={[
+        "relative overflow-hidden rounded-xl border p-5 text-left transition-all duration-300",
+        "bg-[oklch(0.12_0.018_260/0.72)] shadow-[0_24px_70px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-xl",
+        isSpeaking
+          ? "animate-[beta-pulse-glow_1.6s_ease-in-out_infinite] border-[oklch(0.72_0.2_245/0.62)]"
+          : "border-white/[0.075]",
+      ].join(" ")}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,oklch(0.72_0.2_245/0.18),transparent_12rem)]" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={[
+              "grid h-12 w-12 shrink-0 place-items-center rounded-xl border text-sm font-semibold text-white",
+              isSpeaking
+                ? "border-[oklch(0.72_0.2_245/0.7)] bg-[oklch(0.72_0.2_245/0.22)]"
+                : "border-white/[0.08] bg-white/[0.045]",
+            ].join(" ")}
+          >
+            {initialsFor(participant.name)}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-base font-semibold tracking-tight text-white">
+              {participant.name}
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-xs text-[oklch(0.65_0.02_260)]">
+              {isAgent ? (
+                <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+              ) : isMuted ? (
+                <MicOff className="h-3.5 w-3.5" />
+              ) : (
+                <Mic className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+              )}
+              {status}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex h-8 items-end gap-1">
+          {[0, 1, 2].map((bar) => (
+            <span
+              className={[
+                "block w-1 rounded-full bg-[oklch(0.72_0.2_245)] transition-all",
+                isSpeaking ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]" : "opacity-30",
+              ].join(" ")}
+              key={bar}
+              style={{
+                height: isSpeaking ? `${12 + bar * 7}px` : "8px",
+                animationDelay: `${bar * 120}ms`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RoomPage({ params }: RoomPageProps) {
   const { roomId } = use(params);
@@ -44,6 +145,7 @@ export default function RoomPage({ params }: RoomPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [sharedRoomEnabled, setSharedRoomEnabled] = useState(false);
   const [roomUnavailable, setRoomUnavailable] = useState(false);
+  const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipantState[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -149,6 +251,13 @@ export default function RoomPage({ params }: RoomPageProps) {
   );
   const novaInRoom = room?.invitedAgents.includes("nova") ?? false;
   const participants = room?.participants ?? [];
+  const voiceByParticipantId = useMemo(
+    () => new Map(voiceParticipants.map((participant) => [participant.id, participant])),
+    [voiceParticipants],
+  );
+  const handleVoiceParticipantsChange = useCallback((nextParticipants: VoiceParticipantState[]) => {
+    setVoiceParticipants(nextParticipants);
+  }, []);
 
   const handleInviteNova = () => {
     if (!room) {
@@ -252,7 +361,11 @@ export default function RoomPage({ params }: RoomPageProps) {
           </div>
         </div>
 
-        <RoomVoice enabled={sharedRoomEnabled && room.status === "active"} roomId={room.id} />
+        <RoomVoice
+          enabled={sharedRoomEnabled && room.status === "active"}
+          onVoiceParticipantsChange={handleVoiceParticipantsChange}
+          roomId={room.id}
+        />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,22rem]">
           <BetaPanel className="p-4 sm:p-6">
@@ -267,19 +380,28 @@ export default function RoomPage({ params }: RoomPageProps) {
                 {room.roomId}
               </div>
 
-              <div className="relative z-10 grid min-h-[38rem] place-items-center px-5 pb-60 pt-20 text-center sm:pb-44">
-                <div>
-                  <div className="beta-conversation-core mx-auto">
-                    <Sparkles className="h-11 w-11 text-[oklch(0.1_0.02_260)]" />
+              <div className="relative z-10 min-h-[38rem] px-5 pb-44 pt-20">
+                <div className="mx-auto max-w-4xl">
+                  <div className="mb-6 text-center">
+                    <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                      {room.status === "ended" ? "Room ended" : "In the room"}
+                    </h2>
+                    <p className="mx-auto mt-3 max-w-xl leading-relaxed text-[oklch(0.65_0.02_260)]">
+                      {participants.length > 1
+                        ? "People in this Voxa Room appear here as they join."
+                        : "Invite someone to join the conversation."}
+                    </p>
                   </div>
-                  <h2 className="mt-8 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                    {room.status === "ended" ? "Room ended" : "Waiting for others to join"}
-                  </h2>
-                  <p className="mx-auto mt-4 max-w-xl leading-relaxed text-[oklch(0.65_0.02_260)]">
-                    {room.status === "ended"
-                      ? "The conversation can reopen when someone returns within the recovery window."
-                      : "Share the room link or invite Nova into the conversation."}
-                  </p>
+
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {participants.map((participant) => (
+                      <ParticipantCard
+                        key={participant.id}
+                        participant={participant}
+                        voice={voiceByParticipantId.get(participant.id)}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
 
