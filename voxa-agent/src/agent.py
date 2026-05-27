@@ -3,19 +3,25 @@ import json
 import logging
 import os
 import re
+from typing import AsyncIterable
 
 from dotenv import load_dotenv
+from livekit import rtc
 from livekit.agents import (
     Agent,
     AgentServer,
     AgentSession,
     ChatContext,
     ChatMessage,
+    FunctionTool,
     JobContext,
     JobRequest,
+    ModelSettings,
     StopResponse,
     cli,
+    llm,
 )
+from livekit.agents import stt as agents_stt
 from livekit.plugins import openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
@@ -46,6 +52,27 @@ def directly_addresses_nova(text: str) -> bool:
     return bool(DIRECT_ADDRESS_PATTERN.search(text.strip()))
 
 
+def chunk_text(chunk: object) -> str:
+    delta = getattr(chunk, "delta", None)
+    content = getattr(delta, "content", None)
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        return "".join(str(part) for part in content if part)
+
+    return ""
+
+
+def message_role(item: object) -> str:
+    return str(getattr(item, "role", "unknown"))
+
+
+def message_text(item: object) -> str:
+    return str(getattr(item, "text_content", "") or "")
+
+
 class NovaAgent(Agent):
     def __init__(self, *, mode: str, direct_address_required: bool) -> None:
         self.mode = mode
@@ -64,6 +91,38 @@ class NovaAgent(Agent):
     async def on_enter(self) -> None:
         logger.info("Nova agent session started in %s mode.", self.mode)
 
+    async def stt_node(
+        self,
+        audio: AsyncIterable[rtc.AudioFrame],
+        model_settings: ModelSettings,
+    ) -> AsyncIterable[agents_stt.SpeechEvent] | None:
+        logger.info("Nova STT start.")
+        events = Agent.default.stt_node(self, audio, model_settings)
+
+        if events is None:
+            logger.error("Nova STT returned no event stream.")
+            return
+
+        try:
+            async for event in events:
+                alternatives = getattr(event, "alternatives", None) or []
+                transcript = ""
+                if alternatives:
+                    transcript = str(getattr(alternatives[0], "text", "") or "")
+                event_type = getattr(event, "type", "unknown")
+
+                if transcript:
+                    logger.info("Nova STT event type=%s transcript=%r", event_type, transcript)
+                else:
+                    logger.debug("Nova STT event type=%s with no transcript yet.", event_type)
+
+                yield event
+        except Exception:
+            logger.exception("Nova STT failed.")
+            raise
+        finally:
+            logger.info("Nova STT end.")
+
     async def on_user_turn_completed(
         self,
         turn_ctx: ChatContext,
@@ -74,12 +133,72 @@ class NovaAgent(Agent):
         user_text = new_message.text_content or ""
 
         if self.mode == "silent":
-            logger.info("Nova ignored user turn because room mode is silent.")
+            logger.info("Nova transcript received but ignored because room mode is silent: %r", user_text)
             raise StopResponse()
 
         if self.direct_address_required and not directly_addresses_nova(user_text):
-            logger.info("Nova ignored user turn because it was not directly addressed.")
+            logger.info("Nova transcript received but ignored because it was not directly addressed: %r", user_text)
             raise StopResponse()
+
+        logger.info("Nova accepted addressed turn: %r", user_text)
+
+    async def llm_node(
+        self,
+        chat_ctx: llm.ChatContext,
+        tools: list[FunctionTool],
+        model_settings: ModelSettings,
+    ) -> AsyncIterable[llm.ChatChunk]:
+        logger.info("Nova LLM request start.")
+        response_parts: list[str] = []
+
+        try:
+            async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
+                text = chunk_text(chunk)
+                if text:
+                    response_parts.append(text)
+                    logger.debug("Nova LLM delta: %r", text)
+                yield chunk
+        except Exception:
+            logger.exception("Nova LLM failed.")
+            raise
+        finally:
+            response_text = "".join(response_parts).strip()
+            if response_text:
+                logger.info("Nova LLM response text: %r", response_text)
+            else:
+                logger.warning("Nova LLM ended without response text.")
+
+    async def tts_node(
+        self,
+        text: AsyncIterable[str],
+        model_settings: ModelSettings,
+    ) -> AsyncIterable[rtc.AudioFrame]:
+        logger.info("Nova TTS start.")
+        text_parts: list[str] = []
+        frame_count = 0
+
+        async def logged_text() -> AsyncIterable[str]:
+            async for segment in text:
+                if segment:
+                    text_parts.append(segment)
+                    logger.info("Nova TTS input text chunk: %r", segment)
+                yield segment
+
+        try:
+            async for frame in Agent.default.tts_node(self, logged_text(), model_settings):
+                frame_count += 1
+                if frame_count == 1:
+                    logger.info("Nova TTS produced first audio frame; publishing output audio.")
+                yield frame
+        except Exception:
+            logger.exception("Nova TTS/audio publish failed.")
+            raise
+        finally:
+            logger.info(
+                "Nova TTS end. input=%r audio_frames=%s",
+                "".join(text_parts).strip(),
+                frame_count,
+            )
 
 
 async def accept_nova_request(req: JobRequest) -> None:
@@ -120,6 +239,14 @@ async def nova_agent(ctx: JobContext) -> None:
         disconnected.set()
 
     logger.info("Nova dispatch accepted; starting guarded voice pipeline.")
+    logger.info(
+        "Nova model config stt=%s llm=%s tts=%s voice=%s openai_key_present=%s",
+        NOVA_STT_MODEL,
+        NOVA_LLM_MODEL,
+        NOVA_TTS_MODEL,
+        NOVA_TTS_VOICE,
+        bool(os.getenv("OPENAI_API_KEY")),
+    )
 
     session = AgentSession(
         stt=openai.STT(model=NOVA_STT_MODEL),
@@ -132,6 +259,58 @@ async def nova_agent(ctx: JobContext) -> None:
         vad=silero.VAD.load(),
         turn_detection=MultilingualModel(),
     )
+
+    @session.on("user_input_transcribed")
+    def on_user_input_transcribed(event: object) -> None:
+        logger.info(
+            "Nova transcript event final=%s speaker=%s language=%s transcript=%r",
+            getattr(event, "is_final", None),
+            getattr(event, "speaker_id", None),
+            getattr(event, "language", None),
+            getattr(event, "transcript", ""),
+        )
+
+    @session.on("conversation_item_added")
+    def on_conversation_item_added(event: object) -> None:
+        item = getattr(event, "item", None)
+        logger.info(
+            "Nova conversation item role=%s text=%r",
+            message_role(item),
+            message_text(item),
+        )
+
+    @session.on("speech_created")
+    def on_speech_created(event: object) -> None:
+        logger.info("Nova speech created: %s", event)
+
+    @session.on("agent_state_changed")
+    def on_agent_state_changed(event: object) -> None:
+        logger.info(
+            "Nova agent state changed old=%s new=%s",
+            getattr(event, "old_state", None),
+            getattr(event, "new_state", None),
+        )
+
+    @session.on("user_state_changed")
+    def on_user_state_changed(event: object) -> None:
+        logger.info(
+            "Nova user state changed old=%s new=%s",
+            getattr(event, "old_state", None),
+            getattr(event, "new_state", None),
+        )
+
+    @session.on("error")
+    def on_agent_error(event: object) -> None:
+        logger.error(
+            "Nova session error error=%r recoverable=%s source=%s",
+            getattr(event, "error", None),
+            getattr(event, "recoverable", None),
+            getattr(event, "source", None),
+        )
+
+    @session.on("close")
+    def on_agent_close(event: object) -> None:
+        logger.info("Nova session closed: %s", event)
 
     await session.start(
         room=ctx.room,
