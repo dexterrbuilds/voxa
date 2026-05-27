@@ -19,6 +19,8 @@ GEMINI_MODEL=gemini-3.1-flash-lite
 NOVA_TTS_PROVIDER=edge
 NOVA_TTS_VOICE=en-US-JennyNeural
 NOVA_TTS_SPEED=1.15
+OPENAI_API_KEY=optional_openai_tts_fallback_key
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
 ```
 
 In Supabase:
@@ -51,8 +53,9 @@ The endpoint:
 - synthesizes an MP3 response with Edge TTS
 - publishes the synthesized response into the LiveKit room as Nova
 - returns playback metadata, transcript, and response text
+- returns a text response with `audioUnavailable: true` if TTS is unavailable
 
-Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, or Edge TTS can be swapped later.
+Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, Edge TTS, or OpenAI TTS can be swapped later. Set `NOVA_TTS_PROVIDER=openai` to use OpenAI TTS directly, or leave `NOVA_TTS_PROVIDER=edge` and set `OPENAI_API_KEY` for automatic fallback if Edge TTS fails in production.
 
 ## Nova Activation
 

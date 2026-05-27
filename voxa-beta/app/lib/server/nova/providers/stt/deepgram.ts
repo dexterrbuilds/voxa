@@ -1,8 +1,14 @@
+import { NovaProviderError } from "@/lib/server/nova/errors";
+
 export async function transcribeWithDeepgram(audio: Blob) {
   const apiKey = process.env.DEEPGRAM_API_KEY;
 
   if (!apiKey) {
-    throw new Error("DEEPGRAM_API_KEY is not configured.");
+    throw new NovaProviderError({
+      code: "transcription_failed",
+      details: "DEEPGRAM_API_KEY is not configured.",
+      provider: "deepgram",
+    });
   }
 
   const response = await fetch(
@@ -19,7 +25,12 @@ export async function transcribeWithDeepgram(audio: Blob) {
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
-    throw new Error(`Deepgram transcription failed: ${response.status} ${errorText}`);
+    throw new NovaProviderError({
+      code: "transcription_failed",
+      details: `Deepgram transcription failed: ${response.status} ${errorText}`,
+      provider: "deepgram",
+      status: response.status,
+    });
   }
 
   const payload = (await response.json()) as {
@@ -35,7 +46,11 @@ export async function transcribeWithDeepgram(audio: Blob) {
     payload.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() ?? "";
 
   if (!transcript) {
-    throw new Error("Nova did not hear a clear prompt.");
+    throw new NovaProviderError({
+      code: "transcription_failed",
+      details: "Nova did not hear a clear prompt.",
+      provider: "deepgram",
+    });
   }
 
   return transcript;

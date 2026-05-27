@@ -8,6 +8,7 @@ import {
   TrackSource,
 } from "@livekit/rtc-node";
 import { AccessToken, TrackSource as TokenTrackSource } from "livekit-server-sdk";
+import { NovaProviderError, sanitizeErrorMessage } from "@/lib/server/nova/errors";
 
 const NOVA_NAME = "Nova";
 const FRAME_DURATION_MS = 20;
@@ -32,7 +33,11 @@ function requireLiveKitEnv() {
   const apiSecret = process.env.LIVEKIT_API_SECRET;
 
   if (!url || !apiKey || !apiSecret) {
-    throw new Error("LiveKit is not configured for shared Nova playback.");
+    throw new NovaProviderError({
+      code: "playback_failed",
+      details: "LIVEKIT_URL, LIVEKIT_API_KEY, or LIVEKIT_API_SECRET is not configured.",
+      provider: "livekit",
+    });
   }
 
   return { apiKey, apiSecret, url: normalizeLiveKitWebSocketUrl(url) };
@@ -120,10 +125,18 @@ export async function publishNovaAudioToLiveKitRoom({
 
   try {
     const token = await createNovaLiveKitToken(roomId);
-    await room.connect(url, token, {
-      autoSubscribe: false,
-      dynacast: false,
-    });
+    await room
+      .connect(url, token, {
+        autoSubscribe: false,
+        dynacast: false,
+      })
+      .catch((error) => {
+        throw new NovaProviderError({
+          code: "playback_failed",
+          details: `LiveKit connect failed: ${sanitizeErrorMessage(error)}`,
+          provider: "livekit",
+        });
+      });
 
     const options = new TrackPublishOptions();
     options.source = TrackSource.SOURCE_MICROPHONE;
@@ -131,7 +144,13 @@ export async function publishNovaAudioToLiveKitRoom({
       throw new Error("Nova could not join the voice room.");
     }
 
-    await room.localParticipant.publishTrack(track, options);
+    await room.localParticipant.publishTrack(track, options).catch((error) => {
+      throw new NovaProviderError({
+        code: "playback_failed",
+        details: `LiveKit publish failed: ${sanitizeErrorMessage(error)}`,
+        provider: "livekit",
+      });
+    });
 
     for (let offset = 0; offset < mono.length; offset += samplesPerFrame) {
       const frameSampleCount = Math.min(samplesPerFrame, mono.length - offset);

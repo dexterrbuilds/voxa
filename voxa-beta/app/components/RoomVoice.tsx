@@ -258,6 +258,8 @@ function VoiceSession({
       method: "POST",
     });
     const payload = (await response.json()) as {
+      audioUnavailable?: boolean;
+      details?: string;
       audioContentType?: string;
       error?: string;
       playback?: "livekit";
@@ -266,8 +268,16 @@ function VoiceSession({
       transcript?: string;
     };
 
+    if (payload.audioUnavailable && payload.responseText) {
+      throw new Error(
+        `Nova replied, but voice playback is unavailable: "${payload.responseText}"${
+          payload.details ? ` (${payload.details})` : ""
+        }`,
+      );
+    }
+
     if (!response.ok || payload.playback !== "livekit") {
-      throw new Error(payload.error || "Nova could not respond.");
+      throw new Error(payload.details || payload.error || "Nova could not respond.");
     }
 
     return payload;
