@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import { BetaButton, BetaPanel } from "@/components/BetaChrome";
 import { useRoom } from "@/lib/room";
 
-export default function InviteLink({ roomId }: { roomId: string }) {
+type InviteLinkProps = {
+  compact?: boolean;
+  inline?: boolean;
+  roomId: string;
+};
+
+export default function InviteLink({ compact = false, inline = false, roomId }: InviteLinkProps) {
   const { copyInviteLink } = useRoom();
   const [inviteUrl, setInviteUrl] = useState(`/room/${roomId}`);
   const [isOpen, setIsOpen] = useState(false);
@@ -29,38 +35,43 @@ export default function InviteLink({ roomId }: { roomId: string }) {
       });
   };
 
-  return (
+  const content = (
     <>
-      <BetaPanel className="mt-8 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {compact ? (
+        <BetaButton className="min-h-9 px-3 text-xs" onClick={copyToClipboard} variant="glass">
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? "Copied" : "Invite"}
+        </BetaButton>
+      ) : (
+        <div className="flex flex-col gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[oklch(0.72_0.2_245/0.22)] bg-[oklch(0.72_0.2_245/0.1)] shadow-[0_0_30px_-16px_oklch(0.72_0.2_245/0.9)]">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[oklch(0.72_0.2_245/0.22)] bg-[oklch(0.72_0.2_245/0.1)] shadow-[0_0_30px_-16px_oklch(0.72_0.2_245/0.9)]">
               <LinkIcon className="h-4 w-4 text-[oklch(0.78_0.18_235)]" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium text-white">Room invite</div>
-              <div className="mt-1 max-w-xl truncate font-mono text-xs text-[oklch(0.65_0.02_260)]">
+              <div className="text-sm font-medium text-white">Invite link</div>
+              <div className="mt-1 truncate font-mono text-xs text-[oklch(0.65_0.02_260)]">
                 {inviteUrl}
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="grid grid-cols-2 gap-2">
             <BetaButton
-              className="min-h-10 px-4 text-sm"
+              className="min-h-10 px-3 text-sm"
               onClick={() => setIsOpen(true)}
               variant="glass"
             >
               <LinkIcon className="h-4 w-4" />
               Invite
             </BetaButton>
-            <BetaButton className="min-h-10 px-4 text-sm" onClick={copyToClipboard} variant="glass">
+            <BetaButton className="min-h-10 px-3 text-sm" onClick={copyToClipboard} variant="glass">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "Copied" : "Copy"}
             </BetaButton>
           </div>
+          {copyError && <p className="text-sm text-[oklch(0.78_0.14_40)]">{copyError}</p>}
         </div>
-        {copyError && <p className="mt-4 text-sm text-[oklch(0.78_0.14_40)]">{copyError}</p>}
-      </BetaPanel>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-[oklch(0.08_0.012_260/0.72)] px-4 backdrop-blur-xl">
@@ -103,4 +114,10 @@ export default function InviteLink({ roomId }: { roomId: string }) {
       )}
     </>
   );
+
+  if (compact || inline) {
+    return content;
+  }
+
+  return <BetaPanel className="mt-8 p-5">{content}</BetaPanel>;
 }

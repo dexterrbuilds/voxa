@@ -442,49 +442,53 @@ function VoiceSession({
   return (
     <>
       <RoomAudioRenderer />
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="beta-status-pill">
-          <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-          {formatConnectionState(connectionState)}
-        </span>
-        <span className="beta-status-pill">
-          {isMicrophoneEnabled ? (
-            <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-          ) : (
-            <MicOff className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-          )}
-          {isMicrophoneEnabled ? "Mic live" : "Mic muted"}
-        </span>
-        <span className="beta-status-pill">
-          <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-          Nova {novaLabel}
-        </span>
-        <BetaButton
-          className="min-h-9 px-3 text-xs"
-          disabled={!connected || isUpdatingRoomMic}
-          onClick={handleToggleRoomMic}
-          variant={isMicrophoneEnabled ? "glass" : "quiet"}
-        >
-          {isMicrophoneEnabled ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          {isMicrophoneEnabled ? "Mute" : "Unmute"}
-        </BetaButton>
-        <BetaButton
-          className="min-h-9 px-3 text-xs"
-          disabled={novaButtonDisabled}
-          onClick={handleActivateNova}
-          variant={novaState === "listening" ? "glass" : "quiet"}
-        >
-          {novaState === "listening" ? (
-            <Mic className="h-4 w-4" />
-          ) : (
-            <MicOff className="h-4 w-4" />
-          )}
-          {novaButtonLabel}
-        </BetaButton>
-        {micError && (
-          <span className="text-xs text-[oklch(0.78_0.18_35)]">
-            {micError}
+      <div className="w-full rounded-2xl border border-white/[0.075] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="beta-status-pill">
+            <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+            {formatConnectionState(connectionState)}
           </span>
+          <span className="beta-status-pill">
+            {isMicrophoneEnabled ? (
+              <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+            ) : (
+              <MicOff className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+            )}
+            {isMicrophoneEnabled ? "Mic live" : "Mic muted"}
+          </span>
+          <span className="beta-status-pill">
+            <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+            Nova {novaLabel}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <BetaButton
+            className="min-h-12 px-3 text-sm"
+            disabled={novaButtonDisabled}
+            onClick={handleActivateNova}
+            variant={novaState === "listening" ? "glass" : "electric"}
+          >
+            {novaState === "listening" ? (
+              <Mic className="h-4 w-4" />
+            ) : (
+              <MicOff className="h-4 w-4" />
+            )}
+            {novaButtonLabel}
+          </BetaButton>
+          <BetaButton
+            className="min-h-12 px-3 text-sm"
+            disabled={!connected || isUpdatingRoomMic}
+            onClick={handleToggleRoomMic}
+            variant={isMicrophoneEnabled ? "glass" : "quiet"}
+          >
+            {isMicrophoneEnabled ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            {isMicrophoneEnabled ? "Mute" : "Unmute"}
+          </BetaButton>
+        </div>
+        {micError && (
+          <p className="mt-3 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">
+            {micError}
+          </p>
         )}
       </div>
     </>

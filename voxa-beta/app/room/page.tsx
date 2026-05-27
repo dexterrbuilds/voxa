@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Link as LinkIcon, LogOut, Shield, Sparkles } from "lucide-react";
+import { ArrowRight, LogOut } from "lucide-react";
 import {
   BetaButton,
   BetaEyebrow,
   BetaHeader,
   BetaPanel,
   BetaShell,
-  BetaStat,
 } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
@@ -82,49 +81,26 @@ export default function RoomLobby() {
           Sign out
         </BetaButton>
       </BetaHeader>
-      <div className="mx-auto max-w-7xl px-6 py-14">
-        <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-6">
           <div>
             <BetaEyebrow>Room Portal</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-              Start a room or join an existing conversation.
+            <h1 className="beta-text-gradient mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+              Start Room
             </h1>
-            <p className="mt-4 max-w-2xl text-[oklch(0.65_0.02_260)]">
+            <p className="mt-3 text-sm text-[oklch(0.65_0.02_260)]">
               Signed in as {user?.email ?? "you@usevoxa.com"}
             </p>
           </div>
         </div>
 
-        <BetaPanel className="grid gap-8 p-6 lg:grid-cols-[1.08fr,0.92fr] lg:p-8">
-          <div>
-            <div className="beta-orbital-stage beta-lobby-stage grid place-items-center">
-              <div className="beta-conversation-core">
-                <Shield className="h-11 w-11 text-[oklch(0.1_0.02_260)]" />
-              </div>
-              <div className="absolute left-6 top-6 beta-status-pill">
-                <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-                Voxa room
-              </div>
-              <div className="absolute bottom-6 right-6 beta-status-pill">
-                <LinkIcon className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-                Share room link
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-center">
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <BetaStat label="Access" value="Invite-only" />
-              <BetaStat label="Agent" value="Nova online" />
-              <BetaStat label="Invite links" value="Ready" />
-            </div>
-
-            <div className="mt-7 rounded-xl border border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)] p-5">
-              <h2 className="text-2xl font-semibold tracking-tight text-white">Start a room</h2>
-              <p className="mt-3 leading-relaxed text-[oklch(0.65_0.02_260)]">
-                Open a Voxa room and invite Nova into the conversation.
+        <BetaPanel className="p-4 sm:p-6">
+          <div className="space-y-4">
+            <div className="rounded-xl border border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)] p-4 sm:p-5">
+              <p className="text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
+                Open an invite-only Voxa Room, then share the link with the people you want inside.
               </p>
-              <div className="mt-6 flex flex-col gap-3">
+              <div className="mt-5 flex flex-col gap-3">
                 <BetaButton disabled={isCreatingRoom} onClick={() => handleCreateRoom(false)}>
                   {isCreatingRoom ? "Creating Room..." : "Start Room"}
                   <ArrowRight className="h-4 w-4" />
@@ -137,16 +113,14 @@ export default function RoomLobby() {
               </div>
             </div>
 
-            <div className="mt-4">
-              <AIPersonality
-                inRoom={false}
-                name="Nova"
-                onInvite={() => handleCreateRoom(true)}
-                status="online"
-              />
-            </div>
+            <AIPersonality
+              inRoom={false}
+              name="Nova"
+              onInvite={() => handleCreateRoom(true)}
+              status="online"
+            />
 
-            <div className="mt-4 rounded-xl border border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)] p-5">
+            <div className="rounded-xl border border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)] p-4 sm:p-5">
               <h2 className="text-xl font-semibold tracking-tight text-white">Join Room</h2>
               <div className="mt-4 flex flex-col gap-3">
                 <input

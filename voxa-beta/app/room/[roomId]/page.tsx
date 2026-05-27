@@ -4,12 +4,10 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AudioLines,
-  Headphones,
   Link as LinkIcon,
   LogOut,
   Mic,
   MicOff,
-  Shield,
   Sparkles,
 } from "lucide-react";
 import AIPersonality from "@/components/AIPersonality";
@@ -19,12 +17,11 @@ import {
   BetaHeader,
   BetaPanel,
   BetaShell,
-  BetaStat,
 } from "@/components/BetaChrome";
 import InviteLink from "@/components/InviteLink";
 import RoomVoice, { type NovaState, type VoiceParticipantState } from "@/components/RoomVoice";
 import { useAuth } from "@/lib/auth";
-import { type NovaRoomMode, useRoom } from "@/lib/room";
+import { useRoom } from "@/lib/room";
 import { novaParticipant, type Participant } from "@/lib/store";
 
 type RoomPageProps = {
@@ -44,7 +41,6 @@ type AgentVisualState =
   | "thinking"
   | "speaking"
   | "error";
-type NovaControlMode = NovaRoomMode | "co-host";
 
 function agentStateFromVoice(voice?: VoiceParticipantState): AgentVisualState | null {
   if (!voice?.agentState) {
@@ -207,7 +203,6 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipantState[]>([]);
   const [novaVisualState, setNovaVisualState] = useState<AgentVisualState>("online");
   const [manualNovaState, setManualNovaState] = useState<AgentVisualState | null>(null);
-  const [novaMode, setNovaMode] = useState<NovaControlMode>("manual");
   const [isInvitingNova, setIsInvitingNova] = useState(false);
   const consumedInviteRequest = useRef(false);
   const router = useRouter();
@@ -364,14 +359,13 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       return;
     }
 
-    const dispatchMode: NovaRoomMode = novaMode === "silent" ? "silent" : "manual";
-    const nextRoom = await inviteNovaShared(room.id, dispatchMode);
+    const nextRoom = await inviteNovaShared(room.id, "manual");
 
     if (!nextRoom) {
       setIsInvitingNova(false);
       setNovaVisualState("online");
     }
-  }, [inviteNova, inviteNovaShared, isInvitingNova, novaInRoom, novaMode, room, sharedRoomEnabled]);
+  }, [inviteNova, inviteNovaShared, isInvitingNova, novaInRoom, room, sharedRoomEnabled]);
 
   const novaVoice = voiceByParticipantId.get("nova");
   const liveNovaState = novaInRoom ? agentStateFromVoice(novaVoice) : null;
@@ -460,76 +454,47 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   return (
     <BetaShell>
       <BetaHeader>
-        <BetaButton
-          className="min-h-9 px-3 text-xs"
-          onClick={() => {
-            handleLeaveRoom();
-          }}
-          variant="quiet"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Leave
-        </BetaButton>
+        <div className="flex items-center gap-2">
+          <InviteLink roomId={room.id} compact />
+          <BetaButton
+            className="min-h-9 px-3 text-xs"
+            onClick={() => {
+              handleLeaveRoom();
+            }}
+            variant="quiet"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Leave
+          </BetaButton>
+        </div>
       </BetaHeader>
 
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10 sm:pt-10">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-8">
           <div>
             <BetaEyebrow>Voxa Room</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+            <h1 className="beta-text-gradient mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">
               {room.name}
             </h1>
-            <p className="mt-3 text-[oklch(0.65_0.02_260)]">
-              Nova is online. Invite people into this room and start the conversation.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 md:justify-end">
-            <div className="beta-status-pill">
-              <Shield className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-              Invite-only room
-            </div>
-            <div className="beta-status-pill">
-              <Headphones className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-              Nova online
+            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 font-mono text-xs text-[oklch(0.65_0.02_260)]">
+              <LinkIcon className="h-3.5 w-3.5 shrink-0 text-[oklch(0.78_0.18_235)]" />
+              <span className="truncate">{room.roomId}</span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,22rem]">
           <BetaPanel className="p-4 sm:p-6">
-            <div className="beta-orbital-stage beta-room-stage">
+            <div className="beta-orbital-stage beta-room-stage min-h-[34rem] overflow-hidden">
               <div className="absolute inset-0 beta-room-grid opacity-90" />
-              <div className="absolute left-6 top-6 beta-status-pill">
+              <div className="absolute left-4 top-4 beta-status-pill sm:left-6 sm:top-6">
                 <AudioLines className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-                {room.status === "ended" ? "Room ended" : "Conversation core"}
-              </div>
-              <div className="absolute right-6 top-6 beta-status-pill">
-                <LinkIcon className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-                {room.roomId}
-              </div>
-              <div className="absolute left-6 right-6 top-16 z-20 flex justify-start">
-                <RoomVoice
-                  enabled={sharedRoomEnabled && room.status === "active"}
-                  onNovaStateChange={handleNovaStateChange}
-                  onVoiceParticipantsChange={handleVoiceParticipantsChange}
-                  roomId={room.id}
-                />
+                {room.status === "ended" ? "Room ended" : "Conversation"}
               </div>
 
-              <div className="relative z-10 min-h-[38rem] px-5 pb-44 pt-32">
+              <div className="relative z-10 min-h-[34rem] px-3 pb-8 pt-20 sm:px-5">
                 <div className="mx-auto max-w-4xl">
-                  <div className="mb-6 text-center">
-                    <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                      {room.status === "ended" ? "Room ended" : "In the room"}
-                    </h2>
-                    <p className="mx-auto mt-3 max-w-xl leading-relaxed text-[oklch(0.65_0.02_260)]">
-                      {participants.length > 1
-                        ? "People in this Voxa Room appear here as they join."
-                        : "Invite someone to join the conversation."}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {participants.map((participant) => (
                       <ParticipantCard
                         agentState={
@@ -543,106 +508,75 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
                       />
                     ))}
                   </div>
+                  {participants.length <= 1 && (
+                    <p className="mx-auto mt-5 max-w-sm text-center text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
+                      Invite someone to join the conversation.
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              <div className="absolute bottom-6 left-6 right-6 grid gap-3 sm:grid-cols-3">
-                <BetaStat label="Participants" value={String(participants.length)} />
-                <BetaStat label="Privacy" value="Invite-only" />
-                <BetaStat
-                  label="Nova"
-                  value={
-                    isInvitingNova
-                      ? "Joining"
-                      : novaInRoom
-                        ? formatAgentState(effectiveNovaState)
-                        : "Online"
-                  }
-                />
               </div>
             </div>
           </BetaPanel>
 
           <aside className="space-y-4">
-            <BetaPanel className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-                    AI agent
+            {!novaInRoom && (
+              <BetaPanel className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
+                      Nova
+                    </div>
+                    <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Online</h2>
                   </div>
-                  <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Nova</h2>
+                  <div className="h-2.5 w-2.5 rounded-full bg-[oklch(0.72_0.2_245)] shadow-[0_0_18px_2px_oklch(0.72_0.2_245/0.65)]" />
                 </div>
-                <div className="h-2.5 w-2.5 rounded-full bg-[oklch(0.72_0.2_245)] shadow-[0_0_18px_2px_oklch(0.72_0.2_245/0.65)]" />
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
-                {isInvitingNova
-                  ? "Nova is joining this room."
-                  : novaInRoom
-                  ? "Nova joined the room."
-                  : "Nova is online and ready to join this room."}
-              </p>
+                <BetaButton
+                  className="mt-5 min-h-11 w-full"
+                  disabled={isInvitingNova}
+                  onClick={handleInviteNova}
+                >
+                  {isInvitingNova ? "Inviting Nova..." : "Invite Nova"}
+                  <Sparkles className="h-4 w-4" />
+                </BetaButton>
+              </BetaPanel>
+            )}
+
+            <BetaPanel className="p-4">
+              <InviteLink roomId={room.id} inline />
             </BetaPanel>
 
-            <BetaPanel className="p-5">
+            <BetaPanel className="p-4">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-                Nova mode
+                Recent
               </div>
-              <div className="mt-4 grid gap-2">
-                {[
-                  { label: "Manual", mode: "manual", note: "Responds only when addressed by name." },
-                  { label: "Silent", mode: "silent", note: "Joins and listens without responding." },
-                  { label: "Co-host", mode: "co-host", note: "Later" },
-                ].map((option) => {
-                  const disabled = option.mode === "co-host" || novaInRoom || isInvitingNova;
-                  const active = novaMode === option.mode;
-
-                  return (
-                    <button
-                      className={[
-                        "rounded-xl border px-4 py-3 text-left transition",
-                        active
-                          ? "border-[oklch(0.72_0.2_245/0.5)] bg-[oklch(0.72_0.2_245/0.12)]"
-                          : "border-white/[0.07] bg-white/[0.035] hover:border-white/[0.14]",
-                        disabled ? "cursor-not-allowed opacity-55" : "",
-                      ].join(" ")}
-                      disabled={disabled}
-                      key={option.mode}
-                      onClick={() => setNovaMode(option.mode as NovaControlMode)}
-                      type="button"
-                    >
-                      <span className="block text-sm font-semibold text-white">{option.label}</span>
-                      <span className="mt-1 block text-xs leading-relaxed text-[oklch(0.65_0.02_260)]">
-                        {option.note}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </BetaPanel>
-
-            <AIPersonality
-              inRoom={novaInRoom}
-              name={nova.name}
-              onInvite={handleInviteNova}
-              status={isInvitingNova ? "joining" : novaInRoom ? effectiveNovaState : "online"}
-            />
-
-            <BetaPanel className="p-5">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-                Room events
-              </div>
-              <div className="mt-4 space-y-3">
-                {room.events.slice(-5).map((event) => (
+              <div className="mt-3 space-y-2">
+                {room.events.slice(-3).map((event) => (
                   <div className="text-sm text-[oklch(0.65_0.02_260)]" key={event.id}>
                     {event.text}
                   </div>
                 ))}
               </div>
             </BetaPanel>
+
+            {novaInRoom && (
+              <AIPersonality
+                inRoom
+                name={nova.name}
+                onInvite={handleInviteNova}
+                status={effectiveNovaState}
+              />
+            )}
           </aside>
         </div>
 
-        <InviteLink roomId={room.id} />
+        <div className="fixed bottom-3 left-3 right-3 z-40 mx-auto max-w-xl sm:sticky sm:bottom-4 sm:left-auto sm:right-auto sm:mt-6">
+          <RoomVoice
+            enabled={sharedRoomEnabled && room.status === "active"}
+            onNovaStateChange={handleNovaStateChange}
+            onVoiceParticipantsChange={handleVoiceParticipantsChange}
+            roomId={room.id}
+          />
+        </div>
       </div>
     </BetaShell>
   );
