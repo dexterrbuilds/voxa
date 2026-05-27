@@ -105,20 +105,25 @@ function ParticipantCard({
           </div>
         </div>
 
-        <div className="flex h-8 items-end gap-1">
-          {[0, 1, 2].map((bar) => (
-            <span
-              className={[
-                "block w-1 rounded-full bg-[oklch(0.72_0.2_245)] transition-all",
-                isSpeaking ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]" : "opacity-30",
-              ].join(" ")}
-              key={bar}
-              style={{
-                height: isSpeaking ? `${12 + bar * 7}px` : "8px",
-                animationDelay: `${bar * 120}ms`,
-              }}
-            />
-          ))}
+        <div className="flex shrink-0 flex-col items-end gap-3">
+          <span className="rounded-full border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[oklch(0.72_0.2_245)]">
+            {isAgent ? "Agent" : "Human"}
+          </span>
+          <div className="flex h-8 items-end gap-1">
+            {[0, 1, 2].map((bar) => (
+              <span
+                className={[
+                  "block w-1 rounded-full bg-[oklch(0.72_0.2_245)] transition-all",
+                  isSpeaking ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]" : "opacity-30",
+                ].join(" ")}
+                key={bar}
+                style={{
+                  height: isSpeaking ? `${12 + bar * 7}px` : "8px",
+                  animationDelay: `${bar * 120}ms`,
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -361,12 +366,6 @@ export default function RoomPage({ params }: RoomPageProps) {
           </div>
         </div>
 
-        <RoomVoice
-          enabled={sharedRoomEnabled && room.status === "active"}
-          onVoiceParticipantsChange={handleVoiceParticipantsChange}
-          roomId={room.id}
-        />
-
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,22rem]">
           <BetaPanel className="p-4 sm:p-6">
             <div className="beta-orbital-stage beta-room-stage">
@@ -379,8 +378,15 @@ export default function RoomPage({ params }: RoomPageProps) {
                 <LinkIcon className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
                 {room.roomId}
               </div>
+              <div className="absolute left-6 right-6 top-16 z-20 flex justify-start">
+                <RoomVoice
+                  enabled={sharedRoomEnabled && room.status === "active"}
+                  onVoiceParticipantsChange={handleVoiceParticipantsChange}
+                  roomId={room.id}
+                />
+              </div>
 
-              <div className="relative z-10 min-h-[38rem] px-5 pb-44 pt-20">
+              <div className="relative z-10 min-h-[38rem] px-5 pb-44 pt-32">
                 <div className="mx-auto max-w-4xl">
                   <div className="mb-6 text-center">
                     <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
@@ -437,25 +443,6 @@ export default function RoomPage({ params }: RoomPageProps) {
               onInvite={handleInviteNova}
               status="online"
             />
-
-            <BetaPanel className="p-5">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-                Participants
-              </div>
-              <div className="mt-4 space-y-3">
-                {participants.map((participant) => (
-                  <div
-                    className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm"
-                    key={participant.id}
-                  >
-                    <span className="truncate text-white">{participant.name}</span>
-                    <span className="text-[oklch(0.65_0.02_260)]">
-                      {participant.role === "ai" ? "AI" : "In Room"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </BetaPanel>
 
             <BetaPanel className="p-5">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">

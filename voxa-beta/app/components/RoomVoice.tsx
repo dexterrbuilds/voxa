@@ -10,7 +10,7 @@ import {
 } from "@livekit/components-react";
 import { ConnectionState, Track } from "livekit-client";
 import { Mic, MicOff, Radio, Volume2 } from "lucide-react";
-import { BetaButton, BetaPanel } from "@/components/BetaChrome";
+import { BetaButton } from "@/components/BetaChrome";
 import { getSupabaseClient } from "@/lib/supabase";
 
 type RoomVoiceProps = {
@@ -129,76 +129,37 @@ function VoiceSession({
   };
 
   return (
-    <BetaPanel className="mt-8 p-5">
+    <>
       <RoomAudioRenderer />
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-            <Radio className="h-3.5 w-3.5" />
-            Human voice
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <p className="text-lg font-semibold tracking-tight text-white">
-              {formatConnectionState(connectionState)}
-            </p>
-            <span className="beta-status-pill">
-              {isMicrophoneEnabled ? (
-                <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-              ) : (
-                <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-              )}
-              {isMicrophoneEnabled ? "Mic live" : connected ? "Listening only" : "Mic muted"}
-            </span>
-          </div>
-          {micError ? (
-            <p className="mt-3 max-w-xl text-sm text-[oklch(0.78_0.18_35)]">{micError}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="beta-status-pill">
+          <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+          {formatConnectionState(connectionState)}
+        </span>
+        <span className="beta-status-pill">
+          {isMicrophoneEnabled ? (
+            <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
           ) : (
-            <p className="mt-3 max-w-xl text-sm text-[oklch(0.65_0.02_260)]">
-              Voice connects automatically. Allow microphone access to speak, or stay muted to
-              listen.
-            </p>
+            <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
           )}
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <BetaButton
-            disabled={!connected || isUpdatingMic}
-            onClick={handleToggleMic}
-            variant={isMicrophoneEnabled ? "glass" : "quiet"}
-          >
-            {isMicrophoneEnabled ? (
-              <Mic className="h-4 w-4" />
-            ) : (
-              <MicOff className="h-4 w-4" />
-            )}
-            {isMicrophoneEnabled ? "Mute" : "Unmute"}
-          </BetaButton>
-        </div>
+          {isMicrophoneEnabled ? "Mic live" : connected ? "Listening only" : "Mic muted"}
+        </span>
+        <BetaButton
+          className="min-h-9 px-3 text-xs"
+          disabled={!connected || isUpdatingMic}
+          onClick={handleToggleMic}
+          variant={isMicrophoneEnabled ? "glass" : "quiet"}
+        >
+          {isMicrophoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+          {isMicrophoneEnabled ? "Mute" : "Unmute"}
+        </BetaButton>
+        {micError && (
+          <span className="text-xs text-[oklch(0.78_0.18_35)]">
+            {micError}
+          </span>
+        )}
       </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {participantRows.map((participant) => (
-          <div
-            className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm"
-            key={participant.id}
-          >
-            <span className="truncate text-white">
-              {participant.name}
-              {participant.isLocal ? " (you)" : ""}
-            </span>
-            <span
-              className={
-                participant.isSpeaking
-                  ? "text-[oklch(0.78_0.18_235)]"
-                  : "text-[oklch(0.65_0.02_260)]"
-              }
-            >
-              {participant.isMuted ? "Muted" : participant.isSpeaking ? "Speaking" : "Connected"}
-            </span>
-          </div>
-        ))}
-      </div>
-    </BetaPanel>
+    </>
   );
 }
 
@@ -279,55 +240,34 @@ export default function RoomVoice({
   }, [enabled, onVoiceParticipantsChange, retryCount, roomId]);
 
   if (!enabled) {
-    return (
-      <BetaPanel className="mt-8 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-              <Radio className="h-3.5 w-3.5" />
-              Human voice
-            </div>
-            <p className="mt-2 text-sm text-[oklch(0.65_0.02_260)]">
-              Voice unlocks when the shared room is connected.
-            </p>
-          </div>
-          <BetaButton disabled variant="quiet">
-            <MicOff className="h-4 w-4" />
-            Voice unavailable
-          </BetaButton>
-        </div>
-      </BetaPanel>
-    );
+    return null;
   }
 
   if (error) {
     return (
-      <BetaPanel className="mt-8 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[oklch(0.78_0.18_35)]">{error}</p>
-          <BetaButton
-            onClick={() => {
-              setVoiceToken(null);
-              setError(null);
-              setRetryCount((count) => count + 1);
-            }}
-            variant="glass"
-          >
-            Try again
-          </BetaButton>
-        </div>
-      </BetaPanel>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-[oklch(0.78_0.18_35)]">{error}</span>
+        <BetaButton
+          className="min-h-9 px-3 text-xs"
+          onClick={() => {
+            setVoiceToken(null);
+            setError(null);
+            setRetryCount((count) => count + 1);
+          }}
+          variant="glass"
+        >
+          Try voice again
+        </BetaButton>
+      </div>
     );
   }
 
   if (isLoading || !voiceToken) {
     return (
-      <BetaPanel className="mt-8 p-5">
-        <div className="beta-status-pill">
-          <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-          Preparing voice
-        </div>
-      </BetaPanel>
+      <div className="beta-status-pill">
+        <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+        Preparing voice
+      </div>
     );
   }
 
