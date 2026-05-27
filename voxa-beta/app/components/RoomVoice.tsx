@@ -39,6 +39,10 @@ export type VoiceParticipantState = {
 };
 
 function normalizeLiveKitIdentity(identity: string) {
+  if (identity === "agent:nova" || identity.startsWith("agent:nova:")) {
+    return "nova";
+  }
+
   return identity.startsWith("agent:") ? identity.slice("agent:".length) : identity;
 }
 

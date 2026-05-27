@@ -9,7 +9,6 @@ import {
 } from "@livekit/rtc-node";
 import { AccessToken, TrackSource as TokenTrackSource } from "livekit-server-sdk";
 
-const NOVA_IDENTITY = "agent:nova";
 const NOVA_NAME = "Nova";
 const FRAME_DURATION_MS = 20;
 
@@ -61,15 +60,18 @@ function floatToInt16(sample: number) {
 
 async function createNovaLiveKitToken(roomId: string) {
   const { apiKey, apiSecret } = requireLiveKitEnv();
+  const playbackIdentity = `agent:nova:playback:${crypto.randomUUID()}`;
   const token = new AccessToken(apiKey, apiSecret, {
     attributes: {
       "lk.agent.state": "speaking",
+      "voxa.agent_id": "nova",
       "voxa.participant_type": "agent",
     },
-    identity: NOVA_IDENTITY,
+    identity: playbackIdentity,
     metadata: JSON.stringify({
       agent_id: "nova",
       participant_type: "agent",
+      playback: true,
     }),
     name: NOVA_NAME,
     ttl: "5m",
