@@ -54,6 +54,17 @@ function formatConnectionState(state: ConnectionState) {
   return "Voice idle";
 }
 
+function getSupportedRecordingMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+  ];
+
+  return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate));
+}
+
 function VoiceSession({
   onNovaStateChange,
   onVoiceParticipantsChange,
@@ -72,6 +83,7 @@ function VoiceSession({
   const audioStreamRef = useRef<MediaStream | null>(null);
   const stopTimerRef = useRef<number | null>(null);
   const recordingEndsAtRef = useRef<number | null>(null);
+  const recordingStartedAtRef = useRef<number | null>(null);
   const captureIdRef = useRef(0);
   const novaStateRef = useRef<NovaState>("in_room");
   const isSendingNovaRef = useRef(false);
@@ -155,8 +167,17 @@ function VoiceSession({
     const recorder = mediaRecorderRef.current;
 
     if (recorder && recorder.state !== "inactive") {
-      recorder.requestData();
-      recorder.stop();
+      try {
+        recorder.requestData();
+      } catch {
+        // Some browsers throw if a chunk is already being flushed.
+      }
+
+      window.setTimeout(() => {
+        if (recorder.state !== "inactive") {
+          recorder.stop();
+        }
+      }, 120);
     }
   }
 
@@ -264,11 +285,8 @@ function VoiceSession({
     });
     audioStreamRef.current = stream;
 
-    const recorder = new MediaRecorder(stream, {
-      mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : "audio/webm",
-    });
+    const mimeType = getSupportedRecordingMimeType();
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
     const chunks: Blob[] = [];
     mediaRecorderRef.current = recorder;
 
@@ -303,13 +321,18 @@ function VoiceSession({
       mediaRecorderRef.current = null;
       cleanupNovaStream();
 
-      const audio = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+      const audio = new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" });
 
       if (audio.size === 0) {
+        console.warn("Nova recorder produced an empty audio blob.", {
+          chunkCount: chunks.length,
+          mimeType: recorder.mimeType || mimeType || "browser-default",
+          recordedMs: recordingStartedAtRef.current ? Date.now() - recordingStartedAtRef.current : 0,
+        });
         isSendingNovaRef.current = false;
         setIsUpdatingNova(false);
         transitionNova("error");
-        setMicError("Nova did not capture any audio.");
+        setMicError("Nova did not capture audio. Try again and speak after the Listening state appears.");
         return;
       }
 
@@ -330,7 +353,8 @@ function VoiceSession({
         });
     };
 
-    recorder.start();
+    recorder.start(250);
+    recordingStartedAtRef.current = Date.now();
     recordingEndsAtRef.current = Date.now() + listenWindowMs;
     setIsUpdatingNova(false);
     setMicError(null);
