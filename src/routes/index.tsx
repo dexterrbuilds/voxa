@@ -140,7 +140,6 @@ export default function HomePage() {
               <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
                 Voxa is the runtime layer that allows external AI agents to participate across
                 meetings, calls, and voice environments.
-                CA: EEnjis1thqMgorpSA9q24R2QgYvCxMG2whRJzJzHpump
               </p>
               <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
                 <Button asChild variant="electric" size="lg">
