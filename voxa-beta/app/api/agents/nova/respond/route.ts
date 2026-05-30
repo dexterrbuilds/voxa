@@ -273,14 +273,12 @@ export async function POST(request: NextRequest) {
       meta: { responseLength: responseText.length },
     });
 
-    let synthesized:
-      | {
-          audio: Buffer;
-          contentType: string;
-          provider: string;
-          voice: string;
-        }
-      | null = null;
+    let synthesized: {
+      audio: Buffer;
+      contentType: string;
+      provider: string;
+      voice: string;
+    } | null = null;
 
     try {
       logNovaStep("tts_request", "success", {

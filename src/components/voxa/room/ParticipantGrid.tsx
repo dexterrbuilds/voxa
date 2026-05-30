@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { Participant } from "@/lib/rooms";
 import ParticipantAvatar from "./ParticipantAvatar";
 
@@ -29,7 +29,7 @@ export default function ParticipantGrid({
       scale: 1,
       transition: { type: "spring", damping: 15, stiffness: 100 },
     },
-  };
+  } satisfies Variants;
 
   return (
     <motion.div
@@ -39,10 +39,7 @@ export default function ParticipantGrid({
       className="flex-1 flex flex-col gap-6"
     >
       {/* Title */}
-      <motion.h2
-        variants={itemVariants}
-        className="text-xl font-semibold text-foreground"
-      >
+      <motion.h2 variants={itemVariants} className="text-xl font-semibold text-foreground">
         Participants ({participants.length})
       </motion.h2>
 
@@ -52,11 +49,7 @@ export default function ParticipantGrid({
         className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-1 auto-rows-max"
       >
         {participants.map((participant) => (
-          <motion.div
-            key={participant.id}
-            variants={itemVariants}
-            className="h-40"
-          >
+          <motion.div key={participant.id} variants={itemVariants} className="h-40">
             <ParticipantAvatar
               participant={participant}
               isSpeaking={speakingParticipant === participant.id}

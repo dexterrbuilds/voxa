@@ -4,16 +4,65 @@
 
 :root {
   --radius: 0.75rem;
+  --background: oklch(0.985 0.004 260);
+  --foreground: oklch(0.18 0.025 260);
+  --surface: oklch(0.98 0.006 260 / 0.82);
+  --surface-elevated: oklch(1 0 0 / 0.88);
+  --muted-foreground: oklch(0.47 0.035 260);
+  --border: oklch(0.82 0.025 260 / 0.85);
+  --electric: oklch(0.72 0.2 245);
+  --electric-glow: oklch(0.78 0.18 235);
+  --violet-glow: oklch(0.65 0.22 250);
+  --cyan-glow: oklch(0.78 0.18 220);
+  --header-bg: oklch(1 0 0 / 0.72);
+  --hairline-border: oklch(0.38 0.04 260 / 0.12);
+  --glass-border: oklch(0.72 0.2 245 / 0.16);
+  --subtle-fill: oklch(1 0 0 / 0.58);
+  --page-gradient: radial-gradient(circle at 50% -10%, oklch(0.72 0.2 245 / 0.12), transparent 34rem),
+    radial-gradient(circle at 90% 18%, oklch(0.65 0.22 250 / 0.09), transparent 34rem),
+    radial-gradient(circle at 14% 90%, oklch(0.78 0.18 220 / 0.08), transparent 30rem),
+    linear-gradient(180deg, oklch(0.988 0.006 260), oklch(0.94 0.014 260));
+  --text-gradient-start: oklch(0.18 0.025 260);
+  --text-gradient-end: oklch(0.43 0.055 260);
+  --glass-bg: linear-gradient(135deg, oklch(1 0 0 / 0.78), oklch(0.94 0.02 260 / 0.62)),
+    linear-gradient(180deg, oklch(1 0 0 / 0.55), transparent 38%);
+  --premium-card-bg: linear-gradient(135deg, oklch(1 0 0 / 0.82), oklch(0.94 0.02 260 / 0.72)),
+    linear-gradient(180deg, oklch(1 0 0 / 0.56), transparent 42%);
+  --stage-bg: radial-gradient(circle at 50% 45%, oklch(0.72 0.2 245 / 0.17), transparent 10rem),
+    radial-gradient(circle at 50% 52%, oklch(0.65 0.22 250 / 0.11), transparent 16rem),
+    linear-gradient(180deg, oklch(0.985 0.006 260 / 0.76), oklch(0.93 0.014 260 / 0.94));
+  --input-bg: oklch(1 0 0 / 0.68);
+  --input-focus-bg: oklch(1 0 0 / 0.82);
+  --grid-line: oklch(0.38 0.05 260 / 0.08);
+}
+
+.dark {
   --background: oklch(0.13 0.015 260);
   --foreground: oklch(0.97 0.005 260);
   --surface: oklch(0.16 0.018 260);
   --surface-elevated: oklch(0.2 0.02 260);
   --muted-foreground: oklch(0.65 0.02 260);
   --border: oklch(0.28 0.02 260 / 0.6);
-  --electric: oklch(0.72 0.2 245);
-  --electric-glow: oklch(0.78 0.18 235);
-  --violet-glow: oklch(0.65 0.22 250);
-  --cyan-glow: oklch(0.78 0.18 220);
+  --header-bg: oklch(0.13 0.015 260 / 0.58);
+  --hairline-border: oklch(1 0 0 / 0.07);
+  --glass-border: oklch(1 0 0 / 0.08);
+  --subtle-fill: oklch(1 0 0 / 0.03);
+  --page-gradient: radial-gradient(circle at 50% -10%, oklch(0.72 0.2 245 / 0.18), transparent 34rem),
+    radial-gradient(circle at 90% 18%, oklch(0.65 0.22 250 / 0.13), transparent 34rem),
+    radial-gradient(circle at 14% 90%, oklch(0.78 0.18 220 / 0.12), transparent 30rem),
+    linear-gradient(180deg, oklch(0.145 0.018 260), oklch(0.105 0.014 260));
+  --text-gradient-start: oklch(0.98 0.005 260);
+  --text-gradient-end: oklch(0.65 0.04 260);
+  --glass-bg: linear-gradient(135deg, oklch(0.23 0.024 260 / 0.68), oklch(0.16 0.018 260 / 0.44)),
+    linear-gradient(180deg, oklch(1 0 0 / 0.055), transparent 38%);
+  --premium-card-bg: linear-gradient(135deg, oklch(0.23 0.024 260 / 0.72), oklch(0.16 0.018 260 / 0.5)),
+    linear-gradient(180deg, oklch(1 0 0 / 0.06), transparent 42%);
+  --stage-bg: radial-gradient(circle at 50% 45%, oklch(0.72 0.2 245 / 0.22), transparent 10rem),
+    radial-gradient(circle at 50% 52%, oklch(0.65 0.22 250 / 0.16), transparent 16rem),
+    linear-gradient(180deg, oklch(0.18 0.02 260 / 0.72), oklch(0.115 0.016 260 / 0.92));
+  --input-bg: oklch(0.12 0.016 260 / 0.58);
+  --input-focus-bg: oklch(0.14 0.018 260 / 0.74);
+  --grid-line: oklch(1 0 0 / 0.04);
 }
 
 * {
@@ -36,6 +85,14 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+html:not(.dark) .text-white {
+  color: var(--foreground) !important;
+}
+
+html:not(.dark) .hover\:text-white:hover {
+  color: var(--foreground) !important;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -51,15 +108,11 @@ a {
     min-height: 100vh;
     overflow: hidden;
     color: var(--foreground);
-    background:
-      radial-gradient(circle at 50% -10%, oklch(0.72 0.2 245 / 0.18), transparent 34rem),
-      radial-gradient(circle at 90% 18%, oklch(0.65 0.22 250 / 0.13), transparent 34rem),
-      radial-gradient(circle at 14% 90%, oklch(0.78 0.18 220 / 0.12), transparent 30rem),
-      linear-gradient(180deg, oklch(0.145 0.018 260), oklch(0.105 0.014 260));
+    background: var(--page-gradient);
   }
 
   .beta-text-gradient {
-    background: linear-gradient(180deg, oklch(0.98 0.005 260) 0%, oklch(0.65 0.04 260) 100%);
+    background: linear-gradient(180deg, var(--text-gradient-start) 0%, var(--text-gradient-end) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -73,18 +126,16 @@ a {
   }
 
   .beta-glass {
-    background:
-      linear-gradient(135deg, oklch(0.23 0.024 260 / 0.68), oklch(0.16 0.018 260 / 0.44)),
-      linear-gradient(180deg, oklch(1 0 0 / 0.055), transparent 38%);
-    border: 1px solid oklch(1 0 0 / 0.08);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     backdrop-filter: blur(24px) saturate(150%);
     -webkit-backdrop-filter: blur(24px) saturate(150%);
   }
 
   .beta-grid-bg {
     background-image:
-      linear-gradient(oklch(1 0 0 / 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 56px 56px;
   }
 
@@ -104,17 +155,15 @@ a {
   }
 
   .beta-hairline {
-    border-top: 1px solid oklch(1 0 0 / 0.07);
+    border-top: 1px solid var(--hairline-border);
   }
 
   .beta-premium-card {
     position: relative;
     overflow: hidden;
     border-radius: 1rem;
-    background:
-      linear-gradient(135deg, oklch(0.23 0.024 260 / 0.72), oklch(0.16 0.018 260 / 0.5)),
-      linear-gradient(180deg, oklch(1 0 0 / 0.06), transparent 42%);
-    border: 1px solid oklch(1 0 0 / 0.085);
+    background: var(--premium-card-bg);
+    border: 1px solid var(--glass-border);
     box-shadow:
       inset 0 1px 0 oklch(1 0 0 / 0.055),
       0 24px 80px -52px oklch(0.72 0.2 245 / 0.9);
@@ -137,11 +186,8 @@ a {
     min-height: 24rem;
     overflow: hidden;
     border-radius: 1rem;
-    background:
-      radial-gradient(circle at 50% 45%, oklch(0.72 0.2 245 / 0.22), transparent 10rem),
-      radial-gradient(circle at 50% 52%, oklch(0.65 0.22 250 / 0.16), transparent 16rem),
-      linear-gradient(180deg, oklch(0.18 0.02 260 / 0.72), oklch(0.115 0.016 260 / 0.92));
-    border: 1px solid oklch(1 0 0 / 0.08);
+    background: var(--stage-bg);
+    border: 1px solid var(--glass-border);
     box-shadow: inset 0 0 80px oklch(0.72 0.2 245 / 0.08);
   }
 
@@ -211,10 +257,10 @@ a {
     min-height: 3rem;
     width: 100%;
     border-radius: 0.5rem;
-    border: 1px solid oklch(1 0 0 / 0.08);
-    background: oklch(0.12 0.016 260 / 0.58);
+    border: 1px solid var(--glass-border);
+    background: var(--input-bg);
     padding: 0 1rem;
-    color: white;
+    color: var(--foreground);
     outline: none;
     transition:
       border-color 200ms ease,
@@ -228,7 +274,7 @@ a {
 
   .beta-input:focus {
     border-color: oklch(0.72 0.2 245 / 0.55);
-    background: oklch(0.14 0.018 260 / 0.74);
+    background: var(--input-focus-bg);
     box-shadow: 0 0 0 3px oklch(0.72 0.2 245 / 0.14);
   }
 
@@ -273,8 +319,8 @@ a {
     font-size: 0.9375rem;
     font-weight: 600;
     line-height: 1;
-    background: linear-gradient(135deg, oklch(0.2 0.02 260 / 0.6), oklch(0.16 0.018 260 / 0.4));
-    border: 1px solid oklch(1 0 0 / 0.06);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     backdrop-filter: blur(20px) saturate(140%);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
     transition:
@@ -285,8 +331,8 @@ a {
 
   .beta-button-glass:hover {
     transform: translateY(-2px);
-    border-color: oklch(1 0 0 / 0.1);
-    background: linear-gradient(135deg, oklch(0.22 0.025 260 / 0.7), oklch(0.18 0.02 260 / 0.5));
+    border-color: oklch(0.72 0.2 245 / 0.28);
+    background: var(--surface-elevated);
   }
 
   .beta-status-pill {
@@ -294,10 +340,10 @@ a {
     align-items: center;
     gap: 0.5rem;
     border-radius: 999px;
-    border: 1px solid oklch(1 0 0 / 0.075);
-    background: oklch(0.16 0.018 260 / 0.58);
+    border: 1px solid var(--glass-border);
+    background: var(--subtle-fill);
     padding: 0.45rem 0.75rem;
-    color: oklch(0.65 0.02 260);
+    color: var(--muted-foreground);
     font-size: 0.8125rem;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);

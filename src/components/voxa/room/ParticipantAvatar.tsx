@@ -8,10 +8,7 @@ interface ParticipantAvatarProps {
   isSpeaking: boolean;
 }
 
-export default function ParticipantAvatar({
-  participant,
-  isSpeaking,
-}: ParticipantAvatarProps) {
+export default function ParticipantAvatar({ participant, isSpeaking }: ParticipantAvatarProps) {
   const personality = participant.personalityId
     ? getPersonalityById(participant.personalityId)
     : null;

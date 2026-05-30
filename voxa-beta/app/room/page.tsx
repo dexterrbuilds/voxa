@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LogOut } from "lucide-react";
-import {
-  BetaButton,
-  BetaEyebrow,
-  BetaHeader,
-  BetaPanel,
-  BetaShell,
-} from "@/components/BetaChrome";
+import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
 import AIPersonality from "@/components/AIPersonality";

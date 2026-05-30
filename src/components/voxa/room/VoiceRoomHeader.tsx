@@ -66,9 +66,7 @@ export default function VoiceRoomHeader({
             size="sm"
             className="gap-2 flex-shrink-0"
             onClick={() => {
-              navigator.clipboard.writeText(
-                `Check out this voice room: "${room.title}" on Voxa`
-              );
+              navigator.clipboard.writeText(`Check out this voice room: "${room.title}" on Voxa`);
             }}
           >
             <Share2 size={16} />

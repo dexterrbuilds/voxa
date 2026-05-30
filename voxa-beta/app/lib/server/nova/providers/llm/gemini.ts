@@ -1,5 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
-import { NovaProviderError, sanitizeErrorMessage, statusFromUnknown } from "@/lib/server/nova/errors";
+import {
+  NovaProviderError,
+  sanitizeErrorMessage,
+  statusFromUnknown,
+} from "@/lib/server/nova/errors";
 
 function getCurrentDateContext(timeZone = "UTC") {
   const today = new Date();
@@ -53,27 +57,29 @@ export async function generateNovaResponse(transcript: string, options?: { timeZ
   const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
   const systemInstruction = buildNovaSystemInstruction(options?.timeZone);
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    config: {
-      maxOutputTokens: 180,
-      systemInstruction,
-      temperature: 0.7,
-      tools: [
-        {
-          googleSearch: {},
-        },
-      ],
-    },
-    contents: transcript,
-    model,
-  }).catch((error) => {
-    throw new NovaProviderError({
-      code: "reasoning_failed",
-      details: sanitizeErrorMessage(error),
-      provider: "gemini",
-      status: statusFromUnknown(error),
+  const response = await ai.models
+    .generateContent({
+      config: {
+        maxOutputTokens: 180,
+        systemInstruction,
+        temperature: 0.7,
+        tools: [
+          {
+            googleSearch: {},
+          },
+        ],
+      },
+      contents: transcript,
+      model,
+    })
+    .catch((error) => {
+      throw new NovaProviderError({
+        code: "reasoning_failed",
+        details: sanitizeErrorMessage(error),
+        provider: "gemini",
+        status: statusFromUnknown(error),
+      });
     });
-  });
   const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
 
   if (groundingMetadata) {

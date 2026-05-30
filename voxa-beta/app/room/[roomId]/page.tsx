@@ -2,22 +2,9 @@
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AudioLines,
-  Link as LinkIcon,
-  LogOut,
-  Mic,
-  MicOff,
-  Sparkles,
-} from "lucide-react";
+import { AudioLines, Link as LinkIcon, LogOut, Mic, MicOff, Sparkles } from "lucide-react";
 import AIPersonality from "@/components/AIPersonality";
-import {
-  BetaButton,
-  BetaEyebrow,
-  BetaHeader,
-  BetaPanel,
-  BetaShell,
-} from "@/components/BetaChrome";
+import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import InviteLink from "@/components/InviteLink";
 import RoomVoice, { type NovaState, type VoiceParticipantState } from "@/components/RoomVoice";
 import { useAuth } from "@/lib/auth";
@@ -158,9 +145,7 @@ function ParticipantCard({
               <span
                 className={[
                   "block w-1 rounded-full bg-[oklch(0.72_0.2_245)] transition-all",
-                  cardIsActive
-                    ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]"
-                    : "opacity-30",
+                  cardIsActive ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]" : "opacity-30",
                 ].join(" ")}
                 key={bar}
                 style={{

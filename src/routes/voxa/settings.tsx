@@ -65,12 +65,8 @@ export default function VoxaSettingsPage() {
                     <Icon size={20} className="text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">
-                      {setting.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {setting.description}
-                    </p>
+                    <h3 className="font-semibold text-foreground">{setting.title}</h3>
+                    <p className="text-sm text-muted-foreground">{setting.description}</p>
                   </div>
                 </div>
                 {setting.action && <Switch defaultChecked />}
@@ -87,9 +83,7 @@ export default function VoxaSettingsPage() {
           className="mt-12 p-6 bg-red-500/10 border border-red-500/30 rounded-lg"
         >
           <h3 className="font-semibold text-red-400 mb-2">Danger Zone</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            These actions cannot be undone.
-          </p>
+          <p className="text-sm text-muted-foreground mb-4">These actions cannot be undone.</p>
           <button className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors font-medium text-sm">
             Sign Out
           </button>

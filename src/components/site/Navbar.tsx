@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Menu, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BETA_APP_URL } from "@/lib/links";
+import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
   { to: "/product", label: "Product" },
@@ -37,6 +38,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
+          <ThemeToggle />
           <Link
             to="/developers"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3"
@@ -62,6 +64,10 @@ export function Navbar() {
 
       {open && (
         <div className="md:hidden relative bg-background/95 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex flex-col gap-1 animate-in fade-in slide-in-from-top-2">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Theme</span>
+            <ThemeToggle />
+          </div>
           {links.map((l) => (
             <Link
               key={l.to}

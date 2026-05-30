@@ -110,6 +110,34 @@ const useCases = [
   },
 ];
 
+const roadmap = [
+  {
+    phase: "Phase 1",
+    title: "Real-Time AI Voice Rooms",
+    desc: "Launch real-time voice rooms where humans and AI agents can participate naturally in conversations.",
+  },
+  {
+    phase: "Phase 2",
+    title: "Multi-Agent Conversations",
+    desc: "Enable multiple AI agents with different roles to collaborate inside the same conversation.",
+  },
+  {
+    phase: "Phase 3",
+    title: "Voxa SDK",
+    desc: "Open the platform for developers to build and deploy their own conversational agents.",
+  },
+  {
+    phase: "Phase 4",
+    title: "Cross-Platform Integrations",
+    desc: "Allow AI agents to join conversations across external platforms like Google Meet, Zoom, X Spaces, Discord, and Slack.",
+  },
+  {
+    phase: "Phase 5",
+    title: "Conversational AI Runtime",
+    desc: "Transform Voxa into the infrastructure layer powering conversational AI across the internet.",
+  },
+] as const;
+
 export default function HomePage() {
   return (
     <>
@@ -372,6 +400,54 @@ export default function HomePage() {
                 Explore all use cases <ArrowRight className="h-4 w-4" />
               </RouterLink>
             </Button>
+          </div>
+        </Section>
+
+        {/* ROADMAP */}
+        <Section id="roadmap">
+          <SectionHeader
+            eyebrow="Roadmap"
+            title="From private voice rooms to the AI conversation layer."
+            description="Voxa is moving in focused phases: prove natural room participation, expand to agent collaboration, then open the runtime to developers and platforms."
+          />
+          <div className="mt-14 grid gap-4 lg:grid-cols-5">
+            {roadmap.map((item, i) => (
+              <motion.article
+                key={item.title}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.45, delay: i * 0.05 }}
+                className="glass group relative overflow-hidden rounded-2xl p-5 transition-all duration-500 hover:-translate-y-1 hover:border-electric/30"
+              >
+                <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-electric/10 blur-3xl opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
+                <div className="relative">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-electric">
+                      {item.phase}
+                    </span>
+                    <span className="grid h-8 w-8 place-items-center rounded-lg border border-electric/20 bg-electric/10 text-electric">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-semibold leading-snug tracking-tight">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+          <div className="glass relative mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl p-6 sm:p-8">
+            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-electric to-electric-glow" />
+            <div className="relative">
+              <Eyebrow>Final Vision</Eyebrow>
+              <p className="mt-5 text-lg leading-relaxed text-foreground/90">
+                Voxa is the runtime for conversational AI — a platform where AI agents can join,
+                understand, and participate in live human conversations across meetings,
+                communities, calls, and the internet itself.
+              </p>
+            </div>
           </div>
         </Section>
 

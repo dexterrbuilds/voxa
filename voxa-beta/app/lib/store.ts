@@ -51,6 +51,7 @@ export interface Room {
 interface AuthState {
   user: User | null;
   loading: boolean;
+  initialized: boolean;
   authError: string | null;
   isAuthenticated: boolean;
   hydrate: () => Promise<void>;
@@ -85,6 +86,15 @@ interface RoomState {
 
 const roomStorageKey = "voxa-room-storage";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+// Temporary auth diagnostics. Off by default; set NEXT_PUBLIC_AUTH_DEBUG=true to enable.
+const AUTH_DEBUG =
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_AUTH_DEBUG === "true";
+export function authDebug(event: string, data?: Record<string, unknown>) {
+  if (AUTH_DEBUG) {
+    console.info(`[voxa-auth] ${event}`, data ?? {});
+  }
+}
 
 export const novaParticipant: Participant = {
   id: "nova",
@@ -286,9 +296,7 @@ function roomWithNova(room: Room) {
     invitedAgents: alreadyInvited ? room.invitedAgents : [...room.invitedAgents, "nova"],
     participants: hasNovaParticipant
       ? room.participants.map((participant) =>
-          participant.id === "nova"
-            ? { ...participant, status: "in-room" as const }
-            : participant,
+          participant.id === "nova" ? { ...participant, status: "in-room" as const } : participant,
         )
       : [...room.participants, { ...novaParticipant, status: "in-room" as const }],
     events: alreadyInvited
@@ -353,16 +361,19 @@ function updateRoom(
 export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   loading: true,
+  initialized: false,
   authError: null,
   isAuthenticated: false,
   hydrate: async () => {
     const supabase = getSupabaseClient();
 
     if (!supabase) {
+      authDebug("hydrate:no-supabase-client");
       set({
         user: null,
         isAuthenticated: false,
         loading: false,
+        initialized: true,
       });
       return;
     }
@@ -376,10 +387,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         "Unable to load your session. Please refresh and try again.",
       );
     } catch (error) {
+      authDebug("hydrate:getSession-timeout", { error: String(error) });
       set({
         user: null,
         isAuthenticated: false,
         loading: false,
+        initialized: true,
         authError: error instanceof Error ? error.message : "Unable to load your session.",
       });
       return;
@@ -388,20 +401,28 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const { data, error } = sessionResponse;
 
     if (error) {
+      authDebug("hydrate:getSession-error", { error: error.message });
       set({
         user: null,
         isAuthenticated: false,
         loading: false,
+        initialized: true,
         authError: "Unable to load your session. Please sign in again.",
       });
       return;
     }
 
     const user = userFromSession(data.session);
+    authDebug("hydrate:getSession-result", {
+      hasSession: !!data.session,
+      hasUser: !!user,
+      userId: user?.id,
+    });
     set({
       user,
       isAuthenticated: !!user,
       loading: false,
+      initialized: true,
       authError: null,
     });
   },
@@ -500,10 +521,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       throw new Error(message);
     }
 
+    authDebug("signInWithEmail:success", { userId: user.id, hasSession: !!session });
     set({
       user,
       isAuthenticated: true,
       loading: false,
+      initialized: true,
       authError: null,
     });
 
@@ -644,10 +667,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
   setSession: (session) => {
     const user = userFromSession(session);
+    authDebug("setSession", { hasSession: !!session, hasUser: !!user, userId: user?.id });
     set({
       user,
       isAuthenticated: !!user,
       loading: false,
+      initialized: true,
       authError: null,
     });
   },
@@ -799,9 +824,7 @@ export const useRoomStore = create<RoomState>()((set, get) => ({
   },
   leaveRoom: (roomId, userId) => {
     const nextRoom = updateRoom(get(), roomId, (room) => {
-      const leavingParticipant = room.participants.find(
-        (participant) => participant.id === userId,
-      );
+      const leavingParticipant = room.participants.find((participant) => participant.id === userId);
       const participants = room.participants.filter((participant) => participant.id !== userId);
       const humanCount = participants.filter(
         (participant) => participant.participantType === "human",

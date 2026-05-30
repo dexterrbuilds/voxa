@@ -58,4 +58,3 @@ export async function synthesizeNovaSpeech(text: string) {
     throw primaryError;
   }
 }
-

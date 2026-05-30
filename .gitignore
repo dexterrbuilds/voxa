@@ -8,11 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+voxa-beta/node_modules
 dist
 dist-ssr
 .next
 voxa-beta/.next
 *.tsbuildinfo
+voxa-beta/tsconfig.tsbuildinfo
 .output
 .vinxi
 .tanstack/**

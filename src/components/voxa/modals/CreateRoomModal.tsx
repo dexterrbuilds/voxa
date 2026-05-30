@@ -20,7 +20,7 @@ export default function CreateRoomModal({ open, onOpenChange }: CreateRoomModalP
     setSelectedPersonalities((prev) =>
       prev.includes(personalityId)
         ? prev.filter((p) => p !== personalityId)
-        : [...prev, personalityId]
+        : [...prev, personalityId],
     );
   };
 
@@ -86,9 +86,7 @@ export default function CreateRoomModal({ open, onOpenChange }: CreateRoomModalP
                     maxLength={60}
                     className="w-full px-4 py-3 bg-surface border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {roomTitle.length}/60
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{roomTitle.length}/60</p>
                 </div>
 
                 <div>
@@ -103,9 +101,7 @@ export default function CreateRoomModal({ open, onOpenChange }: CreateRoomModalP
                     rows={3}
                     className="w-full px-4 py-3 bg-surface border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {roomDescription.length}/200
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{roomDescription.length}/200</p>
                 </div>
               </div>
 
@@ -140,11 +136,7 @@ export default function CreateRoomModal({ open, onOpenChange }: CreateRoomModalP
 
               {/* Actions */}
               <div className="flex gap-3 pt-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
                   Cancel
                 </Button>
                 <Button

@@ -113,17 +113,22 @@ export function useRoom() {
         }
 
         if (isSharedRoomSchemaError(error)) {
-          console.warn("Shared room schema is not installed. Supabase participant sync is required.");
+          console.warn(
+            "Shared room schema is not installed. Supabase participant sync is required.",
+          );
           setCurrentRoom(null);
           return null;
         }
 
-        console.warn("Shared room join failed. Refusing local fallback for production sync.", error);
+        console.warn(
+          "Shared room join failed. Refusing local fallback for production sync.",
+          error,
+        );
         setCurrentRoom(null);
         return null;
       }
     },
-    [joinExistingRoom, setCurrentRoom],
+    [setCurrentRoom],
   );
 
   const refreshSharedRoom = useCallback(
@@ -160,11 +165,14 @@ export function useRoom() {
           return null;
         }
 
-        console.warn("Shared Nova invite failed. Refusing local fallback for production sync.", error);
+        console.warn(
+          "Shared Nova invite failed. Refusing local fallback for production sync.",
+          error,
+        );
         return null;
       }
     },
-    [inviteNova, setCurrentRoom],
+    [setCurrentRoom],
   );
 
   const leaveSharedRoomById = useCallback(

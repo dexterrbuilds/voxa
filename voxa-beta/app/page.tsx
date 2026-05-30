@@ -15,16 +15,16 @@ import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
 
 export default function Home() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, initialized: authInitialized } = useAuth();
   const { createRoom } = useRoom();
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authInitialized && !user) {
       router.replace("/login?next=/");
     }
-  }, [authLoading, router, user]);
+  }, [authInitialized, router, user]);
 
   const handleCreateRoom = () => {
     if (!user) {
@@ -40,7 +40,7 @@ export default function Home() {
     }
   };
 
-  if (authLoading) {
+  if (!authInitialized) {
     return (
       <BetaShell>
         <div className="grid min-h-screen place-items-center">

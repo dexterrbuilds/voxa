@@ -11,12 +11,7 @@ interface EmptyStateProps {
   };
 }
 
-export default function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  action,
-}: EmptyStateProps) {
+export default function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -33,9 +28,7 @@ export default function EmptyState({
       </motion.div>
 
       <h3 className="text-xl font-semibold text-foreground mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-        {description}
-      </p>
+      <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">{description}</p>
 
       {action && (
         <motion.button

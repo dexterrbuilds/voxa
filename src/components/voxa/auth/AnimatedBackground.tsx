@@ -45,8 +45,7 @@ export default function AnimatedBackground() {
         }}
         className="absolute top-20 right-10 w-64 h-64 rounded-full"
         style={{
-          background:
-            "radial-gradient(circle, oklch(0.72 0.20 245 / 0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, oklch(0.72 0.20 245 / 0.15) 0%, transparent 70%)",
           filter: "blur(40px)",
         }}
       />
@@ -63,8 +62,7 @@ export default function AnimatedBackground() {
         }}
         className="absolute bottom-20 left-10 w-96 h-96 rounded-full"
         style={{
-          background:
-            "radial-gradient(circle, oklch(0.65 0.22 250 / 0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, oklch(0.65 0.22 250 / 0.15) 0%, transparent 70%)",
           filter: "blur(50px)",
         }}
       />

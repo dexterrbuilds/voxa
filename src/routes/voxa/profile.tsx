@@ -33,9 +33,7 @@ export default function VoxaProfilePage() {
             <div className="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-5xl mx-auto mb-6">
               {mockUserProfile.avatar}
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              {mockUserProfile.name}
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">{mockUserProfile.name}</h1>
             <p className="text-muted-foreground mb-4">{mockUserProfile.bio}</p>
             <p className="text-sm text-muted-foreground">
               Joined {mockUserProfile.joinedAt.toLocaleDateString()}
@@ -45,9 +43,7 @@ export default function VoxaProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-surface border border-border rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold text-primary mb-2">
-                {mockUserProfile.roomsJoined}
-              </p>
+              <p className="text-3xl font-bold text-primary mb-2">{mockUserProfile.roomsJoined}</p>
               <p className="text-sm text-muted-foreground">Rooms Joined</p>
             </div>
             <div className="bg-surface border border-border rounded-lg p-6 text-center">

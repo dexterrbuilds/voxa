@@ -43,8 +43,7 @@ export default function TranscriptPanel({ room }: TranscriptPanelProps) {
       // Simulate typing indicator
       const participants = room.participants.filter((p) => !p.isMuted);
       if (participants.length > 0) {
-        const randomParticipant =
-          participants[Math.floor(Math.random() * participants.length)];
+        const randomParticipant = participants[Math.floor(Math.random() * participants.length)];
         setTypingParticipant(randomParticipant.id);
 
         setTimeout(() => {
@@ -107,12 +106,7 @@ export default function TranscriptPanel({ room }: TranscriptPanelProps) {
       >
         <AnimatePresence mode="popLayout">
           {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              variants={messageVariants}
-              layout
-              className="space-y-1.5"
-            >
+            <motion.div key={message.id} variants={messageVariants} layout className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-foreground">
                   {message.participantName}
@@ -142,10 +136,7 @@ export default function TranscriptPanel({ room }: TranscriptPanelProps) {
             >
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-foreground">
-                  {
-                    room.participants.find((p) => p.id === typingParticipant)
-                      ?.name
-                  }
+                  {room.participants.find((p) => p.id === typingParticipant)?.name}
                 </span>
               </div>
               <div className="flex items-center gap-1">

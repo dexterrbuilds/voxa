@@ -33,7 +33,7 @@ export default function Login() {
   const {
     authError,
     isAuthenticated,
-    loading,
+    initialized,
     logout,
     resendVerificationEmail,
     signInWithEmail,
@@ -77,10 +77,10 @@ export default function Login() {
       return;
     }
 
-    if (!isVerifiedRedirect && !loading && isAuthenticated) {
+    if (!isVerifiedRedirect && initialized && isAuthenticated) {
       router.replace(getNextPath());
     }
-  }, [handledVerifiedState, isAuthenticated, loading, logout, router, setAuthError]);
+  }, [handledVerifiedState, isAuthenticated, initialized, logout, router, setAuthError]);
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
@@ -136,7 +136,6 @@ export default function Login() {
 
       const nextPath = getNextPath();
       router.replace(nextPath);
-      router.refresh();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Authentication failed.");
     } finally {

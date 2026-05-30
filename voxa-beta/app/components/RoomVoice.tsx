@@ -59,12 +59,7 @@ function formatConnectionState(state: ConnectionState) {
 }
 
 function getSupportedRecordingMimeType() {
-  const candidates = [
-    "audio/webm;codecs=opus",
-    "audio/webm",
-    "audio/mp4",
-    "audio/ogg;codecs=opus",
-  ];
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
   return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate));
 }
@@ -197,6 +192,7 @@ function VoiceSession({
       cancelNovaCapture(false);
       void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, localParticipant]);
 
   useEffect(() => {
@@ -341,12 +337,16 @@ function VoiceSession({
         console.warn("Nova recorder produced an empty audio blob.", {
           chunkCount: chunks.length,
           mimeType: recorder.mimeType || mimeType || "browser-default",
-          recordedMs: recordingStartedAtRef.current ? Date.now() - recordingStartedAtRef.current : 0,
+          recordedMs: recordingStartedAtRef.current
+            ? Date.now() - recordingStartedAtRef.current
+            : 0,
         });
         isSendingNovaRef.current = false;
         setIsUpdatingNova(false);
         transitionNova("error");
-        setMicError("Nova did not capture audio. Try again and speak after the Listening state appears.");
+        setMicError(
+          "Nova did not capture audio. Try again and speak after the Listening state appears.",
+        );
         return;
       }
 
@@ -486,9 +486,7 @@ function VoiceSession({
           </BetaButton>
         </div>
         {micError && (
-          <p className="mt-3 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">
-            {micError}
-          </p>
+          <p className="mt-3 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">{micError}</p>
         )}
       </div>
     </>
@@ -612,7 +610,9 @@ export default function RoomVoice({
         setError(livekitError.message || "Voice connection failed.");
       }}
       onMediaDeviceFailure={() => {
-        setError("Microphone permission was denied. Allow mic access in your browser and try again.");
+        setError(
+          "Microphone permission was denied. Allow mic access in your browser and try again.",
+        );
       }}
       serverUrl={voiceToken.url}
       token={voiceToken.token}

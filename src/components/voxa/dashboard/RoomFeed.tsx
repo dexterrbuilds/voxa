@@ -36,10 +36,7 @@ export default function RoomFeed({ onRoomClick }: RoomFeedProps) {
           variants={containerVariants}
           className="mb-12"
         >
-          <motion.div
-            variants={itemVariants}
-            className="flex items-center gap-3 mb-6"
-          >
+          <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
             <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
             <h2 className="text-2xl font-bold text-foreground">Live Now</h2>
             <span className="text-sm text-muted-foreground">
@@ -53,11 +50,7 @@ export default function RoomFeed({ onRoomClick }: RoomFeedProps) {
           >
             {liveRooms.map((room, index) => (
               <motion.div key={room.id} variants={itemVariants}>
-                <RoomCard
-                  room={room}
-                  isLive
-                  onClick={() => onRoomClick(room.id)}
-                />
+                <RoomCard room={room} isLive onClick={() => onRoomClick(room.id)} />
               </motion.div>
             ))}
           </motion.div>
@@ -66,15 +59,8 @@ export default function RoomFeed({ onRoomClick }: RoomFeedProps) {
 
       {/* Scheduled Rooms Section */}
       {scheduledRooms.length > 0 && (
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-        >
-          <motion.div
-            variants={itemVariants}
-            className="flex items-center gap-3 mb-6"
-          >
+        <motion.section initial="hidden" animate="visible" variants={containerVariants}>
+          <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
             <h2 className="text-2xl font-bold text-foreground">Upcoming</h2>
             <span className="text-sm text-muted-foreground">
               {scheduledRooms.length} room{scheduledRooms.length !== 1 ? "s" : ""}
@@ -87,11 +73,7 @@ export default function RoomFeed({ onRoomClick }: RoomFeedProps) {
           >
             {scheduledRooms.map((room) => (
               <motion.div key={room.id} variants={itemVariants}>
-                <RoomCard
-                  room={room}
-                  isLive={false}
-                  onClick={() => onRoomClick(room.id)}
-                />
+                <RoomCard room={room} isLive={false} onClick={() => onRoomClick(room.id)} />
               </motion.div>
             ))}
           </motion.div>

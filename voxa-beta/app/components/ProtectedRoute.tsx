@@ -6,18 +6,18 @@ import { BetaShell } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, initialized } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (initialized && !user) {
       const nextPath = pathname || "/";
       router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
     }
-  }, [loading, pathname, router, user]);
+  }, [initialized, pathname, router, user]);
 
-  if (loading) {
+  if (!initialized) {
     return (
       <BetaShell>
         <div className="grid min-h-screen place-items-center">

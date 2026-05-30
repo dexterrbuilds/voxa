@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { ThemeToggle } from "./ThemeToggle";
 
 type BetaShellProps = {
   children: ReactNode;
@@ -38,7 +39,9 @@ export function BrandMark() {
       <div className="relative grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-[oklch(0.72_0.2_245)] to-[oklch(0.78_0.18_235)] shadow-[0_0_20px_-4px_oklch(0.72_0.20_245/0.7)]">
         <div className="h-2 w-2 rounded-sm bg-[oklch(0.13_0.015_260)]" />
       </div>
-      <span className="text-[15px] font-semibold tracking-tight text-white">Voxa</span>
+      <span className="text-[15px] font-semibold tracking-tight text-[var(--foreground)]">
+        Voxa
+      </span>
     </div>
   );
 }
@@ -47,7 +50,7 @@ export function BetaShell({ children, className }: BetaShellProps) {
   return (
     <main
       className={joinClasses(
-        "beta-page-shell beta-noise relative min-h-screen overflow-hidden text-white",
+        "beta-page-shell beta-noise relative min-h-screen overflow-hidden text-[var(--foreground)]",
         className,
       )}
     >
@@ -64,10 +67,13 @@ export function BetaShell({ children, className }: BetaShellProps) {
 
 export function BetaHeader({ children }: { children?: ReactNode }) {
   return (
-    <div className="border-b border-white/[0.055] bg-[oklch(0.13_0.015_260/0.58)] backdrop-blur-2xl">
+    <div className="border-b border-[var(--hairline-border)] bg-[var(--header-bg)] backdrop-blur-2xl">
       <header className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <BrandMark />
-        {children}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {children}
+        </div>
       </header>
     </div>
   );
@@ -104,7 +110,7 @@ export function BetaPanel({ children, className }: BetaCardProps) {
 
 export function BetaEyebrow({ children }: { children: ReactNode }) {
   return (
-    <div className="inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
+    <div className="inline-flex items-center rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
       {children}
     </div>
   );
@@ -123,7 +129,7 @@ export function BetaButton({
     variant === "electric" && "beta-button-electric",
     variant === "glass" && "beta-button-glass",
     variant === "quiet" &&
-      "inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-[oklch(0.65_0.02_260)] transition-colors hover:text-white",
+      "inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]",
     disabled && "pointer-events-none opacity-50",
     className,
   );
@@ -145,11 +151,11 @@ export function BetaButton({
 
 export function BetaStat({ label, value }: BetaStatProps) {
   return (
-    <div className="rounded-lg border border-white/[0.065] bg-white/[0.025] p-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.65_0.02_260)]">
+    <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-4">
+      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
         {label}
       </div>
-      <div className="mt-2 text-sm font-medium text-white">{value}</div>
+      <div className="mt-2 text-sm font-medium text-[var(--foreground)]">{value}</div>
     </div>
   );
 }

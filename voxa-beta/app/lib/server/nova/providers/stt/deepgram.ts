@@ -42,8 +42,7 @@ export async function transcribeWithDeepgram(audio: Blob) {
       }>;
     };
   };
-  const transcript =
-    payload.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() ?? "";
+  const transcript = payload.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() ?? "";
 
   if (!transcript) {
     throw new NovaProviderError({

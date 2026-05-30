@@ -15,7 +15,7 @@ export default function VoxaRoomPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(true);
   const [speakingParticipant, setSpeakingParticipant] = useState<string | null>(
-    room?.participants[0]?.id || null
+    room?.participants[0]?.id || null,
   );
 
   // Simulate participants speaking

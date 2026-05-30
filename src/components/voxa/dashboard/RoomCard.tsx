@@ -29,10 +29,13 @@ export default function RoomCard({ room, isLive, onClick }: RoomCardProps) {
       whileTap={{ scale: 0.98 }}
       className="group w-full text-left"
     >
-      <div className="relative h-40 rounded-xl overflow-hidden mb-4 bg-surface border border-border group-hover:border-primary/50 transition-colors"
-        style={{
-          backgroundImage: `radial-gradient(circle at 50% 0%, var(--accent-color) 0%, transparent 70%)`,
-        } as React.CSSProperties & { ["--accent-color"]: string }}
+      <div
+        className="relative h-40 rounded-xl overflow-hidden mb-4 bg-surface border border-border group-hover:border-primary/50 transition-colors"
+        style={
+          {
+            backgroundImage: `radial-gradient(circle at 50% 0%, var(--accent-color) 0%, transparent 70%)`,
+          } as React.CSSProperties & { ["--accent-color"]: string }
+        }
       >
         {/* Background gradient based on room */}
         <div

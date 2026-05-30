@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
+    "lint": "../node_modules/.bin/eslint . --config ../eslint.config.js --ignore-pattern .next",
     "start": "next start",
     "demo": "node server.js"
   },

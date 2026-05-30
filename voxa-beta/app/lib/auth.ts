@@ -28,13 +28,12 @@ function getAuthGlobal() {
 function ensureAuthInitialized() {
   const authGlobal = getAuthGlobal();
 
+  // Hydrate exactly once for the app lifetime. Do NOT reset the promise to
+  // null on completion — re-running hydrate() on every mount flaps the
+  // `loading` flag and creates a window where guards see (loading=false,
+  // user=null), firing a redirect to /login and producing the loop.
   if (!authGlobal.hydrationPromise) {
-    authGlobal.hydrationPromise = useAuthStore
-      .getState()
-      .hydrate()
-      .finally(() => {
-        authGlobal.hydrationPromise = null;
-      });
+    authGlobal.hydrationPromise = useAuthStore.getState().hydrate();
   }
 
   const supabase = getSupabaseClient();
@@ -55,6 +54,7 @@ export const useAuth = () => {
   const {
     user,
     loading,
+    initialized,
     authError,
     isAuthenticated,
     login,
@@ -73,6 +73,7 @@ export const useAuth = () => {
   return {
     user,
     loading,
+    initialized,
     authError,
     login,
     loginWithGoogle,

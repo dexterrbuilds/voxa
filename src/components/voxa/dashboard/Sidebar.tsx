@@ -29,7 +29,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         className={cn(
           "fixed left-0 top-0 h-screen w-72 bg-surface/80 backdrop-blur-md border-r border-border",
           "flex flex-col z-40",
-          !isOpen && "-translate-x-full"
+          !isOpen && "-translate-x-full",
         )}
       >
         {/* Header */}
@@ -72,7 +72,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                   "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
                   isActive
                     ? "bg-primary/20 text-primary border border-primary/30"
-                    : "text-muted-foreground hover:bg-border hover:text-foreground"
+                    : "text-muted-foreground hover:bg-border hover:text-foreground",
                 )}
                 whileHover={{ x: 4 }}
                 whileTap={{ scale: 0.98 }}

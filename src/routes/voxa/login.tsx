@@ -27,7 +27,7 @@ export default function VoxaLoginPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <AnimatedBackground />
-      
+
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -54,9 +54,7 @@ export default function VoxaLoginPage() {
                 </Button>
 
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Don&apos;t have access yet?
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">Don&apos;t have access yet?</p>
                   <button
                     onClick={() => setShowBetaInput(true)}
                     className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
