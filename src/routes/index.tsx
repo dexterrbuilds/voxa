@@ -23,6 +23,7 @@ import { GridBackdrop } from "@/components/site/GridBackdrop";
 import { ArchitectureVisual } from "@/components/site/ArchitectureVisual";
 import { FeatureCard } from "@/components/site/FeatureCard";
 import { CodeShowcase } from "@/components/site/CodeShowcase";
+import { TokenContractCard } from "@/components/site/TokenContractCard";
 import { Button } from "@/components/ui/button";
 import { BETA_APP_URL } from "@/lib/links";
 
@@ -169,6 +170,7 @@ export default function HomePage() {
                 Voxa is the runtime layer that allows external AI agents to participate across
                 meetings, calls, and voice environments.
               </p>
+              <TokenContractCard />
               <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
                 <Button asChild variant="electric" size="lg">
                   <a href={BETA_APP_URL}>
