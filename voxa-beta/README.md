@@ -13,6 +13,9 @@ LIVEKIT_URL=your_livekit_cloud_url
 LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
 NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS=10000
+NEXT_PUBLIC_NOVA_SILENCE_TIMEOUT_MS=2000
+NEXT_PUBLIC_NOVA_MAX_RECORDING_MS=15000
+NEXT_PUBLIC_NOVA_SILENCE_THRESHOLD=0.015
 DEEPGRAM_API_KEY=your_deepgram_key
 GOOGLE_API_KEY=your_google_gemini_key
 GEMINI_MODEL=gemini-3.1-flash-lite
@@ -21,6 +24,12 @@ NOVA_TTS_VOICE=en-US-JennyNeural
 NOVA_TTS_SPEED=1.15
 OPENAI_API_KEY=optional_openai_tts_fallback_key
 OPENAI_TTS_MODEL=gpt-4o-mini-tts
+
+# Optional wake-word activation (Picovoice Porcupine Web, browser-side)
+NEXT_PUBLIC_PICOVOICE_ACCESS_KEY=your_picovoice_access_key
+NEXT_PUBLIC_NOVA_WAKE_WORD=Nova
+NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH=
+NEXT_PUBLIC_PICOVOICE_MODEL_PATH=/picovoice/porcupine_params.pv
 ```
 
 In Supabase:
@@ -57,11 +66,106 @@ The endpoint:
 
 Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, Edge TTS, or OpenAI TTS can be swapped later. Set `NOVA_TTS_PROVIDER=openai` to use OpenAI TTS directly, or leave `NOVA_TTS_PROVIDER=edge` and set `OPENAI_API_KEY` for automatic fallback if Edge TTS fails in production.
 
-## Nova Activation
+## Nova Activation (call-to-wake by default)
 
-Voxa uses push-to-talk / timed activation. Clicking `Talk to Nova` records a bounded audio clip for `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS`, sends it to the server pipeline, shows Nova as Thinking, and publishes Nova's generated voice back into the LiveKit room so everyone connected to voice can hear it.
+**Call-to-wake ("Hey Nova") is the default, hands-free Nova interaction and starts
+automatically once Nova is in the room — there is no toggle to enable.** Wake detection
+uses [Picovoice Porcupine Web](https://picovoice.ai/docs/porcupine/) and runs **entirely
+in the browser**; the wake-listening audio never reaches the backend. **Talk to Nova**
+remains as a small secondary manual fallback that uses the same capture logic.
 
-The older persistent LiveKit Agent dispatch path is not required for this MVP pipeline. Nova's generated response is published into the room from the Next.js server route.
+**Nova must be in the room first.** Activation is hard-gated on Nova being invited:
+
+- If Nova is not in the room, no Picovoice worker starts and no microphone permission
+  is requested. Tapping **Talk to Nova** surfaces the notice **"Invite Nova to the room
+  first."**
+- Once Nova is invited and voice is connected, the local wake worker starts
+  automatically and Nova's card shows **In Room** (the wake worker is armed locally and
+  waiting for the phrase — she is **not** recording or streaming anything yet).
+- If Nova leaves, the room ends, or voice disconnects, the worker stops and state resets
+  automatically.
+
+### State flow
+
+Nova's card maps to one state at a time:
+
+- **In Room** — Nova is present and the wake worker may be armed locally. She is **not**
+  recording the prompt.
+- **Listening** — the wake phrase fired (or Talk to Nova was tapped); Nova is now
+  recording/capturing the user's prompt.
+- **Thinking** — recording stopped (2s of silence); Nova is processing.
+- **Speaking** — Nova's response audio is playing in the room.
+
+`"Hey Nova"` (local detection) → **Listening** → 2s silence → **Thinking** (sent to
+`/api/agents/nova/respond`) → **Speaking** → back to **In Room**. Tapping **Talk to
+Nova** enters the same **Listening → Thinking → Speaking → In Room** cycle.
+
+### Silence-based capture (no fixed window)
+
+Capture is **not** a fixed clip. A Web Audio `AnalyserNode` measures the live mic RMS
+and the recorder stops once the speaker has been quiet for
+`NEXT_PUBLIC_NOVA_SILENCE_TIMEOUT_MS` (default 2000 ms) **after** they have spoken, so a
+short pause before the prompt does not cut it off. A hard ceiling of
+`NEXT_PUBLIC_NOVA_MAX_RECORDING_MS` (default 15000 ms) guarantees the recorder can never
+run forever. `NEXT_PUBLIC_NOVA_SILENCE_THRESHOLD` (default 0.015) is the RMS amplitude
+below which a frame counts as silence. (`NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS` is legacy and
+no longer drives capture length.)
+
+Code lives in `app/lib/wake-word/`:
+
+- `config.ts` — reads the `NEXT_PUBLIC_*` wake env vars.
+- `WakeWordController.ts` — owns a single Porcupine worker + mic subscription
+  (init, detection callback, permission errors, cleanup, unsupported fallback).
+- `useWakeWord.ts` — React lifecycle wrapper used by `RoomVoice.tsx`.
+
+Silence-detection helpers live in `app/lib/voice-activation.ts`. The room mic
+(mute/unmute) stays fully independent of both Nova paths.
+
+The older persistent LiveKit Agent dispatch path is not required for this MVP pipeline.
+Nova's generated response is published into the room from the Next.js server route.
+
+### Setup
+
+1. Create a free AccessKey at [console.picovoice.ai](https://console.picovoice.ai)
+   and set `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY` (it is browser-side by design — this
+   is **not** a backend secret; never `NEXT_PUBLIC_`-prefix LiveKit/Deepgram/Gemini/
+   OpenAI/Supabase service-role keys).
+2. Download `porcupine_params.pv` from the
+   [Porcupine repo](https://github.com/Picovoice/porcupine/blob/master/lib/common/porcupine_params.pv)
+   into `public/picovoice/` so it resolves at `/picovoice/porcupine_params.pv`.
+   This file is **required** even for the built-in keyword.
+3. (Optional, for a true "Nova" wake word) In the Picovoice Console, build a custom
+   **Nova** keyword for the **Web (WASM)** platform, download the `.ppn` to
+   `public/picovoice/nova.ppn`, and set
+   `NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH=/picovoice/nova.ppn`.
+
+If no custom `.ppn` is provided, the app falls back to the built-in keyword
+**"Jarvis"** as a temporary stand-in. See `public/picovoice/README.md`.
+
+### Privacy
+
+- Wake detection is on-device; the wake audio stream is consumed by the local WASM
+  worker and is never uploaded.
+- The backend only receives audio **after** the wake word fires (or Talk to Nova is
+  tapped) and the silence-bounded capture completes.
+- The worker and its microphone subscription are released when Nova leaves, when voice
+  disconnects, and when you leave the room.
+- Permission denial and unsupported browsers are handled gracefully (a clear error
+  shows and Talk to Nova keeps working).
+
+### Browser limitations
+
+Requires WebAssembly, Web Workers, the Web Audio API, and `getUserMedia` over HTTPS (or
+`http://localhost`). Mobile Safari requires a user gesture before mic access — tapping
+**Talk to Nova** provides one. If wake detection is unsupported, the UI falls back to the
+manual Talk to Nova button only (still silence-based).
+
+### Production (Vercel)
+
+Add `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY`, `NEXT_PUBLIC_NOVA_WAKE_WORD`,
+`NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH`, and `NEXT_PUBLIC_PICOVOICE_MODEL_PATH` in the
+Vercel Project → Settings → Environment Variables. The model files under
+`public/picovoice/` ship as static assets with the deploy.
 
 ## Local Development
 

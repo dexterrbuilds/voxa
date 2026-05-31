@@ -557,6 +557,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
         <div className="fixed bottom-3 left-3 right-3 z-40 mx-auto max-w-xl sm:sticky sm:bottom-4 sm:left-auto sm:right-auto sm:mt-6">
           <RoomVoice
             enabled={sharedRoomEnabled && room.status === "active"}
+            novaInRoom={novaInRoom}
             onNovaStateChange={handleNovaStateChange}
             onVoiceParticipantsChange={handleVoiceParticipantsChange}
             roomId={room.id}

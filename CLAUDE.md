@@ -70,8 +70,8 @@ don't assume it's there.
 
 ## Nova has TWO implementations — know which you're touching
 
-- **Path A — ACTIVE (current MVP), push-to-talk, turn-based, stateless:**
-  `app/components/RoomVoice.tsx` records a bounded ~10s clip →
+- **Path A — ACTIVE (current MVP), call-to-wake, turn-based, stateless:**
+  `app/components/RoomVoice.tsx` records a **silence-bounded** clip →
   `POST /api/agents/nova/respond` → Deepgram STT → Gemini
   (`app/lib/server/nova/providers/llm/gemini.ts`, with Google Search grounding +
   injected current date) → Edge/OpenAI TTS → `app/lib/server/nova/livekit-publisher.ts`
@@ -79,6 +79,30 @@ don't assume it's there.
   (`agent:nova:playback:<uuid>`). Each turn opens and tears down a fresh LiveKit
   connection. Nova has **no memory** — only the latest transcript is sent to Gemini.
   Note: `app/lib/server/nova/pipeline.ts` (`runNovaPipeline`) is **dead code**.
+  - **Capture length is silence-based, not a fixed window.** A Web Audio
+    `AnalyserNode` (in `VoiceSession`) measures live mic RMS and stops the recorder
+    after ~2s of post-speech silence, with a ~15s hard-cap fallback. Tunables live in
+    `app/lib/voice-activation.ts` (`NEXT_PUBLIC_NOVA_SILENCE_TIMEOUT_MS`,
+    `NEXT_PUBLIC_NOVA_MAX_RECORDING_MS`, `NEXT_PUBLIC_NOVA_SILENCE_THRESHOLD`).
+    `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS` is legacy/unused for capture length. Nova's
+    UI states are **In Room** (idle; wake worker may be armed locally, NOT recording) →
+    **Listening** (wake phrase fired, recording the prompt) → **Thinking** →
+    **Speaking** → back to In Room.
+  - **Two ways to start a Path-A capture:** (1) **call-to-wake** — the DEFAULT, a
+    browser-side "Hey Nova" wake word via Picovoice Porcupine Web that **auto-starts
+    once Nova is in the room** (no toggle); and (2) the **Talk to Nova** button — a
+    small secondary manual fallback using the same silence-based capture. Both call
+    the same `startNovaRecording()` flow; the room mic stays independent of both. Wake
+    detection is **local-only** (WASM worker; the wake audio never hits the backend).
+    **Gated on Nova being in the room:** the worker (and the mic permission it needs)
+    only start when `connected && novaInRoom` — if Nova isn't invited, tapping Talk to
+    Nova shows "Invite Nova to the room first." and starts nothing; if Nova
+    leaves/room ends/voice drops, the worker stops and state resets. `novaInRoom` is
+    threaded from `room/[roomId]/page.tsx` → `RoomVoice` → `VoiceSession`. Lives in
+    `app/lib/wake-word/` (`config.ts`, `WakeWordController.ts`, `useWakeWord.ts`). Off
+    unless `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY` + a `porcupine_params.pv` model are
+    present. A true "Nova" keyword needs a custom Web/WASM `.ppn` from the Picovoice
+    Console; without it it falls back to a built-in keyword ("Jarvis").
 - **Path B — DISABLED (vision-aligned):** `voxa-agent/src/agent.py` is a Gemini Live
   native-audio realtime agent dispatched via `/api/agents/nova/dispatch`, gated behind
   `NEXT_PUBLIC_NOVA_LIVEKIT_AGENT_ENABLED === "true"` (see `app/lib/room.ts`). Lower
@@ -102,7 +126,13 @@ token/key redaction in messages).
 Gemini/OpenAI keys with `NEXT_PUBLIC`); `DEEPGRAM_API_KEY`; `GOOGLE_API_KEY` +
 `GEMINI_MODEL`; `NOVA_TTS_PROVIDER`/`NOVA_TTS_VOICE`/`NOVA_TTS_SPEED`; optional
 `OPENAI_API_KEY`/`OPENAI_TTS_MODEL`; `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS` (record window).
-Agent env lives in `voxa-agent/.env.local` (see its `.env.example`).
+Wake word (browser-side, optional): `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY`,
+`NEXT_PUBLIC_NOVA_WAKE_WORD`, `NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH`,
+`NEXT_PUBLIC_PICOVOICE_MODEL_PATH` — the Picovoice AccessKey is intentionally
+`NEXT_PUBLIC` (Porcupine runs in the browser); it is **not** a backend secret, and no
+server secret should ever be `NEXT_PUBLIC`. Model files live in
+`voxa-beta/public/picovoice/` (see its README). Agent env lives in
+`voxa-agent/.env.local` (see its `.env.example`).
 
 ## Conventions
 
@@ -117,8 +147,10 @@ Agent env lives in `voxa-agent/.env.local` (see its `.env.example`).
 - **Security model = RLS, but policies aren't in the repo.** Highest-priority concern.
 - **No rate limiting** on `/api/agents/nova/respond` — each call burns Deepgram + Gemini
   + TTS + a LiveKit connection.
-- **Wake-word is gone** (push-to-talk now) despite stale "local wake word" comments in
-  `voxa-agent/src/agent.py` and the READMEs.
+- **Wake word**: an optional **browser-side** wake word now exists for Path A
+  (`voxa-beta/app/lib/wake-word/`, Picovoice Porcupine Web, local-only, off by
+  default). It is unrelated to — and does not revive — the stale "local wake word"
+  comments in `voxa-agent/src/agent.py` (Path B), which remain inaccurate.
 - **Everything hardcodes the single agent "nova"** (DB rows with `user_id = "nova"`,
   identities, dispatch name, UI). There is no `Agent` abstraction yet.
 - **`@livekit/rtc-node` uses native FFI** — confirm the deploy target (likely NOT Vercel
@@ -132,6 +164,10 @@ Agent env lives in `voxa-agent/.env.local` (see its `.env.example`).
 
 ## Doing tasks
 
+- **Before every significant code change**, keep docs in sync:
+  - update `README.md` (the relevant project's) if setup or behavior changes,
+  - update this `CLAUDE.md` if architecture changes,
+  - keep env docs synchronized across `.env.example`, `.env.local`, and the READMEs.
 - Don't introduce backwards-compat shims or speculative abstractions; don't create docs
   unless asked.
 - Confirm before risky/irreversible actions (DB migrations, pushes, deploys, deleting the
