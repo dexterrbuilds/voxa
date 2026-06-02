@@ -6,6 +6,7 @@ import {
   toNovaProviderError,
 } from "@/lib/server/nova/errors";
 import { publishNovaAudioToLiveKitRoom } from "@/lib/server/nova/livekit-publisher";
+import { loadRecentNovaTurns, recordNovaExchange } from "@/lib/server/nova/memory";
 import { generateNovaResponse } from "@/lib/server/nova/providers/llm/gemini";
 import { transcribeWithDeepgram } from "@/lib/server/nova/providers/stt/deepgram";
 import { synthesizeNovaSpeech } from "@/lib/server/nova/providers/tts";
@@ -250,12 +251,17 @@ export async function POST(request: NextRequest) {
       meta: { transcriptLength: transcript.length },
     });
 
+    // Load short-term room memory (recent turns) so Nova stays on topic and can
+    // resolve references like "that"/"it". Best-effort: failures degrade to no
+    // history rather than blocking the turn.
+    const history = await loadRecentNovaTurns(supabase, roomId);
+
     logNovaStep("gemini_request", "success", {
       provider: "gemini",
-      meta: { phase: "start" },
+      meta: { phase: "start", historyTurns: history.length },
     });
     try {
-      responseText = await generateNovaResponse(transcript);
+      responseText = await generateNovaResponse(transcript, { history });
     } catch (error) {
       const reasoningError = toNovaProviderError(error, {
         code: "reasoning_failed",
@@ -362,6 +368,14 @@ export async function POST(request: NextRequest) {
       room_id: roomId,
       type: "agent",
       user_id: "nova",
+    });
+
+    // Persist this turn into short-term session memory for the next request.
+    await recordNovaExchange(supabase, {
+      roomId,
+      userId: user.id,
+      transcript,
+      responseText,
     });
 
     return NextResponse.json({

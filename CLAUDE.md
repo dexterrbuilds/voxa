@@ -70,15 +70,25 @@ don't assume it's there.
 
 ## Nova has TWO implementations — know which you're touching
 
-- **Path A — ACTIVE (current MVP), call-to-wake, turn-based, stateless:**
+- **Path A — ACTIVE (current MVP), call-to-wake, turn-based:**
   `app/components/RoomVoice.tsx` records a **silence-bounded** clip →
-  `POST /api/agents/nova/respond` → Deepgram STT → Gemini
-  (`app/lib/server/nova/providers/llm/gemini.ts`, with Google Search grounding +
-  injected current date) → Edge/OpenAI TTS → `app/lib/server/nova/livekit-publisher.ts`
-  decodes the MP3 and publishes audio as an **ephemeral** LiveKit participant
-  (`agent:nova:playback:<uuid>`). Each turn opens and tears down a fresh LiveKit
-  connection. Nova has **no memory** — only the latest transcript is sent to Gemini.
-  Note: `app/lib/server/nova/pipeline.ts` (`runNovaPipeline`) is **dead code**.
+  `POST /api/agents/nova/respond` → Deepgram STT (multilingual `language=multi` by
+  default) → Gemini (`app/lib/server/nova/providers/llm/gemini.ts`, with Google Search
+  grounding + injected current date) → Edge/OpenAI TTS →
+  `app/lib/server/nova/livekit-publisher.ts` decodes the MP3 and publishes audio as an
+  **ephemeral** LiveKit participant (`agent:nova:playback:<uuid>`). Each turn opens and
+  tears down a fresh LiveKit connection.
+  - **Short-term session memory (per room):** each user prompt + Nova reply is persisted
+    to `room_events` under `type` `nova_user`/`nova_reply` by
+    `app/lib/server/nova/memory.ts`; the route loads the last `NOVA_MEMORY_TURNS`
+    messages (default 12) and passes them to Gemini as conversation history so
+    follow-ups ("that", "it") resolve. These rows are filtered out of the room event
+    feed (`room-sync.ts`). This is **session-only / no long-term/cross-room memory**:
+    when the room closes (last human leaves), the `nova_user`/`nova_reply` rows are
+    deleted by the SECURITY DEFINER fn `cleanup_nova_room_memory(room_id)`, called
+    best-effort from `leaveSharedRoom` (normal events preserved); the hourly
+    `cleanup_expired_voxa_rooms` sweep is the backstop. `runNovaPipeline` in
+    `pipeline.ts` is still **dead code**.
   - **Capture length is silence-based, not a fixed window.** A Web Audio
     `AnalyserNode` (in `VoiceSession`) measures live mic RMS and stops the recorder
     after ~2s of post-speech silence, with a ~15s hard-cap fallback. Tunables live in
@@ -114,18 +124,22 @@ dispatch+worker model over Path A.
 
 ## Provider abstraction
 
-`voxa-beta/app/lib/server/nova/providers/` isolates STT (Deepgram, `nova-3`), LLM
-(Gemini), and TTS (Edge default, OpenAI fallback). Swap/extend providers here. All
-provider errors flow through `app/lib/server/nova/errors.ts` (`NovaProviderError`, with
-token/key redaction in messages).
+`voxa-beta/app/lib/server/nova/providers/` isolates STT (Deepgram, `nova-3`,
+`language=multi` multilingual default), LLM (Gemini), and TTS (Edge default, OpenAI
+fallback). Swap/extend providers here. All provider errors flow through
+`app/lib/server/nova/errors.ts` (`NovaProviderError`, with token/key redaction in
+messages).
 
 ## Key env (voxa-beta/.env.local — see voxa-beta/.env.example)
 
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `LIVEKIT_URL`,
 `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (server-only — never prefix LiveKit/Deepgram/
-Gemini/OpenAI keys with `NEXT_PUBLIC`); `DEEPGRAM_API_KEY`; `GOOGLE_API_KEY` +
-`GEMINI_MODEL`; `NOVA_TTS_PROVIDER`/`NOVA_TTS_VOICE`/`NOVA_TTS_SPEED`; optional
-`OPENAI_API_KEY`/`OPENAI_TTS_MODEL`; `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS` (record window).
+Gemini/OpenAI keys with `NEXT_PUBLIC`); `DEEPGRAM_API_KEY` (+ optional `DEEPGRAM_MODEL`
+default `nova-3`, `DEEPGRAM_LANGUAGE` default `multi`); `GOOGLE_API_KEY` +
+`GEMINI_MODEL` (+ optional `NOVA_MAX_OUTPUT_TOKENS` default 700, `NOVA_MEMORY_TURNS`
+default 12 for session memory); `NOVA_TTS_PROVIDER`/`NOVA_TTS_VOICE`/`NOVA_TTS_SPEED`;
+optional `OPENAI_API_KEY`/`OPENAI_TTS_MODEL`; `NEXT_PUBLIC_NOVA_LISTEN_WINDOW_MS`
+(legacy, unused for capture length).
 Wake word (browser-side, optional): `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY`,
 `NEXT_PUBLIC_NOVA_WAKE_WORD`, `NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH`,
 `NEXT_PUBLIC_PICOVOICE_MODEL_PATH` — the Picovoice AccessKey is intentionally

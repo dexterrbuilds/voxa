@@ -17,8 +17,12 @@ NEXT_PUBLIC_NOVA_SILENCE_TIMEOUT_MS=2000
 NEXT_PUBLIC_NOVA_MAX_RECORDING_MS=15000
 NEXT_PUBLIC_NOVA_SILENCE_THRESHOLD=0.015
 DEEPGRAM_API_KEY=your_deepgram_key
+DEEPGRAM_MODEL=nova-3
+DEEPGRAM_LANGUAGE=multi
 GOOGLE_API_KEY=your_google_gemini_key
 GEMINI_MODEL=gemini-3.1-flash-lite
+NOVA_MAX_OUTPUT_TOKENS=700
+NOVA_MEMORY_TURNS=12
 NOVA_TTS_PROVIDER=edge
 NOVA_TTS_VOICE=en-US-JennyNeural
 NOVA_TTS_SPEED=1.15
@@ -57,14 +61,55 @@ The endpoint:
 - requires a signed-in Supabase user
 - verifies the user is a human participant in the room
 - verifies Nova is present in the room
-- transcribes the captured audio with Deepgram
-- generates a concise Nova response with Gemini Flash-Lite
+- transcribes the captured audio with Deepgram (multilingual by default)
+- loads recent room conversation as short-term memory (see below)
+- generates a Nova response with Gemini Flash-Lite, including that history
 - synthesizes an MP3 response with Edge TTS
 - publishes the synthesized response into the LiveKit room as Nova
+- stores the user prompt + Nova reply back into session memory
 - returns playback metadata, transcript, and response text
 - returns a text response with `audioUnavailable: true` if TTS is unavailable
 
 Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, Edge TTS, or OpenAI TTS can be swapped later. Set `NOVA_TTS_PROVIDER=openai` to use OpenAI TTS directly, or leave `NOVA_TTS_PROVIDER=edge` and set `OPENAI_API_KEY` for automatic fallback if Edge TTS fails in production.
+
+### Short-term session memory
+
+Nova keeps the room's topic in mind across turns. Each user prompt and Nova reply is
+persisted to the existing `room_events` table under dedicated `type` values
+(`nova_user`, `nova_reply`) by `app/lib/server/nova/memory.ts`. On each turn the route
+loads the last `NOVA_MEMORY_TURNS` messages (default 12, ≈6 exchanges) and passes them to
+Gemini as conversation history, so follow-ups like "tell me more about that" resolve
+correctly. These rows are filtered out of the human-facing room event feed.
+
+This is **session memory only** — it lives for the life of the room and is per-room.
+There is **no long-term or cross-room memory** yet. When the room closes (the last
+human leaves), the `nova_user`/`nova_reply` rows are deleted by the SECURITY DEFINER
+function `cleanup_nova_room_memory(room_id)`, invoked best-effort from
+`leaveSharedRoom` in `app/lib/room-sync.ts` (normal room events — joins, leaves,
+notices — are preserved). The hourly `cleanup_expired_voxa_rooms` sweep removes all
+remaining room data as a backstop. If the cleanup function is not yet installed in
+Supabase, leaving still succeeds and the hourly sweep clears the memory.
+
+### Response length
+
+`NOVA_MAX_OUTPUT_TOKENS` (default 700) caps a reply. Nova stays concise by default but
+gives a fuller answer when the user asks for detail, and is instructed not to cut off
+mid-thought. Both Edge and OpenAI TTS synthesize the full response.
+
+### Multilingual understanding
+
+Deepgram runs with `DEEPGRAM_LANGUAGE=multi` (nova-3) by default, so users are not forced
+to speak English — speech in other languages is auto-detected and transcribed. Nova's
+system prompt instructs her to reply in the user's language. Set `DEEPGRAM_LANGUAGE=en`
+to force English-only. Note: the default Edge TTS voice (`en-US-JennyNeural`) is an
+English voice; for the best non-English speech output, use `NOVA_TTS_PROVIDER=openai`
+(multilingual) and/or set `NOVA_TTS_VOICE` to a matching locale voice.
+
+### Room microphone
+
+The human room mic is independent of Nova. You join muted once by default; after that the
+mic **stays in whatever state you choose** — talking to Nova never auto-mutes it. Nova
+capture uses its own microphone stream and never toggles the LiveKit room mic.
 
 ## Nova Activation (call-to-wake by default)
 

@@ -207,12 +207,17 @@ function VoiceSession({
       return;
     }
 
+    // One-time default: join muted so nobody broadcasts on entry. After this,
+    // the room mic stays in whatever state the user chooses — we never auto-mute
+    // it again (e.g. after a Nova turn). Nova capture uses its OWN getUserMedia
+    // stream and never touches the LiveKit room mic.
     micInitializedRef.current = true;
     void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
 
     return () => {
+      // Only release any in-flight Nova capture; do NOT mute the room mic here,
+      // otherwise the user's chosen mic state would be overridden on teardown.
       cancelNovaCapture(false);
-      void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, localParticipant]);

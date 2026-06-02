@@ -65,6 +65,7 @@ export const roomPresenceConfig = {
 };
 const novaAgent: AgentInvite = { id: "nova", name: "Nova" };
 let staleCleanupUnavailable = false;
+let novaMemoryCleanupUnavailable = false;
 
 function displayNameForUser(user: User) {
   return user.name || user.email || "Guest";
@@ -248,6 +249,9 @@ async function loadRoomRows(roomId: string) {
       .from("room_events")
       .select("*")
       .eq("room_id", roomId)
+      // Exclude Nova's short-term memory rows (conversation transcripts) from the
+      // human-facing event feed; they exist only as server-side session memory.
+      .not("type", "in", "(nova_user,nova_reply)")
       .order("created_at", { ascending: true })
       .limit(50),
   ]);
@@ -356,6 +360,59 @@ export async function cleanupStaleParticipants(roomId: string) {
   }
 
   return result.data as number | null;
+}
+
+function isOptionalNovaMemoryCleanupError(error: unknown) {
+  const roomError = error as { code?: string; message?: string } | null;
+  const message = roomError?.message ?? "";
+
+  return (
+    roomError?.code === "PGRST202" ||
+    /cleanup_nova_room_memory/i.test(message) ||
+    /function.*schema cache/i.test(message)
+  );
+}
+
+// Best-effort: drop Nova's short-term per-room session memory rows
+// (`nova_user` / `nova_reply` in `room_events`) once a room has closed. These
+// rows have no client DELETE policy under RLS, so deletion runs through a
+// SECURITY DEFINER Postgres function. This never throws — a room leave must not
+// fail because memory cleanup did. If the function is not installed yet, the
+// hourly `cleanup_expired_voxa_rooms` sweep still removes the rows as a backstop.
+async function cleanupNovaRoomMemory(roomId: string) {
+  const supabase = getSupabaseClient();
+
+  if (!supabase || novaMemoryCleanupUnavailable) {
+    return null;
+  }
+
+  try {
+    const result = await supabase.rpc("cleanup_nova_room_memory", {
+      target_room_id: roomId,
+    });
+
+    if (result.error) {
+      if (isOptionalNovaMemoryCleanupError(result.error)) {
+        novaMemoryCleanupUnavailable = true;
+        console.warn(
+          "Nova memory cleanup is not installed in Supabase yet. Closed rooms will rely on the hourly expiry sweep to drop session memory.",
+        );
+        return null;
+      }
+
+      console.warn(`Nova memory cleanup failed for room ${roomId}:`, result.error.message);
+      return null;
+    }
+
+    const deletedRows = typeof result.data === "number" ? result.data : null;
+    console.info(
+      `Nova memory cleanup for room ${roomId}: deleted ${deletedRows ?? "unknown"} session memory row(s).`,
+    );
+    return deletedRows;
+  } catch (error) {
+    console.warn(`Nova memory cleanup threw for room ${roomId}:`, error);
+    return null;
+  }
 }
 
 export async function joinSharedRoom(roomId: string, user: User): Promise<SharedRoomResult> {
@@ -472,6 +529,10 @@ export async function leaveSharedRoom(roomId: string, user: User) {
     if (ended.error) {
       throw ended.error;
     }
+
+    // The room is now closed (last human left): drop Nova's per-room session
+    // memory so transcripts do not linger. Best-effort — never blocks leaving.
+    await cleanupNovaRoomMemory(roomId);
   }
 
   return loadRoomRows(roomId);

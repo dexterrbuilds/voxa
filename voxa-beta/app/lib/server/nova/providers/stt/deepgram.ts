@@ -11,17 +11,27 @@ export async function transcribeWithDeepgram(audio: Blob) {
     });
   }
 
-  const response = await fetch(
-    "https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true",
-    {
-      body: audio,
-      headers: {
-        Authorization: `Token ${apiKey}`,
-        "Content-Type": audio.type || "audio/webm",
-      },
-      method: "POST",
+  // Multilingual by default: Deepgram nova-3 supports `language=multi`, which
+  // auto-detects and transcribes many languages (including code-switching) in a
+  // single request, so users are not forced to speak English. Override with
+  // DEEPGRAM_LANGUAGE (e.g. `en` to force English) or DEEPGRAM_MODEL if needed.
+  const model = process.env.DEEPGRAM_MODEL || "nova-3";
+  const language = process.env.DEEPGRAM_LANGUAGE || "multi";
+  const query = new URLSearchParams({
+    model,
+    language,
+    smart_format: "true",
+    punctuate: "true",
+  });
+
+  const response = await fetch(`https://api.deepgram.com/v1/listen?${query.toString()}`, {
+    body: audio,
+    headers: {
+      Authorization: `Token ${apiKey}`,
+      "Content-Type": audio.type || "audio/webm",
     },
-  );
+    method: "POST",
+  });
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
