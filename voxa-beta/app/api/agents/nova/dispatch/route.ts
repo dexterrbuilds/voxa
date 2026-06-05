@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { AgentDispatchClient } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { NOVA_AGENT_ID } from "@/lib/agents";
 
 export const runtime = "nodejs";
 
-const novaAgentName = process.env.LIVEKIT_NOVA_AGENT_NAME ?? "nova";
+const novaAgentName = process.env.LIVEKIT_NOVA_AGENT_NAME ?? NOVA_AGENT_ID;
 const roomIdPattern = /^[a-zA-Z0-9_-]{6,80}$/;
 const supportedNovaModes = new Set(["manual", "silent"]);
 
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
   }
 
   const metadata = JSON.stringify({
-    agent_id: "nova",
+    agent_id: NOVA_AGENT_ID,
     direct_address_required: novaMode === "manual",
     mode: novaMode,
     requested_by: user.id,

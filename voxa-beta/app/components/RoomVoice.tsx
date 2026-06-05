@@ -11,15 +11,21 @@ import {
 import { ConnectionState, Track } from "livekit-client";
 import { Mic, MicOff, Radio, ShieldCheck, Volume2 } from "lucide-react";
 import { BetaButton } from "@/components/BetaChrome";
+import { getDefaultAgent } from "@/lib/agents";
 import { getSupabaseClient } from "@/lib/supabase";
 import {
   getNovaMaxRecordingMs,
   getNovaSilenceThreshold,
   getNovaSilenceTimeoutMs,
 } from "@/lib/voice-activation";
+import { isWakeWordEnabled } from "@/lib/wake-word/config";
 import { useWakeWord } from "@/lib/wake-word/useWakeWord";
 
 export type NovaState = "in_room" | "listening" | "thinking" | "speaking" | "error";
+const defaultAgent = getDefaultAgent();
+const defaultAgentId = defaultAgent?.id ?? "nova";
+const defaultAgentName = defaultAgent?.name ?? "Nova";
+const defaultAgentRespondRoute = defaultAgent?.routes?.respond ?? "/api/agents/nova/respond";
 
 type RoomVoiceProps = {
   roomId: string;
@@ -45,11 +51,11 @@ export type VoiceParticipantState = {
 };
 
 function normalizeLiveKitIdentity(identity: string) {
-  if (identity === "agent:nova" || identity.startsWith("agent:nova:")) {
-    return "nova";
+  if (!identity.startsWith("agent:")) {
+    return identity;
   }
 
-  return identity.startsWith("agent:") ? identity.slice("agent:".length) : identity;
+  return identity.split(":")[1] || identity.slice("agent:".length);
 }
 
 function formatConnectionState(state: ConnectionState) {
@@ -223,7 +229,7 @@ function VoiceSession({
   }, [connected, localParticipant]);
 
   useEffect(() => {
-    const novaVoice = participantRows.find((participant) => participant.id === "nova");
+    const novaVoice = participantRows.find((participant) => participant.id === defaultAgentId);
 
     if (novaVoice?.isSpeaking) {
       transitionNova("speaking");
@@ -239,7 +245,7 @@ function VoiceSession({
     const supabase = getSupabaseClient();
 
     if (!supabase) {
-      throw new Error("Nova needs Supabase auth to be configured.");
+      throw new Error(`${defaultAgentName} needs Supabase auth to be configured.`);
     }
 
     const {
@@ -248,14 +254,14 @@ function VoiceSession({
     } = await supabase.auth.getSession();
 
     if (error || !session?.access_token) {
-      throw new Error("Sign in again to talk to Nova.");
+      throw new Error(`Sign in again to talk to ${defaultAgentName}.`);
     }
 
     const formData = new FormData();
     formData.set("roomId", roomId);
-    formData.set("audio", audio, `nova-${Date.now()}.webm`);
+    formData.set("audio", audio, `${defaultAgentId}-${Date.now()}.webm`);
 
-    const response = await fetch("/api/agents/nova/respond", {
+    const response = await fetch(defaultAgentRespondRoute, {
       body: formData,
       headers: {
         Authorization: `Bearer ${session.access_token}`,
@@ -275,14 +281,14 @@ function VoiceSession({
 
     if (payload.audioUnavailable && payload.responseText) {
       throw new Error(
-        `Nova replied, but voice playback is unavailable: "${payload.responseText}"${
+        `${defaultAgentName} replied, but voice playback is unavailable: "${payload.responseText}"${
           payload.details ? ` (${payload.details})` : ""
         }`,
       );
     }
 
     if (!response.ok || payload.playback !== "livekit") {
-      throw new Error(payload.details || payload.error || "Nova could not respond.");
+      throw new Error(payload.details || payload.error || `${defaultAgentName} could not respond.`);
     }
 
     return payload;
@@ -419,7 +425,7 @@ function VoiceSession({
         isSendingNovaRef.current = false;
         setIsUpdatingNova(false);
         transitionNova(resolveIdleState());
-        setMicError('Nova did not catch that. Say "Hey Nova" again or tap Talk to Nova.');
+        setMicError(`The agent did not catch that. Try Talk to Agent again.`);
         return;
       }
 
@@ -436,7 +442,7 @@ function VoiceSession({
           isSendingNovaRef.current = false;
           setIsUpdatingNova(false);
           transitionNova("error");
-          setMicError(error instanceof Error ? error.message : "Nova could not respond.");
+          setMicError(error instanceof Error ? error.message : "The agent could not respond.");
         });
     };
 
@@ -496,7 +502,7 @@ function VoiceSession({
       setMicError(
         permissionDenied
           ? "Microphone permission was denied. Allow mic access in your browser and try again."
-          : "Unable to start Nova capture. Try again.",
+          : "Unable to start agent capture. Try again.",
       );
     }
   }
@@ -504,7 +510,7 @@ function VoiceSession({
   // Manual fallback. Uses the SAME silence-based capture as the wake word.
   const handleActivateNova = async () => {
     if (!novaInRoom) {
-      showNotice("Invite Nova to the room first.");
+      showNotice("Invite an agent to the room first.");
       return;
     }
 
@@ -518,12 +524,13 @@ function VoiceSession({
     }
   };
 
-  // Call-to-wake is the DEFAULT Nova interaction and starts automatically once
-  // Nova is in the room. The Porcupine worker (and the mic permission it needs)
+  // Call-to-wake is the default first-party agent interaction and starts automatically
+  // once the default agent is in the room. The Porcupine worker (and the mic permission it needs)
   // only start when `connected && novaInRoom`; before that, nothing listens.
   // Detection runs locally in the browser; on a hit we start the SAME
-  // silence-based capture flow as the Talk to Nova button.
-  const wakeReady = connected && novaInRoom;
+  // silence-based capture flow as the Talk to Agent button.
+  const wakeFeatureEnabled = isWakeWordEnabled();
+  const wakeReady = wakeFeatureEnabled && connected && novaInRoom;
   const wake = useWakeWord({
     enabled: wakeReady,
     onWake: () => {
@@ -536,7 +543,7 @@ function VoiceSession({
       (novaStateRef.current === "in_room" || novaStateRef.current === "error"),
   });
 
-  // Track whether wake detection is armed. Nova stays "In Room" while armed; the
+  // Track whether wake detection is armed. The agent stays "In Room" while armed; the
   // wake worker keeps running locally and only flips her to "Listening" on a hit.
   useEffect(() => {
     wakeReadyRef.current = wakeReady;
@@ -569,87 +576,106 @@ function VoiceSession({
             ? "Error"
             : "In Room";
   const novaButtonLabel =
-    novaState === "listening" ? "Stop" : novaState === "error" ? "Retry" : "Talk to Nova";
+    novaState === "listening" ? "Stop" : novaState === "error" ? "Retry" : "Talk to Agent";
   const novaButtonDisabled =
     !connected || isUpdatingNova || novaState === "thinking" || novaState === "speaking";
+  const agentActionHint =
+    !novaInRoom
+      ? "Invite an agent to the room first."
+      : novaState === "listening"
+        ? "Listening... stop speaking to send."
+        : novaState === "thinking"
+          ? "Sending to agent..."
+          : novaState === "speaking"
+            ? `${defaultAgentName} is speaking.`
+            : novaState === "error"
+              ? "Try again when you are ready."
+              : wakeFeatureEnabled
+                ? `Say "Hey ${defaultAgentName}" or tap to speak.`
+                : "Tap once, speak, then pause to send.";
 
   return (
     <>
       <RoomAudioRenderer />
-      <div className="w-full rounded-2xl border border-white/[0.075] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="beta-status-pill">
-            <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-            {formatConnectionState(connectionState)}
-          </span>
-          <span className="beta-status-pill">
-            {isMicrophoneEnabled ? (
-              <Mic className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+      <div className="relative w-full overflow-hidden rounded-3xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.76)] p-3 shadow-[0_26px_90px_-44px_oklch(0.72_0.2_245/0.9)] backdrop-blur-2xl">
+        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_50%_0%,oklch(0.72_0.2_245/0.22),transparent_16rem)]" />
+        <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="beta-status-pill">
+                <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                <span className="hidden sm:inline">{formatConnectionState(connectionState)}</span>
+                <span className="sm:hidden">Voice</span>
+              </span>
+              <span className="beta-status-pill">
+                <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+                {novaLabel}
+              </span>
+              {wakeListening && (
+                <span className="beta-status-pill" title="Wake detection runs on your device">
+                  <ShieldCheck className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+                  Local
+                </span>
+              )}
+            </div>
+            <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-[oklch(0.66_0.025_260)]">
+              {agentActionHint}
+              {novaInRoom && wakeFeatureEnabled && wake.usingBuiltInFallback
+                ? " Temporary wake keyword active."
+                : ""}
+            </p>
+          </div>
+
+          <BetaButton
+            className={[
+              "relative h-16 w-16 rounded-full px-0 text-[0px] shadow-[0_0_34px_-8px_oklch(0.72_0.2_245/0.95)] sm:h-20 sm:w-20",
+              novaState === "listening"
+                ? "animate-[beta-pulse-glow_1.4s_ease-in-out_infinite]"
+                : "",
+            ].join(" ")}
+            disabled={novaButtonDisabled}
+            onClick={handleActivateNova}
+            variant={novaState === "error" || novaState === "listening" ? "electric" : "glass"}
+          >
+            {novaState === "listening" ? (
+              <Mic className="h-6 w-6 sm:h-7 sm:w-7" />
             ) : (
-              <MicOff className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+              <Mic className="h-6 w-6 sm:h-7 sm:w-7" />
             )}
-            {isMicrophoneEnabled ? "Mic live" : "Mic muted"}
-          </span>
-          <span className="beta-status-pill">
-            <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-            Nova {novaLabel}
-          </span>
-          {wakeListening && (
-            <span className="beta-status-pill" title="Wake detection runs on your device">
-              <ShieldCheck className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-              On-device
-            </span>
-          )}
+          </BetaButton>
+
+          <div className="min-w-0 text-right">
+            <div className="mb-2 text-[11px] font-medium text-[oklch(0.7_0.035_260)]">
+              {novaButtonLabel}
+            </div>
+            <BetaButton
+              className="min-h-11 w-full px-3 text-xs sm:text-sm"
+              disabled={!connected || isUpdatingRoomMic}
+              onClick={handleToggleRoomMic}
+              variant={isMicrophoneEnabled ? "glass" : "quiet"}
+            >
+              {isMicrophoneEnabled ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isMicrophoneEnabled ? "Mute" : "Unmute"}
+            </BetaButton>
+            <div className="mt-1 text-[10px] text-[oklch(0.58_0.02_260)]">
+              {isMicrophoneEnabled ? "Mic live" : "Mic muted"}
+            </div>
+          </div>
         </div>
-        {/* Privacy microcopy: wake listening is local; audio only leaves on activation. */}
-        {novaInRoom ? (
-          <p className="text-[11px] leading-relaxed text-[oklch(0.6_0.02_260)]">
-            Say &ldquo;Hey Nova&rdquo; to activate. Nova listens locally for the wake phrase; audio
-            is only sent after activation.
-            {wake.usingBuiltInFallback ? " Using a temporary built-in keyword." : ""}
+        {novaInRoom && wakeFeatureEnabled && wake.error && (
+          <p className="relative mt-2 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">
+            Wake word is temporarily unavailable.
           </p>
-        ) : (
-          <p className="text-[11px] leading-relaxed text-[oklch(0.6_0.02_260)]">
-            Invite Nova to the room to talk to her. Hands-free &ldquo;Hey Nova&rdquo; wake starts
-            automatically once she joins.
-          </p>
-        )}
-        {novaInRoom && wake.error && (
-          <p className="mt-2 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">{wake.error}</p>
         )}
         {novaNotice && (
-          <p className="mt-2 rounded-lg border border-[oklch(0.78_0.18_35/0.3)] bg-[oklch(0.78_0.18_35/0.08)] px-3 py-2 text-xs leading-relaxed text-[oklch(0.82_0.14_40)]">
+          <p className="relative mt-2 rounded-lg border border-[oklch(0.78_0.18_35/0.3)] bg-[oklch(0.78_0.18_35/0.08)] px-3 py-2 text-xs leading-relaxed text-[oklch(0.82_0.14_40)]">
             {novaNotice}
           </p>
         )}
-
-        {/* Controls: Talk to Nova (manual fallback) + room mic */}
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <BetaButton
-            className="min-h-11 px-3 text-sm"
-            disabled={novaButtonDisabled}
-            onClick={handleActivateNova}
-            variant={novaState === "error" ? "electric" : "glass"}
-          >
-            {novaState === "listening" ? (
-              <Mic className="h-4 w-4" />
-            ) : (
-              <MicOff className="h-4 w-4" />
-            )}
-            {novaButtonLabel}
-          </BetaButton>
-          <BetaButton
-            className="min-h-11 px-3 text-sm"
-            disabled={!connected || isUpdatingRoomMic}
-            onClick={handleToggleRoomMic}
-            variant={isMicrophoneEnabled ? "glass" : "quiet"}
-          >
-            {isMicrophoneEnabled ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            {isMicrophoneEnabled ? "Mute" : "Unmute"}
-          </BetaButton>
-        </div>
         {micError && (
-          <p className="mt-3 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">{micError}</p>
+          <p className="relative mt-2 text-xs leading-relaxed text-[oklch(0.78_0.18_35)]">
+            {micError}
+          </p>
         )}
       </div>
     </>
@@ -740,7 +766,7 @@ export default function RoomVoice({
 
   if (error) {
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
         <span className="text-xs text-[oklch(0.78_0.18_35)]">{error}</span>
         <BetaButton
           className="min-h-9 px-3 text-xs"
@@ -759,9 +785,11 @@ export default function RoomVoice({
 
   if (isLoading || !voiceToken) {
     return (
-      <div className="beta-status-pill">
+      <div className="inline-flex rounded-2xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
+        <span className="beta-status-pill">
         <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
         Preparing voice
+        </span>
       </div>
     );
   }

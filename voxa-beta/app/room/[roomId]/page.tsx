@@ -3,13 +3,14 @@
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AudioLines, Link as LinkIcon, LogOut, Mic, MicOff, Sparkles } from "lucide-react";
-import AIPersonality from "@/components/AIPersonality";
+import AgentSelector from "@/components/AgentSelector";
 import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import InviteLink from "@/components/InviteLink";
 import RoomVoice, { type NovaState, type VoiceParticipantState } from "@/components/RoomVoice";
+import { getDefaultAgent } from "@/lib/agents";
 import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
-import { novaParticipant, type Participant } from "@/lib/store";
+import { isAgentInRoom, type Participant } from "@/lib/store";
 
 type RoomPageProps = {
   params: Promise<{
@@ -28,6 +29,9 @@ type AgentVisualState =
   | "thinking"
   | "speaking"
   | "error";
+
+const defaultAgent = getDefaultAgent();
+const defaultAgentId = defaultAgent?.id ?? "nova";
 
 function agentStateFromVoice(voice?: VoiceParticipantState): AgentVisualState | null {
   if (!voice?.agentState) {
@@ -172,14 +176,14 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
     room,
     joinSharedRoom,
     refreshSharedRoom,
-    inviteNovaShared,
+    inviteAgentShared,
     leaveSharedRoom,
     heartbeatSharedRoom,
     presenceConfig,
     subscribeToRoom,
     unsubscribeFromSharedRoom,
     setCurrentRoom,
-    inviteNova,
+    inviteAgent,
     leaveRoom,
   } = useRoom();
   const [isLoading, setIsLoading] = useState(true);
@@ -188,7 +192,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [voiceParticipants, setVoiceParticipants] = useState<VoiceParticipantState[]>([]);
   const [novaVisualState, setNovaVisualState] = useState<AgentVisualState>("online");
   const [manualNovaState, setManualNovaState] = useState<AgentVisualState | null>(null);
-  const [isInvitingNova, setIsInvitingNova] = useState(false);
+  const [invitingAgentId, setInvitingAgentId] = useState<string | null>(null);
   const consumedInviteRequest = useRef(false);
   const router = useRouter();
 
@@ -289,17 +293,15 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
     user,
   ]);
 
-  const nova = useMemo(
-    () => room?.participants.find((participant) => participant.id === "nova") ?? novaParticipant,
-    [room],
-  );
-  const novaInRoom = room?.invitedAgents.includes("nova") ?? false;
+  const novaInRoom = room
+    ? isAgentInRoom(defaultAgentId, room.participants) || room.invitedAgents.includes(defaultAgentId)
+    : false;
   const participants = room?.participants ?? [];
   const agentStates = useMemo(() => {
     const nextStates = new Map<string, AgentVisualState>();
 
     if (novaInRoom) {
-      nextStates.set("nova", novaVisualState);
+      nextStates.set(defaultAgentId, novaVisualState);
     }
 
     return nextStates;
@@ -314,51 +316,70 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
 
   useEffect(() => {
     if (!novaInRoom) {
-      if (!isInvitingNova) {
+      if (invitingAgentId !== defaultAgentId) {
         setNovaVisualState("online");
       }
 
       return;
     }
 
-    setIsInvitingNova(false);
+    setInvitingAgentId(null);
     setNovaVisualState("in-room");
-  }, [isInvitingNova, novaInRoom]);
+  }, [invitingAgentId, novaInRoom]);
 
-  const handleInviteNova = useCallback(async () => {
+  const handleInviteAgent = useCallback(async (agentId: string) => {
     if (!room) {
       return;
     }
 
-    if (novaInRoom || isInvitingNova) {
+    const alreadyInRoom =
+      isAgentInRoom(agentId, room.participants) || room.invitedAgents.includes(agentId);
+
+    if (alreadyInRoom || invitingAgentId) {
       return;
     }
 
-    setIsInvitingNova(true);
-    setNovaVisualState("joining");
+    setInvitingAgentId(agentId);
+    if (agentId === defaultAgentId) {
+      setNovaVisualState("joining");
+    }
 
     if (!sharedRoomEnabled) {
-      inviteNova(room.id);
-      setIsInvitingNova(false);
-      setNovaVisualState("in-room");
+      inviteAgent(room.id, agentId);
+      setInvitingAgentId(null);
+      if (agentId === defaultAgentId) {
+        setNovaVisualState("in-room");
+      }
       return;
     }
 
-    const nextRoom = await inviteNovaShared(room.id, "manual");
+    const nextRoom = await inviteAgentShared(room.id, agentId, "manual");
 
     if (!nextRoom) {
-      setIsInvitingNova(false);
-      setNovaVisualState("online");
+      setInvitingAgentId(null);
+      if (agentId === defaultAgentId) {
+        setNovaVisualState("online");
+      }
     }
-  }, [inviteNova, inviteNovaShared, isInvitingNova, novaInRoom, room, sharedRoomEnabled]);
+  }, [inviteAgent, inviteAgentShared, invitingAgentId, room, sharedRoomEnabled]);
 
-  const novaVoice = voiceByParticipantId.get("nova");
+  const novaVoice = voiceByParticipantId.get(defaultAgentId);
   const liveNovaState = novaInRoom ? agentStateFromVoice(novaVoice) : null;
   const effectiveNovaState: AgentVisualState =
     (novaVoice?.isSpeaking && novaInRoom ? "speaking" : null) ??
     manualNovaState ??
     liveNovaState ??
     novaVisualState;
+  const statusLabelForAgent = useCallback(
+    (agentId: string) => {
+      if (agentId !== defaultAgentId) {
+        return null;
+      }
+
+      return formatAgentState(effectiveNovaState);
+    },
+    [effectiveNovaState],
+  );
 
   const handleNovaStateChange = useCallback((state: NovaState) => {
     if (state === "in_room") {
@@ -373,7 +394,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   useEffect(() => {
     if (
       consumedInviteRequest.current ||
-      inviteRequest !== "nova" ||
+      inviteRequest !== defaultAgentId ||
       !room ||
       !sharedRoomEnabled ||
       novaInRoom
@@ -382,8 +403,8 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
     }
 
     consumedInviteRequest.current = true;
-    void handleInviteNova();
-  }, [handleInviteNova, inviteRequest, novaInRoom, room, sharedRoomEnabled]);
+    void handleInviteAgent(defaultAgentId);
+  }, [handleInviteAgent, inviteRequest, novaInRoom, room, sharedRoomEnabled]);
 
   const handleLeaveRoom = () => {
     if (room && user) {
@@ -454,7 +475,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
         </div>
       </BetaHeader>
 
-      <div className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10 sm:pt-10">
+      <div className="mx-auto max-w-7xl px-4 pb-[calc(13rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-[calc(12rem+env(safe-area-inset-bottom))] sm:pt-10">
         <div className="mb-5 flex flex-col gap-3 sm:mb-8">
           <div>
             <BetaEyebrow>Voxa Room</BetaEyebrow>
@@ -483,7 +504,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
                     {participants.map((participant) => (
                       <ParticipantCard
                         agentState={
-                          participant.id === "nova"
+                          participant.id === defaultAgentId
                             ? effectiveNovaState
                             : agentStates.get(participant.id)
                         }
@@ -504,27 +525,13 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
           </BetaPanel>
 
           <aside className="space-y-4">
-            {!novaInRoom && (
-              <BetaPanel className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-                      Nova
-                    </div>
-                    <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Online</h2>
-                  </div>
-                  <div className="h-2.5 w-2.5 rounded-full bg-[oklch(0.72_0.2_245)] shadow-[0_0_18px_2px_oklch(0.72_0.2_245/0.65)]" />
-                </div>
-                <BetaButton
-                  className="mt-5 min-h-11 w-full"
-                  disabled={isInvitingNova}
-                  onClick={handleInviteNova}
-                >
-                  {isInvitingNova ? "Inviting Nova..." : "Invite Nova"}
-                  <Sparkles className="h-4 w-4" />
-                </BetaButton>
-              </BetaPanel>
-            )}
+            <AgentSelector
+              invitedAgentIds={room.invitedAgents}
+              invitingAgentId={invitingAgentId}
+              onInvite={handleInviteAgent}
+              participants={participants}
+              statusLabelForAgent={statusLabelForAgent}
+            />
 
             <BetaPanel className="p-4">
               <InviteLink roomId={room.id} inline />
@@ -542,19 +549,10 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
                 ))}
               </div>
             </BetaPanel>
-
-            {novaInRoom && (
-              <AIPersonality
-                inRoom
-                name={nova.name}
-                onInvite={handleInviteNova}
-                status={effectiveNovaState}
-              />
-            )}
           </aside>
         </div>
 
-        <div className="fixed bottom-3 left-3 right-3 z-40 mx-auto max-w-xl sm:sticky sm:bottom-4 sm:left-auto sm:right-auto sm:mt-6">
+        <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-50 mx-auto max-w-2xl sm:inset-x-6">
           <RoomVoice
             enabled={sharedRoomEnabled && room.status === "active"}
             novaInRoom={novaInRoom}

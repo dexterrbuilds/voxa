@@ -1,6 +1,11 @@
 "use client";
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import {
+  getAgentById,
+  getAgentParticipantUserId,
+  NOVA_AGENT_ID,
+} from "@/lib/agents";
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Participant, Room, RoomEvent, User } from "@/lib/store";
 
@@ -36,11 +41,6 @@ type RoomEventRow = {
   user_id: string | null;
 };
 
-type AgentInvite = {
-  id: string;
-  name: string;
-};
-
 type RoomAccess = {
   room: RoomRow;
   reopened: boolean;
@@ -63,7 +63,6 @@ export const roomPresenceConfig = {
   heartbeatMs: 15_000,
   staleTimeoutMs: 60_000,
 };
-const novaAgent: AgentInvite = { id: "nova", name: "Nova" };
 let staleCleanupUnavailable = false;
 let novaMemoryCleanupUnavailable = false;
 
@@ -85,10 +84,15 @@ function isRoomWithinReopenGrace(room: RoomRow) {
 
 function participantFromRow(row: RoomParticipantRow): Participant {
   const participantType: ParticipantType = isAgentParticipant(row) ? "agent" : "human";
+  const manifestAgent = participantType === "agent" ? getAgentById(row.user_id) : null;
 
   return {
     id: row.user_id,
-    name: row.display_name || row.email || (participantType === "agent" ? "Agent" : "Guest"),
+    name:
+      row.display_name ||
+      row.email ||
+      manifestAgent?.name ||
+      (participantType === "agent" ? "Agent" : "Guest"),
     email: row.email ?? undefined,
     participantType,
     role: participantType === "agent" ? "ai" : "human",
@@ -543,18 +547,27 @@ export async function loadSharedRoom(roomId: string) {
   return loadRoomRows(roomId);
 }
 
-export async function inviteAgentToSharedRoom(roomId: string, agent: AgentInvite) {
+export async function inviteAgentToSharedRoom(roomId: string, agentId: string) {
   const supabase = getSupabaseClient();
 
   if (!supabase) {
     throw new Error("Supabase is not configured.");
   }
 
+  const agent = getAgentById(agentId);
+
+  if (!agent) {
+    throw new Error(`Agent "${agentId}" is not registered.`);
+  }
+
+  // Legacy compatibility: room_participants.user_id currently stores the agent
+  // participant id. For Nova this remains "nova" until the DB gets agent_id.
+  const participantUserId = getAgentParticipantUserId(agent.id);
   const existing = await supabase
     .from("room_participants")
     .select("id")
     .eq("room_id", roomId)
-    .eq("user_id", agent.id)
+    .eq("user_id", participantUserId)
     .eq("participant_type", "agent")
     .limit(1);
 
@@ -569,7 +582,7 @@ export async function inviteAgentToSharedRoom(roomId: string, agent: AgentInvite
   const now = new Date().toISOString();
   const inserted = await supabase.from("room_participants").insert({
     room_id: roomId,
-    user_id: agent.id,
+    user_id: participantUserId,
     display_name: agent.name,
     email: null,
     participant_type: "agent",
@@ -582,14 +595,14 @@ export async function inviteAgentToSharedRoom(roomId: string, agent: AgentInvite
   }
 
   if (!inserted.error) {
-    await addRoomEvent(roomId, `${agent.name} joined the room`, "agent", agent.id);
+    await addRoomEvent(roomId, `${agent.name} joined the room`, "agent", participantUserId);
   }
 
   return loadRoomRows(roomId);
 }
 
 export async function inviteNovaToSharedRoom(roomId: string) {
-  return inviteAgentToSharedRoom(roomId, novaAgent);
+  return inviteAgentToSharedRoom(roomId, NOVA_AGENT_ID);
 }
 
 export function subscribeToSharedRoom(

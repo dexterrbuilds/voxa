@@ -4,9 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LogOut } from "lucide-react";
 import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
+import AIPersonality from "@/components/AIPersonality";
+import { getDefaultAgent } from "@/lib/agents";
 import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
-import AIPersonality from "@/components/AIPersonality";
+
+const defaultAgent = getDefaultAgent();
+const defaultAgentId = defaultAgent?.id ?? "nova";
+const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 export default function RoomLobby() {
   const { user, logout } = useAuth();
@@ -16,14 +21,14 @@ export default function RoomLobby() {
   const [joinError, setJoinError] = useState("");
   const router = useRouter();
 
-  const handleCreateRoom = (inviteNova = false) => {
+  const handleCreateRoom = (agentId?: string) => {
     if (!user) {
       return;
     }
 
     setIsCreatingRoom(true);
-    const newRoom = createRoom(user, { inviteNova });
-    router.push(inviteNova ? `/room/${newRoom.id}?invite=nova` : `/room/${newRoom.id}`);
+    const newRoom = createRoom(user, agentId ? { inviteAgentId: agentId } : undefined);
+    router.push(agentId ? `/room/${newRoom.id}?invite=${agentId}` : `/room/${newRoom.id}`);
   };
 
   const parseRoomId = (value: string) => {
@@ -95,7 +100,7 @@ export default function RoomLobby() {
                 Open an invite-only Voxa Room, then share the link with the people you want inside.
               </p>
               <div className="mt-5 flex flex-col gap-3">
-                <BetaButton disabled={isCreatingRoom} onClick={() => handleCreateRoom(false)}>
+                <BetaButton disabled={isCreatingRoom} onClick={() => handleCreateRoom()}>
                   {isCreatingRoom ? "Creating Room..." : "Start Room"}
                   <ArrowRight className="h-4 w-4" />
                 </BetaButton>
@@ -109,8 +114,8 @@ export default function RoomLobby() {
 
             <AIPersonality
               inRoom={false}
-              name="Nova"
-              onInvite={() => handleCreateRoom(true)}
+              name={defaultAgentName}
+              onInvite={() => handleCreateRoom(defaultAgentId)}
               status="online"
             />
 

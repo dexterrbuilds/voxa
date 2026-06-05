@@ -14,9 +14,10 @@ const cols = [
   {
     title: "Developers",
     links: [
-      { to: "/developers", label: "Documentation" },
-      { to: "/developers", label: "SDKs" },
-      { to: "/developers", label: "API Reference" },
+      { to: "/developers/docs", label: "Documentation" },
+      { to: "/developers/docs/sdk", label: "SDK v0.1" },
+      { to: "/developers/access", label: "SDK Beta" },
+      { to: "/developers/docs/runtime", label: "Agent Runtime" },
     ],
   },
   {

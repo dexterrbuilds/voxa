@@ -106,12 +106,12 @@ export default function DevelopersPage() {
             </p>
             <div className="mt-8 flex justify-center gap-3">
               <Button asChild variant="electric" size="lg">
-                <RouterLink to="/waitlist">
-                  Get API Access <ArrowRight className="h-4 w-4" />
+                <RouterLink to="/developers/docs">
+                  Read Docs <ArrowRight className="h-4 w-4" />
                 </RouterLink>
               </Button>
               <Button variant="glass" size="lg" asChild>
-                <a href="#sdks">View SDKs</a>
+                <RouterLink to="/developers/access">Request SDK Beta</RouterLink>
               </Button>
             </div>
           </div>
@@ -195,12 +195,12 @@ export default function DevelopersPage() {
                 Start building.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Get an API key and ship your first live agent this week.
+                Explore the runtime foundation and join the waitlist for SDK access.
               </p>
               <div className="mt-8">
                 <Button asChild variant="electric" size="lg">
-                  <RouterLink to="/waitlist">
-                    Request Early Access <ArrowRight className="h-4 w-4" />
+                  <RouterLink to="/developers/access">
+                    Request SDK Beta <ArrowRight className="h-4 w-4" />
                   </RouterLink>
                 </Button>
               </div>

@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAgentParticipantUserId, NOVA_AGENT_ID } from "@/lib/agents";
 import type { NovaTurn } from "@/lib/server/nova/providers/llm/gemini";
+
+const novaParticipantUserId = getAgentParticipantUserId(NOVA_AGENT_ID);
 
 // Short-term, per-room session memory for Nova.
 //
@@ -80,7 +83,9 @@ export async function recordNovaExchange(
       room_id: roomId,
       type: NOVA_MEMORY_REPLY_TYPE,
       message: responseText.trim(),
-      user_id: "nova",
+      // Legacy compatibility: room_events.user_id stores the agent participant id
+      // until Voxa adds a dedicated agent identity column.
+      user_id: novaParticipantUserId,
     });
   }
 

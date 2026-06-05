@@ -11,8 +11,12 @@ import {
   BetaShell,
   BetaStat,
 } from "@/components/BetaChrome";
+import { getDefaultAgent } from "@/lib/agents";
 import { useAuth } from "@/lib/auth";
 import { useRoom } from "@/lib/room";
+
+const defaultAgent = getDefaultAgent();
+const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 export default function Home() {
   const { user, initialized: authInitialized } = useAuth();
@@ -64,12 +68,12 @@ export default function Home() {
               Begin inside an AI conversation room.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[oklch(0.65_0.02_260)]">
-              Start an invite-only room with Nova online and ready to join the conversation.
+              Start an invite-only room with {defaultAgentName} online and ready to join the conversation.
             </p>
             <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
               <BetaStat label="Access" value="Invite-only" />
               <BetaStat label="Rooms" value="Live" />
-              <BetaStat label="Agent" value="Nova" />
+              <BetaStat label="Agent" value={defaultAgentName} />
             </div>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <BetaButton disabled={isCreatingRoom} onClick={handleCreateRoom}>
@@ -94,7 +98,7 @@ export default function Home() {
               </div>
               <div className="absolute bottom-6 right-6 beta-status-pill">
                 <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-                Nova online
+                {defaultAgentName} online
               </div>
             </div>
           </BetaPanel>

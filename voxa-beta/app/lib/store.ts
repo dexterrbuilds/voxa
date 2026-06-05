@@ -3,6 +3,12 @@
 import type { Session } from "@supabase/supabase-js";
 import { create } from "zustand";
 import {
+  getAgentById,
+  getAgentParticipantUserId,
+  getDefaultAgent,
+  NOVA_AGENT_ID,
+} from "@/lib/agents";
+import {
   getAuthRedirectUrl,
   getEmailVerificationRedirectUrl,
   getSupabaseClient,
@@ -73,11 +79,12 @@ interface RoomState {
   currentRoom: Room | null;
   rooms: Room[];
   hydrate: () => void;
-  createRoom: (user: User, options?: { inviteNova?: boolean }) => Room;
+  createRoom: (user: User, options?: { inviteAgentId?: string; inviteNova?: boolean }) => Room;
   joinRoom: (roomId: string, user: User) => Room | null;
   getRoom: (roomId: string) => Room | null;
   setCurrentRoom: (room: Room | null) => void;
   addParticipant: (roomId: string, participant: Participant) => Room | null;
+  inviteAgent: (roomId: string, agentId: string) => Room | null;
   inviteNova: (roomId: string) => Room | null;
   addRoomEvent: (roomId: string, text: string, type?: RoomEvent["type"]) => Room | null;
   toggleMute: (roomId: string, userId: string) => Room | null;
@@ -86,6 +93,9 @@ interface RoomState {
 
 const roomStorageKey = "voxa-room-storage";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const defaultAgent = getDefaultAgent();
+const defaultAgentId = defaultAgent?.id ?? "nova";
+const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 // Temporary auth diagnostics. Off by default; set NEXT_PUBLIC_AUTH_DEBUG=true to enable.
 const AUTH_DEBUG =
@@ -97,13 +107,31 @@ export function authDebug(event: string, data?: Record<string, unknown>) {
 }
 
 export const novaParticipant: Participant = {
-  id: "nova",
-  name: "Nova",
+  id: defaultAgentId,
+  name: defaultAgentName,
   participantType: "agent",
   role: "ai",
   avatar: "",
   status: "online",
 };
+
+export function getRoomAgentParticipants(participants: Participant[]) {
+  return participants.filter((participant) => participant.participantType === "agent");
+}
+
+export function getRoomAgentById(agentId: string, participants: Participant[]) {
+  const participantUserId = getAgentParticipantUserId(agentId);
+
+  return (
+    getRoomAgentParticipants(participants).find(
+      (participant) => participant.id === participantUserId || participant.id === agentId,
+    ) ?? null
+  );
+}
+
+export function isAgentInRoom(agentId: string, participants: Participant[]) {
+  return !!getRoomAgentById(agentId, participants);
+}
 
 function readSessionValue<T>(key: string): T | null {
   if (typeof window === "undefined") {
@@ -259,7 +287,7 @@ function normalizeRoom(room: Partial<Room> & { host?: string }): Room {
     room.invitedAgents ??
     participants
       .filter((participant) => (participant.participantType ?? participant.role) !== "human")
-      .map((participant) => participant.id);
+      .map((participant) => getAgentById(participant.id)?.id ?? participant.id);
   const normalizedParticipants = participants.map((participant) => {
     const participantType =
       participant.participantType ?? (participant.role === "ai" ? "agent" : "human");
@@ -287,25 +315,61 @@ function normalizeRoom(room: Partial<Room> & { host?: string }): Room {
   };
 }
 
-function roomWithNova(room: Room) {
-  const alreadyInvited = room.invitedAgents.includes("nova");
-  const hasNovaParticipant = room.participants.some((participant) => participant.id === "nova");
+function participantFromAgent(agentId: string): Participant | null {
+  const agent = getAgentById(agentId);
+
+  if (!agent) {
+    return null;
+  }
 
   return {
-    ...room,
-    invitedAgents: alreadyInvited ? room.invitedAgents : [...room.invitedAgents, "nova"],
-    participants: hasNovaParticipant
-      ? room.participants.map((participant) =>
-          participant.id === "nova" ? { ...participant, status: "in-room" as const } : participant,
-        )
-      : [...room.participants, { ...novaParticipant, status: "in-room" as const }],
-    events: alreadyInvited
-      ? room.events
-      : [...room.events, createEvent("Nova joined the room", "agent")],
+    id: getAgentParticipantUserId(agent.id),
+    name: agent.name,
+    participantType: "agent",
+    role: "ai",
+    avatar: agent.avatar ?? "",
+    status: "online",
   };
 }
 
-function createRoomRecord(user: User, options?: { roomId?: string; inviteNova?: boolean }): Room {
+function roomWithAgent(room: Room, agentId: string) {
+  const agent = getAgentById(agentId);
+  const agentParticipant = participantFromAgent(agentId);
+
+  if (!agent || !agentParticipant) {
+    return room;
+  }
+
+  const participantUserId = getAgentParticipantUserId(agent.id);
+  const alreadyInvited = room.invitedAgents.includes(agent.id);
+  const hasAgentParticipant = isAgentInRoom(agent.id, room.participants);
+
+  return {
+    ...room,
+    invitedAgents: alreadyInvited
+      ? room.invitedAgents
+      : [...room.invitedAgents, agent.id],
+    participants: hasAgentParticipant
+      ? room.participants.map((participant) =>
+          participant.id === participantUserId
+            ? { ...participant, status: "in-room" as const }
+            : participant,
+        )
+      : [...room.participants, { ...agentParticipant, status: "in-room" as const }],
+    events: alreadyInvited
+      ? room.events
+      : [...room.events, createEvent(`${agent.name} joined the room`, "agent")],
+  };
+}
+
+function roomWithNova(room: Room) {
+  return roomWithAgent(room, NOVA_AGENT_ID);
+}
+
+function createRoomRecord(
+  user: User,
+  options?: { roomId?: string; inviteAgentId?: string; inviteNova?: boolean },
+): Room {
   const roomId = options?.roomId ?? createRoomId();
   const baseRoom: Room = {
     id: roomId,
@@ -322,13 +386,17 @@ function createRoomRecord(user: User, options?: { roomId?: string; inviteNova?: 
     isPrivate: true,
   };
 
+  if (options?.inviteAgentId) {
+    return roomWithAgent(baseRoom, options.inviteAgentId);
+  }
+
   return options?.inviteNova ? roomWithNova(baseRoom) : baseRoom;
 }
 
 function createUniqueRoomRecord(
   user: User,
   rooms: Room[],
-  options?: { inviteNova?: boolean },
+  options?: { inviteAgentId?: string; inviteNova?: boolean },
 ): Room {
   const existingIds = new Set(rooms.map((room) => room.id));
   let room = createRoomRecord(user, options);
@@ -767,7 +835,14 @@ export const useRoomStore = create<RoomState>()((set, get) => ({
     return nextRoom;
   },
   inviteNova: (roomId) => {
-    const nextRoom = updateRoom(get(), roomId, roomWithNova);
+    return get().inviteAgent(roomId, NOVA_AGENT_ID);
+  },
+  inviteAgent: (roomId, agentId) => {
+    if (!getAgentById(agentId)) {
+      return null;
+    }
+
+    const nextRoom = updateRoom(get(), roomId, (room) => roomWithAgent(room, agentId));
 
     if (!nextRoom) {
       return null;

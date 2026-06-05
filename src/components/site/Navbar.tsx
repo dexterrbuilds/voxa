@@ -40,10 +40,16 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-2">
           <ThemeToggle />
           <Link
-            to="/developers"
+            to="/developers/docs"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3"
           >
             Docs
+          </Link>
+          <Link
+            to="/developers/access"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3"
+          >
+            SDK Beta
           </Link>
           <Button asChild variant="electric" size="sm" className="flex items-center gap-1">
             <a href={BETA_APP_URL} className="flex items-center gap-1">
@@ -78,6 +84,20 @@ export function Navbar() {
               {l.label}
             </Link>
           ))}
+          <Link
+            to="/developers/docs"
+            onClick={() => setOpen(false)}
+            className="py-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Docs
+          </Link>
+          <Link
+            to="/developers/access"
+            onClick={() => setOpen(false)}
+            className="py-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            SDK Beta
+          </Link>
           <a
             href={BETA_APP_URL}
             onClick={() => setOpen(false)}

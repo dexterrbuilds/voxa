@@ -30,6 +30,7 @@ OPENAI_API_KEY=optional_openai_tts_fallback_key
 OPENAI_TTS_MODEL=gpt-4o-mini-tts
 
 # Optional wake-word activation (Picovoice Porcupine Web, browser-side)
+NEXT_PUBLIC_WAKE_WORD_ENABLED=false
 NEXT_PUBLIC_PICOVOICE_ACCESS_KEY=your_picovoice_access_key
 NEXT_PUBLIC_NOVA_WAKE_WORD=Nova
 NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH=
@@ -72,6 +73,109 @@ The endpoint:
 
 Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, Edge TTS, or OpenAI TTS can be swapped later. Set `NOVA_TTS_PROVIDER=openai` to use OpenAI TTS directly, or leave `NOVA_TTS_PROVIDER=edge` and set `OPENAI_API_KEY` for automatic fallback if Edge TTS fails in production.
 
+## Agent Runtime Foundation
+
+Voxa is moving from a single-agent Nova demo toward a general runtime for
+conversational AI agents. The foundation for that runtime lives in:
+
+```text
+app/lib/runtime/
+  types.ts
+  Agent.ts
+  AgentRegistry.ts
+  AgentRuntime.ts
+  index.ts
+
+app/lib/agents/nova/
+  NovaAgent.ts
+  index.ts
+
+app/lib/agents/manifest.ts
+```
+
+The runtime layer defines the shared agent contract: identity, status, capabilities,
+messages, responses, registry, and dispatch surface. Nova is represented as the first
+first-party agent with capabilities for voice, memory, multilingual understanding, web
+search, and realtime room participation.
+
+The agent manifest exposes:
+
+- `getAvailableAgents()`
+- `getAgentById(agentId)`
+- `isFirstPartyAgent(agentId)`
+- `getDefaultAgent()`
+- `getAgentParticipantUserId(agentId)`
+
+Only Nova is registered today. Room and lobby UI now read safe agent display metadata
+from the manifest so the product can move toward agent selection later.
+
+Manifest entries include `availability`, `category`, `shortLabel`, and `tags`. Nova is
+the only `available` agent. Research Agent, Meeting Summarizer, and Code Assistant are
+registered as `coming_soon` placeholders so the UI can show the first-party platform
+direction without enabling backend behavior.
+
+Legacy compatibility remains intentional: Supabase `room_participants.user_id` still
+stores the agent id (`"nova"` for Nova). Do not migrate this casually. The future schema
+should add a dedicated agent identity column and a DB-backed agent registry.
+
+### Generic invite flow
+
+Room code now exposes a generic first-party invite path:
+
+- `useRoomStore().inviteAgent(roomId, agentId)` for local/session fallback
+- `inviteAgentToSharedRoom(roomId, agentId)` for Supabase shared rooms
+- `useRoom().inviteAgentShared(roomId, agentId)` for app screens
+
+`inviteNova` and `inviteNovaShared` remain as compatibility wrappers that call the
+generic path with `agentId = "nova"`. Current UI can keep using Nova-specific labels,
+but internal room logic is ready for future multi-agent selection.
+
+The generic path validates the agent against the manifest and uses
+`getAgentParticipantUserId(agentId)` before writing to `room_participants.user_id`.
+For Nova that still resolves to `"nova"`.
+
+### Agent registration API scaffold
+
+Future developer-owned agents have a safe metadata intake scaffold:
+
+- `POST /api/agents/register`
+- `GET /api/agents`
+- `GET /api/agents/:id`
+- `PATCH /api/agents/:id`
+
+All routes require an authenticated Supabase bearer token. They only let a developer
+create/list/read/update their own draft or pending-review records. They reject public
+visibility and self-approved statuses, so submitted agents cannot appear in rooms,
+marketplace surfaces, or the Agent Selector yet.
+
+Run `supabase-agent-registration-schema.sql` in Supabase SQL Editor to create the
+additive `public.agents` table and owner-scoped RLS policies. This schema does **not**
+change `room_participants` or the current Nova compatibility row
+(`room_participants.user_id = "nova"`). A later migration should add a proper DB-backed
+agent registry and dedicated agent identity fields.
+
+### Agent Selector UI
+
+`app/components/AgentSelector.tsx` renders the first-party agents from
+`getAvailableAgents()`. The room sidebar uses it as the compact invite surface instead
+of a hardcoded Nova invite card.
+
+Today only Nova is inviteable. Coming-soon entries render disabled with a "Coming soon"
+button and never call `inviteAgent`. The selector displays agent name, description,
+capabilities, and invited/in-room state, then calls the generic invite path with
+`agent.id` only for available agents. Future first-party agents can become active by
+changing their manifest availability and wiring their runtime/backend path.
+
+This is foundation only. The working Nova voice experience still uses the active Path A
+pipeline:
+
+```text
+RoomVoice.tsx -> POST /api/agents/nova/respond -> Deepgram -> Gemini -> TTS -> LiveKit playback
+```
+
+Do not remove or bypass that pipeline until a later migration explicitly wires runtime
+dispatch into product behavior.
+
 ### Short-term session memory
 
 Nova keeps the room's topic in mind across turns. Each user prompt and Nova reply is
@@ -107,26 +211,38 @@ English voice; for the best non-English speech output, use `NOVA_TTS_PROVIDER=op
 
 ### Room microphone
 
-The human room mic is independent of Nova. You join muted once by default; after that the
-mic **stays in whatever state you choose** — talking to Nova never auto-mutes it. Nova
-capture uses its own microphone stream and never toggles the LiveKit room mic.
+The human room mic is independent of agent capture. You join muted once by default; after
+that the mic **stays in whatever state you choose** — talking to an agent never auto-mutes
+it. Agent capture uses its own microphone stream and never toggles the LiveKit room mic.
 
 ## Nova Activation (call-to-wake by default)
 
-**Call-to-wake ("Hey Nova") is the default, hands-free Nova interaction and starts
-automatically once Nova is in the room — there is no toggle to enable.** Wake detection
-uses [Picovoice Porcupine Web](https://picovoice.ai/docs/porcupine/) and runs **entirely
-in the browser**; the wake-listening audio never reaches the backend. **Talk to Nova**
-remains as a small secondary manual fallback that uses the same capture logic.
+**Talk to Agent is the reliable manual activation path.** Optional call-to-wake
+("Hey Nova") can be enabled with `NEXT_PUBLIC_WAKE_WORD_ENABLED=true` when a valid
+Picovoice AccessKey is available. Wake detection uses
+[Picovoice Porcupine Web](https://picovoice.ai/docs/porcupine/) and runs **entirely in
+the browser**; the wake-listening audio never reaches the backend. If the flag is false,
+the app skips Picovoice entirely and shows "Wake word is temporarily unavailable."
+
+The human mic controls and agent voice controls live in a fixed, glassy bottom panel on
+room screens. The panel uses mobile safe-area padding and the room layout reserves bottom
+space so participant cards and room events are not covered. Users can always reach:
+
+- **Talk to Agent** — one tap starts the agent capture flow.
+- **Mute/Unmute** — controls only the human LiveKit room mic.
+
+The two controls are independent: changing the human room mic state never starts an agent
+capture, and talking to the agent never mutes or unmutes the human room mic.
 
 **Nova must be in the room first.** Activation is hard-gated on Nova being invited:
 
-- If Nova is not in the room, no Picovoice worker starts and no microphone permission
-  is requested. Tapping **Talk to Nova** surfaces the notice **"Invite Nova to the room
-  first."**
-- Once Nova is invited and voice is connected, the local wake worker starts
-  automatically and Nova's card shows **In Room** (the wake worker is armed locally and
-  waiting for the phrase — she is **not** recording or streaming anything yet).
+- If no active/default agent is in the room, no Picovoice worker starts and no microphone
+  permission is requested. Tapping **Talk to Agent** surfaces the notice **"Invite an
+  agent to the room first."**
+- Once Nova is invited and voice is connected, the local wake worker starts only if
+  `NEXT_PUBLIC_WAKE_WORD_ENABLED=true` and a valid Picovoice AccessKey/model are present.
+  Nova's card still shows **In Room** when idle — she is **not** recording or streaming
+  anything until wake activation or Talk to Agent.
 - If Nova leaves, the room ends, or voice disconnects, the worker stops and state resets
   automatically.
 
@@ -136,14 +252,14 @@ Nova's card maps to one state at a time:
 
 - **In Room** — Nova is present and the wake worker may be armed locally. She is **not**
   recording the prompt.
-- **Listening** — the wake phrase fired (or Talk to Nova was tapped); Nova is now
+- **Listening** — the wake phrase fired (or Talk to Agent was tapped); Nova is now
   recording/capturing the user's prompt.
 - **Thinking** — recording stopped (2s of silence); Nova is processing.
 - **Speaking** — Nova's response audio is playing in the room.
 
 `"Hey Nova"` (local detection) → **Listening** → 2s silence → **Thinking** (sent to
 `/api/agents/nova/respond`) → **Speaking** → back to **In Room**. Tapping **Talk to
-Nova** enters the same **Listening → Thinking → Speaking → In Room** cycle.
+Agent** enters the same **Listening → Thinking → Speaking → In Room** cycle.
 
 ### Silence-based capture (no fixed window)
 
@@ -171,18 +287,22 @@ Nova's generated response is published into the room from the Next.js server rou
 
 ### Setup
 
-1. Create a free AccessKey at [console.picovoice.ai](https://console.picovoice.ai)
+1. Set `NEXT_PUBLIC_WAKE_WORD_ENABLED=true`.
+2. Create a valid AccessKey at [console.picovoice.ai](https://console.picovoice.ai)
    and set `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY` (it is browser-side by design — this
    is **not** a backend secret; never `NEXT_PUBLIC_`-prefix LiveKit/Deepgram/Gemini/
    OpenAI/Supabase service-role keys).
-2. Download `porcupine_params.pv` from the
+3. Download `porcupine_params.pv` from the
    [Porcupine repo](https://github.com/Picovoice/porcupine/blob/master/lib/common/porcupine_params.pv)
    into `public/picovoice/` so it resolves at `/picovoice/porcupine_params.pv`.
    This file is **required** even for the built-in keyword.
-3. (Optional, for a true "Nova" wake word) In the Picovoice Console, build a custom
+4. (Optional, for a true "Nova" wake word) In the Picovoice Console, build a custom
    **Nova** keyword for the **Web (WASM)** platform, download the `.ppn` to
    `public/picovoice/nova.ppn`, and set
    `NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH=/picovoice/nova.ppn`.
+
+If Picovoice throws activation, trial, or limit errors, the room still works and Talk to
+Nova continues to capture prompts manually.
 
 If no custom `.ppn` is provided, the app falls back to the built-in keyword
 **"Jarvis"** as a temporary stand-in. See `public/picovoice/README.md`.
@@ -191,26 +311,28 @@ If no custom `.ppn` is provided, the app falls back to the built-in keyword
 
 - Wake detection is on-device; the wake audio stream is consumed by the local WASM
   worker and is never uploaded.
-- The backend only receives audio **after** the wake word fires (or Talk to Nova is
+- The backend only receives audio **after** the wake word fires (or Talk to Agent is
   tapped) and the silence-bounded capture completes.
 - The worker and its microphone subscription are released when Nova leaves, when voice
   disconnects, and when you leave the room.
 - Permission denial and unsupported browsers are handled gracefully (a clear error
-  shows and Talk to Nova keeps working).
+  shows and Talk to Agent keeps working).
 
 ### Browser limitations
 
 Requires WebAssembly, Web Workers, the Web Audio API, and `getUserMedia` over HTTPS (or
 `http://localhost`). Mobile Safari requires a user gesture before mic access — tapping
-**Talk to Nova** provides one. If wake detection is unsupported, the UI falls back to the
-manual Talk to Nova button only (still silence-based).
+**Talk to Agent** provides one. If wake detection is unsupported, the UI falls back to the
+manual Talk to Agent button only (still silence-based).
 
 ### Production (Vercel)
 
-Add `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY`, `NEXT_PUBLIC_NOVA_WAKE_WORD`,
-`NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH`, and `NEXT_PUBLIC_PICOVOICE_MODEL_PATH` in the
-Vercel Project → Settings → Environment Variables. The model files under
-`public/picovoice/` ship as static assets with the deploy.
+Set `NEXT_PUBLIC_WAKE_WORD_ENABLED=false` unless a valid Picovoice AccessKey is active.
+When enabling wake word, add `NEXT_PUBLIC_PICOVOICE_ACCESS_KEY`,
+`NEXT_PUBLIC_NOVA_WAKE_WORD`, `NEXT_PUBLIC_NOVA_WAKE_WORD_MODEL_PATH`, and
+`NEXT_PUBLIC_PICOVOICE_MODEL_PATH` in the Vercel Project → Settings → Environment
+Variables. The model files under `public/picovoice/` ship as static assets with the
+deploy.
 
 ## Local Development
 

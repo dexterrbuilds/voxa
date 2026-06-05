@@ -4,10 +4,10 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "dev": "NODE_OPTIONS=--disable-warning=DEP0205 vite dev",
+    "build": "NODE_OPTIONS=--disable-warning=DEP0205 vite build",
+    "build:dev": "NODE_OPTIONS=--disable-warning=DEP0205 vite build --mode development",
+    "preview": "NODE_OPTIONS=--disable-warning=DEP0205 vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

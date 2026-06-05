@@ -8,6 +8,11 @@
  * secrets behind a NEXT_PUBLIC_ prefix.
  */
 
+/** Feature flag. Defaults off so expired Picovoice trials never break room UX. */
+export function isWakeWordEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_WAKE_WORD_ENABLED === "true";
+}
+
 /** Picovoice AccessKey (browser-side). Required for wake detection to run. */
 export function getPicovoiceAccessKey(): string {
   return (process.env.NEXT_PUBLIC_PICOVOICE_ACCESS_KEY ?? "").trim();

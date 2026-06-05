@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { getAgentParticipantUserId, NOVA_AGENT_ID } from "@/lib/agents";
 import {
   NovaProviderError,
   sanitizeErrorMessage,
@@ -14,6 +15,7 @@ import { synthesizeNovaSpeech } from "@/lib/server/nova/providers/tts";
 export const runtime = "nodejs";
 
 const roomIdPattern = /^[a-zA-Z0-9_-]{6,80}$/;
+const novaParticipantUserId = getAgentParticipantUserId(NOVA_AGENT_ID);
 
 function normalizeSupabaseUrl(url: string) {
   return url
@@ -169,7 +171,9 @@ export async function POST(request: NextRequest) {
       .from("room_participants")
       .select("id")
       .eq("room_id", roomId)
-      .eq("user_id", "nova")
+      // Legacy compatibility: agents currently live in room_participants.user_id.
+      // Keep this as the manifest participant id until the DB gains agent_id.
+      .eq("user_id", novaParticipantUserId)
       .eq("participant_type", "agent")
       .limit(1),
   ]);
@@ -367,7 +371,7 @@ export async function POST(request: NextRequest) {
       message: "Nova responded.",
       room_id: roomId,
       type: "agent",
-      user_id: "nova",
+      user_id: novaParticipantUserId,
     });
 
     // Persist this turn into short-term session memory for the next request.

@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { getAgentById, NOVA_AGENT_ID } from "@/lib/agents";
 import {
-  inviteNovaToSharedRoom,
+  inviteAgentToSharedRoom,
   isSharedRoomSchemaError,
   joinSharedRoom,
   leaveSharedRoom,
@@ -17,6 +18,9 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { useRoomStore, type Participant, type User } from "@/lib/store";
 
 export type NovaRoomMode = "manual" | "silent";
+const defaultAgent = getAgentById(NOVA_AGENT_ID);
+const defaultAgentDispatchRoute = defaultAgent?.routes?.dispatch ?? "/api/agents/nova/dispatch";
+const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 function shouldDispatchPersistentNovaAgent() {
   return process.env.NEXT_PUBLIC_NOVA_LIVEKIT_AGENT_ENABLED === "true";
@@ -35,10 +39,10 @@ async function dispatchNovaAgent(roomId: string, mode: NovaRoomMode) {
   } = await supabase.auth.getSession();
 
   if (error || !session?.access_token) {
-    throw new Error("Sign in before inviting Nova.");
+    throw new Error(`Sign in before inviting ${defaultAgentName}.`);
   }
 
-  const response = await fetch("/api/agents/nova/dispatch", {
+  const response = await fetch(defaultAgentDispatchRoute, {
     body: JSON.stringify({ mode, roomId }),
     headers: {
       Authorization: `Bearer ${session.access_token}`,
@@ -49,7 +53,7 @@ async function dispatchNovaAgent(roomId: string, mode: NovaRoomMode) {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(payload?.error ?? "Nova could not join voice yet.");
+    throw new Error(payload?.error ?? `${defaultAgentName} could not join voice yet.`);
   }
 
   return response.json() as Promise<{
@@ -69,6 +73,7 @@ export function useRoom() {
     getRoom,
     setCurrentRoom,
     addParticipant,
+    inviteAgent,
     inviteNova,
     addRoomEvent,
     toggleMute,
@@ -81,7 +86,7 @@ export function useRoom() {
   }, [hydrate]);
 
   const createNewRoom = useCallback(
-    (user: User, options?: { inviteNova?: boolean }) => {
+    (user: User, options?: { inviteAgentId?: string; inviteNova?: boolean }) => {
       const newRoom = createRoom(user, options);
       setCurrentRoom(newRoom);
       return newRoom;
@@ -144,35 +149,51 @@ export function useRoom() {
     [setCurrentRoom],
   );
 
-  const inviteNovaShared = useCallback(
-    async (roomId: string, mode: NovaRoomMode = "manual") => {
+  const inviteAgentShared = useCallback(
+    async (roomId: string, agentId: string, mode: NovaRoomMode = "manual") => {
+      const agent = getAgentById(agentId);
+
+      if (!agent) {
+        console.warn(`Shared agent invite failed because agent "${agentId}" is not registered.`);
+        return null;
+      }
+
       try {
-        const nextRoom = await inviteNovaToSharedRoom(roomId);
+        const nextRoom = await inviteAgentToSharedRoom(roomId, agent.id);
         setCurrentRoom(nextRoom);
 
-        if (shouldDispatchPersistentNovaAgent()) {
+        if (agent.id === NOVA_AGENT_ID && shouldDispatchPersistentNovaAgent()) {
           try {
             await dispatchNovaAgent(roomId, mode);
           } catch (dispatchError) {
-            console.warn("Nova was added to the room, but LiveKit dispatch failed.", dispatchError);
+            console.warn(
+              `${agent.name} was added to the room, but LiveKit dispatch failed.`,
+              dispatchError,
+            );
           }
         }
 
         return nextRoom;
       } catch (error) {
         if (isSharedRoomSchemaError(error)) {
-          console.warn("Shared Nova invite failed because room schema is missing.");
+          console.warn(`Shared ${agent.name} invite failed because room schema is missing.`);
           return null;
         }
 
         console.warn(
-          "Shared Nova invite failed. Refusing local fallback for production sync.",
+          `Shared ${agent.name} invite failed. Refusing local fallback for production sync.`,
           error,
         );
         return null;
       }
     },
     [setCurrentRoom],
+  );
+
+  const inviteNovaShared = useCallback(
+    (roomId: string, mode: NovaRoomMode = "manual") =>
+      inviteAgentShared(roomId, NOVA_AGENT_ID, mode),
+    [inviteAgentShared],
   );
 
   const leaveSharedRoomById = useCallback(
@@ -250,6 +271,7 @@ export function useRoom() {
     joinRoom: joinExistingRoom,
     joinSharedRoom: joinSharedRoomById,
     refreshSharedRoom,
+    inviteAgentShared,
     inviteNovaShared,
     leaveSharedRoom: leaveSharedRoomById,
     heartbeatSharedRoom,
@@ -259,6 +281,7 @@ export function useRoom() {
     getRoom,
     setCurrentRoom,
     addParticipant: addParticipantToRoom,
+    inviteAgent,
     inviteNova,
     addRoomEvent,
     copyInviteLink,

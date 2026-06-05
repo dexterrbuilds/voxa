@@ -11,12 +11,15 @@ import {
   BetaShell,
   BetaStat,
 } from "@/components/BetaChrome";
+import { getDefaultAgent } from "@/lib/agents";
 import { useAuth } from "@/lib/auth";
 
 type AuthMode = "login" | "signup" | "check-email";
 
 const googleUnavailableMessage = "Google sign-in is not available yet. Use email login for now.";
 const verifiedMessage = "Email verified. You can now log in.";
+const defaultAgent = getDefaultAgent();
+const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -211,7 +214,7 @@ export default function Login() {
           <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
             <BetaStat label="Access" value="Secure" />
             <BetaStat label="Rooms" value="Invite-only" />
-            <BetaStat label="Agent" value="Nova" />
+            <BetaStat label="Agent" value={defaultAgentName} />
           </div>
         </div>
 
@@ -222,7 +225,7 @@ export default function Login() {
             </div>
             <div className="absolute left-8 top-8 beta-status-pill">
               <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-              Nova online
+              {defaultAgentName} online
             </div>
             <div className="absolute bottom-8 right-8 beta-status-pill">
               <LockKeyhole className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
@@ -244,8 +247,8 @@ export default function Login() {
                   {isCheckEmail
                     ? `We sent a verification link to ${displayedVerificationEmail || "your email"}. Please verify your email before logging in.`
                     : mode === "login"
-                      ? "Sign in to start a room, invite people, and bring Nova into the conversation."
-                      : "Create an account to open rooms, share invites, and collaborate with Nova."}
+                      ? `Sign in to start a room, invite people, and bring ${defaultAgentName} into the conversation.`
+                      : `Create an account to open rooms, share invites, and collaborate with ${defaultAgentName}.`}
                 </p>
               </div>
               {!isCheckEmail && (

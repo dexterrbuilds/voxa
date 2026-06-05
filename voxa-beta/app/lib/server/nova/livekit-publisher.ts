@@ -8,9 +8,10 @@ import {
   TrackSource,
 } from "@livekit/rtc-node";
 import { AccessToken, TrackSource as TokenTrackSource } from "livekit-server-sdk";
+import { getAgentParticipantUserId, NOVA_AGENT_ID, NOVA_AGENT_NAME } from "@/lib/agents";
 import { NovaProviderError, sanitizeErrorMessage } from "@/lib/server/nova/errors";
 
-const NOVA_NAME = "Nova";
+const novaParticipantUserId = getAgentParticipantUserId(NOVA_AGENT_ID);
 const FRAME_DURATION_MS = 20;
 
 function normalizeLiveKitWebSocketUrl(url: string) {
@@ -79,20 +80,20 @@ function floatToInt16(sample: number) {
 
 async function createNovaLiveKitToken(roomId: string) {
   const { apiKey, apiSecret } = requireLiveKitEnv();
-  const playbackIdentity = `agent:nova:playback:${crypto.randomUUID()}`;
+  const playbackIdentity = `agent:${novaParticipantUserId}:playback:${crypto.randomUUID()}`;
   const token = new AccessToken(apiKey, apiSecret, {
     attributes: {
       "lk.agent.state": "speaking",
-      "voxa.agent_id": "nova",
+      "voxa.agent_id": NOVA_AGENT_ID,
       "voxa.participant_type": "agent",
     },
     identity: playbackIdentity,
     metadata: JSON.stringify({
-      agent_id: "nova",
+      agent_id: NOVA_AGENT_ID,
       participant_type: "agent",
       playback: true,
     }),
-    name: NOVA_NAME,
+    name: NOVA_AGENT_NAME,
     ttl: "5m",
   });
 

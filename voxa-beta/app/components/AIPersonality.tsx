@@ -18,6 +18,17 @@ interface AIPersonalityProps {
   onInvite?: () => void;
 }
 
+function initialsFor(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || name.slice(0, 2).toUpperCase() || "AI";
+}
+
 export default function AIPersonality({
   inRoom = false,
   name,
@@ -61,7 +72,7 @@ export default function AIPersonality({
   };
 
   const statusColor = getStatusColor();
-  const initials = name === "Nova" ? "NV" : name.slice(0, 2).toUpperCase();
+  const initials = initialsFor(name);
   const statusLabel =
     status === "in-room"
       ? "In Room"
