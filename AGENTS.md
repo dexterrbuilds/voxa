@@ -264,6 +264,48 @@ bypasses RLS). **Approval is review-only:** it does NOT feed `AgentSelector` or 
 join rooms. External agents stay out of live rooms until a DB-backed runtime registry is
 intentionally enabled.
 
+## Agent verification & sandbox (Phase 3 prep — still off for rooms)
+
+This phase prepares external agents WITHOUT letting them into production rooms.
+
+- **Verification axis (orthogonal to review `status`).** `supabase-agent-verification-schema.sql`
+  adds `verification_status` (`verification_pending` default | `verified` | `verification_failed`),
+  `verified_at`, `verification_note`, `verification_report jsonb` + an index. An agent can be
+  `approved` yet still unverified; both review and verification gate the sandbox, never rooms.
+- **Endpoint health check service** (`app/lib/server/agents/verification.ts`,
+  `runAgentVerification`). POSTs `{ type: "voxa.handshake" }` to the agent's `endpoint_url`
+  (5s timeout) and runs three checks: `endpoint_reachable`, `sdk_compatible` (protocol
+  `voxa-agent`, SDK version in `SUPPORTED_SDK_VERSIONS`), `capability_payload` (declared
+  capabilities ⊆ endpoint-reported). The handshake contract mirrors `@voxa/sdk`'s
+  `createAgentHandshake()`. Admin-triggered via `POST /api/admin/agents/:id/verify`
+  (service-role; writes the verification axis). The admin page exposes a "Verify endpoint"
+  button + verification badge/notes.
+- **Developer sandbox** (`POST /api/agents/sandbox`, page `/developers/sandbox`). Developer
+  auth + anon/bearer client (RLS-scoped to own agents). Allows a sandbox session ONLY for the
+  caller's own agent that is BOTH `approved` AND `verified` (`app/lib/server/agents/sandbox.ts`,
+  `checkSandboxEligibility` / `createSandboxSession`). It returns an **isolated** descriptor
+  (namespaced `sandbox:<agentId>:<uuid>` room id, 30-min TTL, `runtimeReady: false`) and does
+  NOT create a production `rooms`/`room_participants` row, mint a LiveKit token, or dispatch
+  the agent. The external-agent runtime is not live; the sandbox validates eligibility only.
+- **Runtime registry merge seam** (`app/lib/agents/registry.ts`). Defines
+  `RuntimeAgentDescriptor` with a `source` (`first_party` | `registered`) and a hard
+  `availableInRooms` gate. `getFirstPartyRuntimeAgents()` (from the manifest; `availableInRooms`
+  = manifest `available`), `getRegisteredRuntimeAgents(service)` (approved + verified DB agents,
+  ALWAYS `availableInRooms: false`), `mergeRuntimeAgents()`, and `getRoomEligibleAgents()`.
+  Nothing in room/selector code calls the merge yet — it exists so enabling DB agents in rooms
+  is one deliberate change (flip the gate + add dispatch), not a rewrite.
+
+- **Runnable sample agent** (`examples/agents/research-agent/`). A minimal Node/TS HTTP server
+  (`GET /health`, `POST /voxa/handshake`, `POST /voxa/message`) built on `@voxa/sdk`
+  (`createAgentHandshake`, `createAgentMessageResponse`). Developers run it locally, tunnel it
+  (ngrok/cloudflared), register the `…/voxa/handshake` URL, get it approved + verified, then
+  sandbox it. The SDK's `tsconfig` is `NodeNext` so its emitted ESM is Node-runnable; relative
+  source specifiers carry `.js`. voxa-beta does not import `@voxa/sdk` (it keeps its own copy of
+  the contract in `verification.ts`).
+
+**Still intentionally disabled:** registered agents never enter production rooms or
+`AgentSelector`; no billing, marketplace, or onchain identity; Nova Path A is unchanged.
+
 ## Key env (voxa-beta/.env.local — see voxa-beta/.env.example)
 
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY`

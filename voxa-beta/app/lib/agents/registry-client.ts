@@ -17,6 +17,11 @@ export type RegisteredAgentStatus =
 
 export type RegisteredAgentVisibility = "private" | "unlisted" | "public";
 
+export type AgentVerificationStatus =
+  | "verification_pending"
+  | "verified"
+  | "verification_failed";
+
 // Developers may only create/edit at these statuses and visibilities. The
 // backend enforces the same limits via validation + RLS; mirroring them here is
 // purely for a friendlier UI (no self-approval, no public publishing).
@@ -41,8 +46,22 @@ export type RegisteredAgent = {
   permissions: string[];
   tags: string[];
   metadata: Record<string, unknown>;
+  verificationStatus: AgentVerificationStatus;
+  verifiedAt: string | null;
+  verificationNote: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SandboxSession = {
+  mode: "sandbox";
+  isolated: true;
+  sandboxRoomId: string;
+  agentId: string;
+  agentName: string;
+  expiresAt: string;
+  runtimeReady: false;
+  note: string;
 };
 
 export type AgentRegistrationPayload = {
@@ -139,6 +158,25 @@ export async function createRegisteredAgent(
 
   const data = (await response.json()) as { agent: RegisteredAgent };
   return data.agent;
+}
+
+export async function startSandboxSession(agentId: string): Promise<SandboxSession> {
+  const token = await getAccessToken();
+  const response = await fetch("/api/agents/sandbox", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ agentId }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  const data = (await response.json()) as { session: SandboxSession };
+  return data.session;
 }
 
 export async function updateRegisteredAgent(

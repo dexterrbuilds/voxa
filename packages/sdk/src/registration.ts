@@ -1,4 +1,4 @@
-import type { AgentRegistration, AgentRegistrationInput } from "./types";
+import type { AgentRegistration, AgentRegistrationInput } from "./types.js";
 
 export function defineAgentRegistration(input: AgentRegistrationInput): AgentRegistrationInput {
   return input;

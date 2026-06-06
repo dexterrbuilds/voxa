@@ -2,6 +2,7 @@
 
 import { getSupabaseClient } from "@/lib/supabase";
 import type {
+  AgentVerificationStatus,
   RegisteredAgentStatus,
   RegisteredAgentVisibility,
 } from "@/lib/agents/registry-client";
@@ -32,8 +33,26 @@ export type AdminAgent = {
   reviewedBy: string | null;
   reviewedAt: string | null;
   reviewNote: string | null;
+  verificationStatus: AgentVerificationStatus;
+  verifiedAt: string | null;
+  verificationNote: string | null;
+  verificationReport: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+};
+
+export type VerificationCheck = {
+  name: string;
+  ok: boolean;
+  detail: string;
+};
+
+export type VerificationReport = {
+  ok: boolean;
+  status: "verified" | "verification_failed";
+  checks: VerificationCheck[];
+  endpointUrl: string | null;
+  checkedAt: string;
 };
 
 export class AdminApiError extends Error {
@@ -119,4 +138,20 @@ export async function reviewAdminAgent(
 
   const data = (await response.json()) as { agent: AdminAgent };
   return data.agent;
+}
+
+export async function verifyAdminAgent(
+  agentId: string,
+): Promise<{ agent: AdminAgent; report: VerificationReport }> {
+  const token = await getAccessToken();
+  const response = await fetch(`/api/admin/agents/${encodeURIComponent(agentId)}/verify`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as { agent: AdminAgent; report: VerificationReport };
 }

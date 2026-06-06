@@ -7,9 +7,11 @@ import { GridBackdrop } from "@/components/site/GridBackdrop";
 import { Eyebrow } from "@/components/site/Section";
 import { Button } from "@/components/ui/button";
 import {
+  buildAgentSteps,
   docsNav,
   faqItems,
   getDocsPageId,
+  handshakeExample,
   pageMeta,
   platformPillars,
   registrationExample,
@@ -432,6 +434,43 @@ function RegistrationPage() {
       </section>
 
       <CodeBlock code={registrationExample} language="TypeScript" title="registration.ts" />
+
+      <section>
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Build &amp; test a Voxa-compatible agent
+        </h2>
+        <p className="mt-4 leading-relaxed text-muted-foreground">
+          You can build an agent, verify its endpoint, and try it in the developer sandbox today.
+          The sandbox confirms your agent is approved and verified — it does{" "}
+          <span className="font-medium text-foreground">not</span> connect external agents into live
+          rooms yet.
+        </p>
+        <div className="mt-5 grid gap-3">
+          {buildAgentSteps.map((item, index) => (
+            <div
+              className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4"
+              key={item}
+            >
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-electric/10 font-mono text-xs text-electric">
+                {index + 1}
+              </span>
+              <span className="text-sm leading-relaxed">{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <CodeBlock code={handshakeExample} language="TypeScript" title="voxa-agent-endpoint.ts" />
+
+      <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-5">
+        <h3 className="font-semibold tracking-tight">Sandbox does not connect to live rooms yet</h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          A sandbox session returns a session descriptor with{" "}
+          <span className="font-mono">runtimeReady: false</span>. It validates that your agent is
+          approved and verified and reserves an isolated sandbox id for the future runtime. External
+          agents are still blocked from production rooms.
+        </p>
+      </div>
 
       <section>
         <h2 className="text-2xl font-semibold tracking-tight">Security model</h2>

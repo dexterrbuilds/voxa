@@ -211,6 +211,35 @@ export const faqItems = [
   },
 ];
 
+export const handshakeExample = `import { createAgentHandshake, createAgentMessageResponse } from "@voxa/sdk";
+
+// GET /health  -> { status: "ok" }
+// POST /voxa/handshake
+app.post("/voxa/handshake", (req, res) => {
+  res.json(
+    createAgentHandshake({
+      name: "Research Agent",
+      description: "A sample Voxa-compatible research assistant",
+      capabilities: ["web_search", "summaries", "citations"],
+    }),
+  );
+});
+
+// POST /voxa/message
+app.post("/voxa/message", (req, res) => {
+  res.json(createAgentMessageResponse("This is a sample response."));
+});`;
+
+export const buildAgentSteps = [
+  "Build a Voxa-compatible agent: expose GET /health, POST /voxa/handshake, and POST /voxa/message. Use createAgentHandshake() from @voxa/sdk so the handshake matches the protocol exactly.",
+  "Run the sample agent locally: examples/agents/research-agent — npm install && npm run build && npm start (defaults to http://localhost:8787).",
+  "Expose your local endpoint with a tunnel, e.g. `ngrok http 8787` or `cloudflared tunnel --url http://localhost:8787`, and copy the public URL.",
+  "Register the endpoint in Voxa at /developers/agents. Set the Endpoint URL to your tunnel's handshake path (https://<tunnel>/voxa/handshake) and declare the capabilities your endpoint reports.",
+  "Submit for review. A Voxa admin approves the agent in /admin/agents.",
+  "An admin runs endpoint verification (the handshake health check): reachable, supported SDK version, correct protocol, and declared capabilities covered by the endpoint.",
+  "Once approved + verified, open /developers/sandbox and start a sandbox session.",
+] as const;
+
 export const registrationFlow = [
   "Build an agent against the Voxa SDK contract.",
   "Register metadata such as name, endpoint URL, capabilities, permissions, and tags.",

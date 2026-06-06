@@ -77,6 +77,11 @@ export type AgentRegistrationStatus =
 
 export type AgentVisibility = "private" | "unlisted" | "public";
 
+export type AgentVerificationStatus =
+  | "verification_pending"
+  | "verified"
+  | "verification_failed";
+
 export type AgentRegistrationInput = {
   name: string;
   description: string;
@@ -107,6 +112,7 @@ export type AgentRegistration = {
   permissions: AgentPermission[];
   tags: string[];
   metadata: Record<string, unknown>;
+  verificationStatus?: AgentVerificationStatus;
   createdAt: string;
   updatedAt: string;
 };

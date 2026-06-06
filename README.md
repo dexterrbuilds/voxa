@@ -14,6 +14,7 @@ the first first-party demonstration agent. Nova is not the product itself.
 ├── voxa-beta/            # Real Next.js product app
 ├── voxa-agent/           # Disabled Python LiveKit Agent path for Nova
 ├── packages/sdk/         # Local SDK v0.1 typed agent contract
+├── examples/agents/      # Runnable sample external agents (research-agent)
 └── api/subdomain.js      # Vercel subdomain stub
 ```
 
@@ -205,6 +206,28 @@ routes (`GET /api/admin/agents`, `PATCH /api/admin/agents/:id/review`).
 **Approval is review-only.** Approving an agent does not add it to the Agent Selector or let
 it join rooms. External agents stay out of live rooms until a DB-backed runtime registry is
 intentionally enabled.
+
+### Agent verification & developer sandbox
+
+Phase 3 prepares external agents for testing without allowing them into production rooms.
+
+- **Verification axis** (`voxa-beta/supabase-agent-verification-schema.sql`):
+  `verification_status` (`verification_pending` → `verified` / `verification_failed`) plus
+  `verified_at`, `verification_note`, `verification_report`. Orthogonal to the review `status`.
+- **Endpoint health check** (`runAgentVerification`): POSTs a `voxa.handshake` to the agent's
+  endpoint and checks reachability, SDK/protocol compatibility, and that declared capabilities
+  are covered. Admin-triggered via `POST /api/admin/agents/:id/verify`. The handshake contract
+  ships in the SDK (`createAgentHandshake`, `VOXA_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`).
+- **Developer sandbox** (`POST /api/agents/sandbox`, page `/developers/sandbox`): a developer can
+  start an **isolated** sandbox session only for their own agent that is both `approved` and
+  `verified`. The session is a scaffold descriptor (namespaced room id, TTL, `runtimeReady:
+  false`) — it does not create a production room or dispatch the agent.
+- **Runtime registry merge seam** (`voxa-beta/app/lib/agents/registry.ts`): merges first-party
+  manifest agents with approved+verified DB agents into `RuntimeAgentDescriptor`s. Registered
+  agents are always `availableInRooms: false`; nothing wires the merge into rooms yet.
+
+None of this places external agents into production rooms, adds billing/marketplace/onchain, or
+changes Nova Path A.
 
 ## Generic Agent Invite Flow
 

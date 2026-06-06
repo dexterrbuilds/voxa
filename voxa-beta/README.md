@@ -223,6 +223,42 @@ Apply `supabase-agent-review-schema.sql` in the Supabase SQL Editor to add the a
 `reviewed_by` / `reviewed_at` / `review_note` columns (and a review-queue index) before using
 the review actions. Until applied, the API returns a `503` "review storage is not ready" hint.
 
+### Agent verification & developer sandbox
+
+This phase prepares external agents for testing **without** allowing them into production
+rooms.
+
+**Verification axis.** `supabase-agent-verification-schema.sql` adds a `verification_status`
+column (`verification_pending` default → `verified` / `verification_failed`) plus `verified_at`,
+`verification_note`, and a `verification_report` JSON column. Verification is independent of the
+review `status`: an agent can be approved and still need its endpoint verified.
+
+**Endpoint health check** (`app/lib/server/agents/verification.ts`). `runAgentVerification` POSTs
+`{ type: "voxa.handshake" }` to the agent's `endpoint_url` (5s timeout) and runs three checks:
+
+1. `endpoint_reachable` — the endpoint answers the handshake,
+2. `sdk_compatible` — protocol is `voxa-agent` and the SDK version is supported,
+3. `capability_payload` — declared capabilities are covered by what the endpoint reports.
+
+The handshake contract mirrors `@voxa/sdk`'s `createAgentHandshake()`. Admins run it via
+`POST /api/admin/agents/:id/verify` (service-role), and the `/admin/agents` page has a "Verify
+endpoint" button, a verification badge, and the stored report. Run
+`supabase-agent-verification-schema.sql` first; otherwise the API returns a `503`.
+
+**Developer sandbox** (`POST /api/agents/sandbox`, page `/developers/sandbox`). A developer can
+start an **isolated** sandbox session only for their **own** agent that is BOTH `approved` AND
+`verified`. The session returns a namespaced sandbox room id (`sandbox:<agentId>:<uuid>`, 30-min
+TTL, `runtimeReady: false`). It does **not** create a production room/participant, mint a LiveKit
+token, or dispatch the agent — the external-agent runtime is not live yet, so the sandbox
+validates eligibility and reserves an isolated id for the future runtime.
+
+**Runtime registry preparation** (`app/lib/agents/registry.ts`). A merge seam combines two agent
+sources into `RuntimeAgentDescriptor`s tagged with `source` (`first_party` | `registered`) and a
+hard `availableInRooms` gate. First-party `available` agents are room-eligible; registered DB
+agents (approved + verified) are merged for visibility but **always** `availableInRooms: false`.
+No room/selector code calls the merge yet — enabling DB agents in rooms is a single deliberate
+change later, not a rewrite.
+
 ### Agent Selector UI
 
 `app/components/AgentSelector.tsx` renders the first-party agents from

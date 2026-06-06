@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Ban,
+  BadgeCheck,
   CheckCircle2,
   Loader2,
   RefreshCw,
@@ -26,10 +27,14 @@ import {
   AdminApiError,
   listAdminAgents,
   reviewAdminAgent,
+  verifyAdminAgent,
   type AdminAgent,
   type ReviewAction,
 } from "@/lib/agents/admin-client";
-import type { RegisteredAgentStatus } from "@/lib/agents/registry-client";
+import type {
+  AgentVerificationStatus,
+  RegisteredAgentStatus,
+} from "@/lib/agents/registry-client";
 
 type StatusFilter = "all" | RegisteredAgentStatus;
 
@@ -121,6 +126,30 @@ function StatusBadge({ status }: { status: RegisteredAgentStatus }) {
   );
 }
 
+const verificationLabels: Record<AgentVerificationStatus, string> = {
+  verification_pending: "Unverified",
+  verified: "Verified",
+  verification_failed: "Verify failed",
+};
+
+const verificationBadgeClasses: Record<AgentVerificationStatus, string> = {
+  verification_pending:
+    "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
+  verified: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  verification_failed: "border-rose-400/30 bg-rose-400/10 text-rose-300",
+};
+
+function VerificationBadge({ status }: { status: AgentVerificationStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] ${verificationBadgeClasses[status]}`}
+    >
+      <BadgeCheck className="h-3 w-3" />
+      {verificationLabels[status]}
+    </span>
+  );
+}
+
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[110px,1fr] gap-3 text-sm">
@@ -153,10 +182,12 @@ function Chips({ values }: { values: string[] }) {
 function AgentCard({
   agent,
   onReview,
+  onVerify,
   busy,
 }: {
   agent: AdminAgent;
   onReview: (action: ReviewAction, note: string) => void;
+  onVerify: () => void;
   busy: boolean;
 }) {
   const [note, setNote] = useState("");
@@ -164,6 +195,7 @@ function AgentCard({
   const created = formatDateTime(agent.createdAt);
   const updated = formatDateTime(agent.updatedAt);
   const reviewedAt = formatDateTime(agent.reviewedAt);
+  const verifiedAt = formatDateTime(agent.verifiedAt);
   const metadataKeys = Object.keys(agent.metadata ?? {});
 
   return (
@@ -175,12 +207,22 @@ function AgentCard({
               {agent.name}
             </h3>
             <StatusBadge status={agent.status} />
+            <VerificationBadge status={agent.verificationStatus} />
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
               {agent.visibility}
             </span>
           </div>
           <p className="mt-0.5 font-mono text-xs text-[var(--muted-foreground)]">{agent.slug}</p>
         </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onVerify}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-sky-400/40 px-2.5 py-1.5 text-xs font-medium text-sky-200 transition-colors hover:bg-sky-400/10 disabled:opacity-50"
+        >
+          <BadgeCheck className="h-3.5 w-3.5" />
+          Verify endpoint
+        </button>
       </div>
 
       {agent.description ? (
@@ -228,6 +270,14 @@ function AgentCard({
             <span className="text-xs text-[var(--muted-foreground)]">
               {reviewedAt ? reviewedAt : null}
               {agent.reviewNote ? ` — “${agent.reviewNote}”` : null}
+            </span>
+          </DetailRow>
+        ) : null}
+        {agent.verificationNote || verifiedAt ? (
+          <DetailRow label="Verification">
+            <span className="text-xs text-[var(--muted-foreground)]">
+              {verifiedAt ? `Verified ${verifiedAt}. ` : null}
+              {agent.verificationNote ?? null}
             </span>
           </DetailRow>
         ) : null}
@@ -331,6 +381,27 @@ export default function AdminAgentsPage() {
     } catch (caught) {
       setError(
         caught instanceof AdminApiError ? caught.message : "Could not update the agent. Try again.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleVerify = async (agent: AdminAgent) => {
+    setBusyId(agent.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const { agent: updated, report } = await verifyAdminAgent(agent.id);
+      setNotice(
+        report.ok
+          ? `${updated.name} passed endpoint verification.`
+          : `${updated.name} failed verification: ${report.checks.find((check) => !check.ok)?.detail ?? "unknown reason"}`,
+      );
+      setAgents((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (caught) {
+      setError(
+        caught instanceof AdminApiError ? caught.message : "Could not verify the agent. Try again.",
       );
     } finally {
       setBusyId(null);
@@ -509,6 +580,7 @@ export default function AdminAgentsPage() {
               agent={agent}
               busy={busyId === agent.id}
               onReview={(action, note) => void handleReview(agent, action, note)}
+              onVerify={() => void handleVerify(agent)}
             />
           ))}
         </div>

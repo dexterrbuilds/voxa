@@ -11,7 +11,18 @@ export type {
   AgentRegistrationStatus,
   AgentResponse,
   AgentStatus,
+  AgentVerificationStatus,
   AgentVisibility,
-} from "./types";
-export { defineAgentRegistration, registerAgent } from "./registration";
-export { VoxaAgent } from "./VoxaAgent";
+} from "./types.js";
+export type { AgentHandshake } from "./handshake.js";
+export {
+  createAgentHandshake,
+  isSupportedSdkVersion,
+  SUPPORTED_SDK_VERSIONS,
+  VOXA_AGENT_PROTOCOL,
+  VOXA_SDK_VERSION,
+} from "./handshake.js";
+export type { AgentMessageHandler, AgentMessageRequest } from "./messaging.js";
+export { createAgentMessageResponse } from "./messaging.js";
+export { defineAgentRegistration, registerAgent } from "./registration.js";
+export { VoxaAgent } from "./VoxaAgent.js";

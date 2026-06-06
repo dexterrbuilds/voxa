@@ -5,7 +5,7 @@ import type {
   AgentMessage,
   AgentResponse,
   AgentStatus,
-} from "./types";
+} from "./types.js";
 
 export abstract class VoxaAgent {
   readonly id: AgentId;

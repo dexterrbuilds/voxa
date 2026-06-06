@@ -10,6 +10,13 @@ export type AgentRegistrationStatus =
 
 export type AgentVisibility = "private" | "unlisted" | "public";
 
+// Verification is an axis ORTHOGONAL to the review `status` above. An agent's
+// endpoint must pass the health check before it can be sandbox-tested.
+export type AgentVerificationStatus =
+  | "verification_pending"
+  | "verified"
+  | "verification_failed";
+
 export type AgentRegistrationInput = {
   avatarUrl?: string;
   capabilities?: string[];
@@ -42,6 +49,12 @@ export type AgentRegistrationRecord = {
   tags: string[];
   updated_at: string;
   visibility: AgentVisibility;
+  // Verification axis (added by supabase-agent-verification-schema.sql). Optional
+  // on the type so reads still work before the migration is applied.
+  verification_status?: AgentVerificationStatus | null;
+  verified_at?: string | null;
+  verification_note?: string | null;
+  verification_report?: Record<string, unknown> | null;
 };
 
 export type AuthenticatedSupabase = {
@@ -297,6 +310,10 @@ export function mapAgentRecord(record: AgentRegistrationRecord) {
     status: record.status,
     tags: record.tags ?? [],
     updatedAt: record.updated_at,
+    verificationNote: record.verification_note ?? null,
+    verificationReport: record.verification_report ?? {},
+    verificationStatus: record.verification_status ?? "verification_pending",
+    verifiedAt: record.verified_at ?? null,
     visibility: record.visibility,
   };
 }

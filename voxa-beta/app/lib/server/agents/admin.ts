@@ -138,6 +138,30 @@ export function reviewSchemaError(error: unknown) {
   return registryStorageError(error);
 }
 
+export function isMissingVerificationColumns(error: unknown) {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  const code = (error as { code?: string }).code;
+  const message = (error as { message?: string }).message ?? "";
+  return (
+    code === "PGRST204" ||
+    code === "42703" ||
+    /verification_status|verified_at|verification_note|verification_report/i.test(message)
+  );
+}
+
+export function verificationSchemaError(error: unknown) {
+  if (isMissingVerificationColumns(error)) {
+    return jsonError(
+      "Agent verification storage is not ready. Run supabase-agent-verification-schema.sql in Supabase first.",
+      503,
+      "agent_verification_not_ready",
+    );
+  }
+  return registryStorageError(error);
+}
+
 export function mapAdminAgentRecord(record: AdminAgentRecord, creatorEmail: string | null) {
   return {
     avatarUrl: record.avatar_url,
@@ -159,6 +183,10 @@ export function mapAdminAgentRecord(record: AdminAgentRecord, creatorEmail: stri
     status: record.status,
     tags: record.tags ?? [],
     updatedAt: record.updated_at,
+    verificationNote: record.verification_note ?? null,
+    verificationReport: record.verification_report ?? {},
+    verificationStatus: record.verification_status ?? "verification_pending",
+    verifiedAt: record.verified_at ?? null,
     visibility: record.visibility,
   };
 }
