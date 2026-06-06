@@ -9,6 +9,10 @@ Create `voxa-beta/.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Server-only. Used by the admin agent review API to bypass RLS. Never NEXT_PUBLIC.
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# Server-only. Comma-separated admin emails allowed into /admin/agents. Never NEXT_PUBLIC.
+ADMIN_EMAILS=admin@example.com,reviewer@example.com
 LIVEKIT_URL=your_livekit_cloud_url
 LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
@@ -153,6 +157,71 @@ additive `public.agents` table and owner-scoped RLS policies. This schema does *
 change `room_participants` or the current Nova compatibility row
 (`room_participants.user_id = "nova"`). A later migration should add a proper DB-backed
 agent registry and dedicated agent identity fields.
+
+### Developer agent registration dashboard (`/developers/agents`)
+
+`app/developers/agents/page.tsx` is the authenticated developer UI for the scaffold above.
+It requires a signed-in Voxa user (otherwise it shows a sign-in CTA and redirects to
+`/login?next=/developers/agents`) and uses the browser-side client
+`app/lib/agents/registry-client.ts` to call the `/api/agents/*` routes with the user's
+Supabase bearer token.
+
+Developers can:
+
+- register an agent (name, slug, description, endpoint URL, avatar URL, capabilities,
+  permissions, tags, visibility, submission status, optional JSON metadata),
+- see a list of their own submissions with name, slug, status, visibility, capabilities,
+  and created/updated dates (empty state: "No agents registered yet."),
+- edit their own `draft` / `pending_review` records (other statuses render "Locked").
+
+The form mirrors backend limits in the UI: status is limited to `draft` / `pending_review`,
+visibility to `private` / `unlisted` (no public publishing), and there is no self-approval.
+Capabilities/permissions/tags are comma-separated; metadata is validated as a JSON object.
+API errors (validation, duplicate slug `409`, unauthorized `401`, storage-not-ready `503`)
+surface as readable messages — no raw stack traces.
+
+A persistent banner states that **registered agents are not available in live rooms until
+reviewed and approved**, and the page links to the developer docs and SDK docs. Submitted
+agents stay registration-only: they do not feed `AgentSelector` and cannot be invited into
+rooms until approval tooling and a DB-backed runtime registry exist.
+
+### Admin agent review (`/admin/agents`)
+
+An admin-only review console moves submitted agents through the approval lifecycle.
+
+**Admin auth model:** there is no role table yet. Admins are defined by the server-only
+`ADMIN_EMAILS` env var (comma-separated). A request is admin if its authenticated Supabase
+email is in that list. The developer routes use the anon client + the user's bearer token
+(RLS-scoped to their own records), but admins must read other users' agents and set statuses
+RLS blocks — so the **admin routes authenticate the caller against `ADMIN_EMAILS`, then use a
+service-role client (`SUPABASE_SERVICE_ROLE_KEY`) to bypass RLS**. Both vars are server-only
+and never exposed to the client.
+
+API routes (`runtime = "nodejs"`):
+
+- `GET /api/admin/agents` — list all submitted agents (`draft`, `pending_review`, `approved`,
+  `rejected`, `disabled`), newest first, with optional `?status=` filter. Resolves creator
+  emails best-effort via the service-role admin API.
+- `PATCH /api/admin/agents/:id/review` — body `{ action, note? }`. Allowed transitions:
+  `pending_review → approved` (approve), `pending_review → rejected` (reject),
+  `approved → disabled` (disable), `disabled → approved` (approve),
+  `rejected → pending_review` (return_to_review). Anything else returns `409`. Writes
+  `reviewed_by`, `reviewed_at`, `review_note`.
+
+Non-admins get a clean `403` (`not_admin`); unauthenticated callers get `401`. The page
+`app/admin/agents/page.tsx` (browser client `app/lib/agents/admin-client.ts`) is an
+authenticated dashboard with status filters, full agent detail (name, slug, description,
+creator email/id, endpoint, capabilities, permissions, tags, visibility, metadata,
+created/updated/review dates) and Approve / Reject / Disable / Return-to-review actions gated
+by the current status. A `403` renders an "Admin access required" state.
+
+**Approval is review-only:** approving an agent does **not** add it to `AgentSelector` or let
+it join rooms. External agents stay out of live rooms until a DB-backed runtime registry is
+intentionally enabled.
+
+Apply `supabase-agent-review-schema.sql` in the Supabase SQL Editor to add the additive
+`reviewed_by` / `reviewed_at` / `review_note` columns (and a review-queue index) before using
+the review actions. Until applied, the API returns a `503` "review storage is not ready" hint.
 
 ### Agent Selector UI
 

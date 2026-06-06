@@ -220,9 +220,55 @@ as future registry/review infrastructure only until endpoint verification, permi
 enforcement, rate limits, abuse protection, approval tooling, and a DB-backed runtime
 registry are implemented.
 
+The developer-facing UI for this scaffold is `voxa-beta/app/developers/agents/page.tsx`
+(route **`/developers/agents`**), backed by the browser client
+`voxa-beta/app/lib/agents/registry-client.ts`. It is an authenticated dashboard (signed-in
+Voxa user required; otherwise a sign-in CTA + redirect to `/login?next=/developers/agents`)
+that lists the caller's own submissions and lets them register/edit `draft` /
+`pending_review` records through the `/api/agents/*` routes using the user's Supabase
+bearer token. It lives in voxa-beta (not the marketing SPA) so it shares the session and
+calls the API same-origin. The UI mirrors the backend posture (only draft/pending_review
+status, only private/unlisted visibility, no self-approval, no public publishing) and shows
+a standing "registered agents are not available in live rooms until reviewed and approved"
+warning. Registration remains **registration-only**: submissions never feed `AgentSelector`
+or join rooms. The marketing docs page `/developers/docs/registration` (in `src/`) links out
+to this dashboard. Do not wire registered agents into rooms until approval tooling and a
+DB-backed runtime registry exist.
+
+## Admin agent review tooling
+
+The admin review surface lets authorized reviewers move submitted agents through the
+approval lifecycle. **Admin auth model:** there is no role table; admins are the
+server-only `ADMIN_EMAILS` allowlist (comma-separated). A caller is admin if their
+authenticated Supabase email is in that list. Because developer routes are RLS-scoped to
+their own records (and RLS blocks `approved`/`disabled` writes), the admin routes
+authenticate the caller against `ADMIN_EMAILS` and then use a **service-role client**
+(`SUPABASE_SERVICE_ROLE_KEY`) to bypass RLS. Both env vars are server-only — never
+`NEXT_PUBLIC`. Server helpers live in `voxa-beta/app/lib/server/agents/admin.ts`
+(`requireAdmin`, `isAdminEmail`, `reviewTransitions`, `mapAdminAgentRecord`,
+`resolveCreatorEmails`).
+
+Routes (`runtime = "nodejs"`): `GET /api/admin/agents` (all statuses, optional
+`?status=` filter, creator emails resolved best-effort via the service-role admin API) and
+`PATCH /api/admin/agents/:id/review` (`{ action, note? }`). Allowed transitions:
+`pending_review→approved`, `pending_review→rejected`, `approved→disabled`,
+`disabled→approved`, `rejected→pending_review`; anything else is `409`. The server is the
+source of truth and re-validates every transition. Non-admins get `403` (`not_admin`),
+unauthenticated `401`. The UI is `voxa-beta/app/admin/agents/page.tsx` (route
+**`/admin/agents`**, browser client `app/lib/agents/admin-client.ts`) with status filters,
+full agent detail, and Approve/Reject/Disable/Return-to-review actions.
+
+The additive SQL is `voxa-beta/supabase-agent-review-schema.sql` (adds `reviewed_by`,
+`reviewed_at`, `review_note` + a review-queue index; no RLS change since service-role
+bypasses RLS). **Approval is review-only:** it does NOT feed `AgentSelector` or let an agent
+join rooms. External agents stay out of live rooms until a DB-backed runtime registry is
+intentionally enabled.
+
 ## Key env (voxa-beta/.env.local — see voxa-beta/.env.example)
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `LIVEKIT_URL`,
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY`
+(server-only — admin review API uses it to bypass RLS) and `ADMIN_EMAILS` (server-only,
+comma-separated admin allowlist for `/admin/agents`); `LIVEKIT_URL`,
 `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (server-only — never prefix LiveKit/Deepgram/
 Gemini/OpenAI keys with `NEXT_PUBLIC`); `DEEPGRAM_API_KEY` (+ optional `DEEPGRAM_MODEL`
 default `nova-3`, `DEEPGRAM_LANGUAGE` default `multi`); `GOOGLE_API_KEY` +

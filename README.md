@@ -166,6 +166,46 @@ Nova compatibility behavior where Nova uses `room_participants.user_id = "nova"`
 External agents remain disabled until Voxa adds approval tooling, endpoint verification,
 permissions enforcement, rate limits, abuse protection, and a DB-backed runtime registry.
 
+### Developer agent registration dashboard
+
+`voxa-beta` ships an authenticated developer UI at **`/developers/agents`** that drives the
+scaffold above. Signed-in developers can:
+
+- register agent metadata (name, slug, description, endpoint/avatar URLs, capabilities,
+  permissions, tags, visibility, optional JSON metadata) via `POST /api/agents/register`,
+- list their own submissions via `GET /api/agents`,
+- edit draft / pending-review records via `PATCH /api/agents/:id`.
+
+The page lives in voxa-beta (not the marketing SPA) so it shares the Supabase session and
+calls the `/api/agents/*` routes same-origin with the user's bearer token. It enforces the
+same posture as the backend in the UI: only `draft` / `pending_review` status, only
+`private` / `unlisted` visibility, no self-approval, no public publishing. A standing
+warning makes clear that **registered agents are not available in live rooms until reviewed
+and approved** — they do not feed the Agent Selector and cannot be invited into rooms. The
+marketing developer docs (`/developers/docs/registration`) link out to this dashboard.
+
+Future work: review/approval tooling, endpoint verification, and a DB-backed runtime
+registry that lets approved external agents appear in the Agent Selector and join rooms.
+
+### Admin agent review tooling
+
+`voxa-beta` includes an admin-only review console at **`/admin/agents`** plus admin API
+routes (`GET /api/admin/agents`, `PATCH /api/admin/agents/:id/review`).
+
+- **Admin auth:** server-only `ADMIN_EMAILS` (comma-separated). A caller is admin if their
+  authenticated Supabase email is in the list. Admin routes validate the caller, then use a
+  **service-role client** (`SUPABASE_SERVICE_ROLE_KEY`) to bypass RLS for cross-user reads
+  and approved/disabled writes. Both env vars are server-only — never `NEXT_PUBLIC`.
+- **Lifecycle:** `pending_review → approved | rejected`, `approved → disabled`,
+  `disabled → approved`, `rejected → pending_review`. Any other transition returns `409`.
+  Reviews record `reviewed_by` / `reviewed_at` / `review_note` (additive SQL in
+  `voxa-beta/supabase-agent-review-schema.sql`).
+- Non-admins receive a clean `403`; unauthenticated callers `401`.
+
+**Approval is review-only.** Approving an agent does not add it to the Agent Selector or let
+it join rooms. External agents stay out of live rooms until a DB-backed runtime registry is
+intentionally enabled.
+
 ## Generic Agent Invite Flow
 
 Room logic now has a generic first-party invite path:

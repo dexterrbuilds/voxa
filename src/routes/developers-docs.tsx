@@ -1,15 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import {
-  ArrowRight,
-  Check,
-  Copy,
-  ExternalLink,
-  Search,
-  Sparkles,
-  Terminal,
-} from "lucide-react";
+import { ArrowRight, Check, Copy, ExternalLink, Search, Sparkles, Terminal } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { GridBackdrop } from "@/components/site/GridBackdrop";
 import { Eyebrow } from "@/components/site/Section";
@@ -131,9 +123,7 @@ function DocsSidebar({ activePage }: { activePage: DocsPageId }) {
                 key={item.id}
                 to={item.path}
               >
-                <Icon
-                  className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-electric" : "")}
-                />
+                <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-electric" : "")} />
                 <span>
                   <span className="block font-medium">{item.label}</span>
                   <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
@@ -250,14 +240,14 @@ function OverviewPage() {
       <section>
         <h2 className="text-2xl font-semibold tracking-tight">What is Voxa?</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Voxa is the runtime layer for conversational AI. It gives humans and AI agents
-          a shared real-time room where agents can eventually join, understand, and
-          participate in live conversation across the internet.
+          Voxa is the runtime layer for conversational AI. It gives humans and AI agents a shared
+          real-time room where agents can eventually join, understand, and participate in live
+          conversation across the internet.
         </p>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Nova is the first demonstration agent running on Voxa. Nova proves the room,
-          voice, memory, and runtime direction, but Nova is not the product. The product
-          is the agent infrastructure underneath her.
+          Nova is the first demonstration agent running on Voxa. Nova proves the room, voice,
+          memory, and runtime direction, but Nova is not the product. The product is the agent
+          infrastructure underneath her.
         </p>
       </section>
 
@@ -327,9 +317,7 @@ function RuntimePage() {
                   <span className="font-mono text-xs text-muted-foreground">0{index + 1}</span>
                 </div>
                 <h3 className="mt-4 font-semibold tracking-tight">{step.label}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {step.detail}
-                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
               </div>
             );
           })}
@@ -376,9 +364,8 @@ function SdkPage() {
       <section>
         <h2 className="text-2xl font-semibold tracking-tight">SDK preview</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          The local SDK package defines the shape of a Voxa agent. It is intentionally
-          small: no API keys, no external networking, no marketplace, and no production
-          publishing workflow yet.
+          The local SDK package defines the shape of a Voxa agent. It is intentionally small: no API
+          keys, no external networking, no marketplace, and no production publishing workflow yet.
         </p>
       </section>
 
@@ -407,9 +394,8 @@ function SdkPage() {
       <div className="rounded-xl border border-electric/20 bg-electric/10 p-5">
         <h3 className="font-semibold tracking-tight">Developer preview scope</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          External agents are not supported yet. The SDK exists to make the contract
-          explicit before Voxa adds agent publishing, authentication, billing,
-          permissions, and runtime dispatch.
+          External agents are not supported yet. The SDK exists to make the contract explicit before
+          Voxa adds agent publishing, authentication, billing, permissions, and runtime dispatch.
         </p>
       </div>
     </div>
@@ -422,10 +408,9 @@ function RegistrationPage() {
       <section>
         <h2 className="text-2xl font-semibold tracking-tight">Registration is scaffolded</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Voxa now has an authenticated registration API design for developer-owned agent
-          metadata, but external agents are not enabled in production. Submitted records
-          are a future review queue only; they do not appear in rooms, the Agent Selector,
-          or the marketplace.
+          Voxa now has an authenticated registration API design for developer-owned agent metadata,
+          but external agents are not enabled in production. Submitted records are a future review
+          queue only; they do not appear in rooms, the Agent Selector, or the marketplace.
         </p>
       </section>
 
@@ -433,7 +418,10 @@ function RegistrationPage() {
         <h2 className="text-2xl font-semibold tracking-tight">Future flow</h2>
         <div className="mt-5 grid gap-3">
           {registrationFlow.map((item, index) => (
-            <div className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4" key={item}>
+            <div
+              className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4"
+              key={item}
+            >
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-electric/10 font-mono text-xs text-electric">
                 {index + 1}
               </span>
@@ -463,9 +451,22 @@ function RegistrationPage() {
       <div className="rounded-xl border border-electric/20 bg-electric/10 p-5">
         <h3 className="font-semibold tracking-tight">Current API posture</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          The scaffolded routes are authenticated and owner-scoped. Developers can submit
-          draft or pending-review metadata, but cannot self-approve agents, publish public
-          listings, or load external agents into rooms yet.
+          The scaffolded routes are authenticated and owner-scoped. Developers can submit draft or
+          pending-review metadata, but cannot self-approve agents, publish public listings, or load
+          external agents into rooms yet.
+        </p>
+        <a
+          className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-electric px-3.5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+          href={`${BETA_APP_URL}/developers/agents`}
+          rel="noreferrer"
+          target="_blank"
+        >
+          Open the agent dashboard
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Sign in to submit and manage agent metadata. Registered agents stay out of rooms until
+          reviewed and approved.
         </p>
       </div>
     </div>
@@ -479,7 +480,10 @@ function RoadmapPage() {
         <h2 className="text-2xl font-semibold tracking-tight">Current</h2>
         <div className="mt-5 grid gap-3">
           {roadmapNow.map((item) => (
-            <div className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4" key={item}>
+            <div
+              className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4"
+              key={item}
+            >
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
               <span className="text-sm leading-relaxed">{item}</span>
             </div>
@@ -491,7 +495,10 @@ function RoadmapPage() {
         <h2 className="text-2xl font-semibold tracking-tight">Coming next</h2>
         <div className="mt-5 grid gap-3">
           {roadmapComing.map((item) => (
-            <div className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4" key={item}>
+            <div
+              className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-4"
+              key={item}
+            >
               <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-electric" />
               <span className="text-sm leading-relaxed">{item}</span>
             </div>
@@ -502,9 +509,9 @@ function RoadmapPage() {
       <div className="glass rounded-2xl p-6">
         <h2 className="text-2xl font-semibold tracking-tight">Final vision</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Voxa becomes the runtime for conversational AI: a platform where AI agents can
-          join, understand, and participate in live human conversations across meetings,
-          communities, calls, and the internet itself.
+          Voxa becomes the runtime for conversational AI: a platform where AI agents can join,
+          understand, and participate in live human conversations across meetings, communities,
+          calls, and the internet itself.
         </p>
       </div>
     </div>

@@ -83,7 +83,8 @@ export const runtimeFlow = [
   },
   {
     label: "Agents",
-    detail: "First-party and future developer-owned participants that can listen, reason, and speak.",
+    detail:
+      "First-party and future developer-owned participants that can listen, reason, and speak.",
     icon: Sparkles,
   },
 ] as const;
@@ -96,12 +97,14 @@ export const platformPillars = [
   },
   {
     title: "Agent identity",
-    description: "Stable identities, permissions, versions, creators, and metadata for every agent.",
+    description:
+      "Stable identities, permissions, versions, creators, and metadata for every agent.",
     icon: ShieldCheck,
   },
   {
     title: "Cross-platform deployment",
-    description: "Agents joining calls, meetings, communities, and voice spaces wherever people talk.",
+    description:
+      "Agents joining calls, meetings, communities, and voice spaces wherever people talk.",
     icon: Route,
   },
 ] as const;
@@ -167,6 +170,7 @@ export const roadmapNow = [
   "Agent Manifest and Agent Selector",
   "inviteAgent(agentId) for first-party agents",
   "Authenticated agent registration API scaffold",
+  "Developer agent registration dashboard (/developers/agents)",
 ] as const;
 
 export const roadmapComing = [
@@ -188,7 +192,7 @@ export const faqItems = [
   {
     question: "Can I deploy my own agent today?",
     answer:
-      "Not yet. The SDK is in developer preview and external agent loading is not enabled. Voxa now has registration API scaffolding for authenticated metadata submissions, but submitted agents do not appear in rooms or the selector yet.",
+      "Not yet. The SDK is in developer preview and external agent loading is not enabled. Voxa now has a developer dashboard (/developers/agents) for authenticated agent metadata submissions, but submitted agents stay in the review queue — they do not appear in rooms or the selector until reviewed and approved.",
   },
   {
     question: "Can agents join Zoom, Google Meet, or X Spaces?",
