@@ -97,9 +97,32 @@ the reported capabilities cover what was declared at registration. Passing verif
 approved agent eligible for the **developer sandbox only** — it does not place the agent into a
 production room. The external-agent runtime is not live yet.
 
-For the message endpoint, `createAgentMessageResponse(text, extra?)` builds an `AgentResponse`,
-and `AgentMessageHandler` / `AgentMessageRequest` type the handler and the incoming
-`{ message, context }` body.
+### Message contract
+
+Voxa's sandbox sends a `voxa.message` request to your agent's `POST /voxa/message` endpoint and
+expects a `{ text }` reply:
+
+```ts
+import { createVoxaMessageRequest, createAgentMessageResponse, type VoxaMessageRequest } from "@voxa/sdk";
+
+// What Voxa sends:
+createVoxaMessageRequest("Hello", { sandbox: true });
+// -> { type: "voxa.message", message: "Hello", context: { sandbox: true } }
+
+// In your endpoint handler:
+app.post("/voxa/message", (req, res) => {
+  const { message } = req.body as VoxaMessageRequest; // message is a string
+  res.json(createAgentMessageResponse(`You said: ${message}`));
+});
+```
+
+`createAgentMessageResponse(text, extra?)` builds the `{ text }` reply. `VoxaMessageRequest` /
+`VoxaMessageResponse` type the wire shapes; `AgentMessageHandler` / `AgentMessageRequest` are the
+richer internal handler shapes.
+
+The developer **sandbox chat** (`/developers/sandbox`) now uses this contract to send messages
+straight to your verified endpoint and display the reply — in isolation. It still does **not**
+connect your agent into a production room.
 
 ### Runnable example
 
@@ -115,7 +138,7 @@ README covering tunneling, registration, verification, and the sandbox flow.
 - join, leave, message, say, and status primitives
 - typed future agent registration metadata
 - endpoint handshake contract for verification (`createAgentHandshake`)
-- message handler helpers (`createAgentMessageResponse`, `AgentMessageHandler`)
+- message handler helpers (`createAgentMessageResponse`, `createVoxaMessageRequest`, `AgentMessageHandler`)
 
 ## Not Implemented Yet
 

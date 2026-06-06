@@ -10,6 +10,7 @@ import {
   Loader2,
   Lock,
   RefreshCw,
+  SendHorizonal,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -23,10 +24,114 @@ import { useAuth } from "@/lib/auth";
 import {
   AgentRegistryError,
   listRegisteredAgents,
+  sendSandboxMessage,
   startSandboxSession,
   type RegisteredAgent,
   type SandboxSession,
 } from "@/lib/agents/registry-client";
+
+type ChatTurn = { role: "developer" | "agent"; text: string };
+
+function SandboxChat({ session }: { session: SandboxSession }) {
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || sending) {
+      return;
+    }
+    setError(null);
+    setInput("");
+    setTurns((prev) => [...prev, { role: "developer", text }]);
+    setSending(true);
+    try {
+      const result = await sendSandboxMessage(session.sandboxRoomId, text);
+      setTurns((prev) => [...prev, { role: "agent", text: result.reply.text }]);
+    } catch (caught) {
+      setError(
+        caught instanceof AgentRegistryError ? caught.message : "Could not reach the agent.",
+      );
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+        Sandbox chat
+      </p>
+
+      <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+        {turns.length === 0 ? (
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Send a message to your agent endpoint. Replies are returned here — no production room
+            is involved.
+          </p>
+        ) : null}
+        {turns.map((turn, index) => (
+          <div
+            key={index}
+            className={`flex ${turn.role === "developer" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                turn.role === "developer"
+                  ? "bg-[oklch(0.72_0.2_245/0.16)] text-[var(--foreground)]"
+                  : "border border-[var(--glass-border)] bg-[var(--background)] text-[oklch(0.78_0.02_260)]"
+              }`}
+            >
+              {turn.text}
+            </div>
+          </div>
+        ))}
+        {sending ? (
+          <div className="flex justify-start">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {session.agentName} is responding...
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-2.5 text-xs text-rose-200">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex gap-2">
+        <input
+          className="beta-input w-full"
+          value={input}
+          maxLength={4000}
+          placeholder="Message your agent..."
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void send();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => void send()}
+          disabled={sending || !input.trim()}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[oklch(0.72_0.2_245)] px-3.5 text-sm font-medium text-[oklch(0.13_0.015_260)] transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          <SendHorizonal className="h-4 w-4" />
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function eligibility(agent: RegisteredAgent) {
   if (agent.status !== "approved") {
@@ -310,9 +415,12 @@ export default function DeveloperSandboxPage() {
                       </div>
                     </dl>
                     <p className="mt-3 text-xs leading-relaxed text-[var(--muted-foreground)]">
-                      Sandbox runtime connection is not live yet. This confirms your agent is
-                      approved and verified.
+                      Sandbox messaging is live: your messages go straight to your agent endpoint
+                      and back, in isolation. The room runtime
+                      (<span className="font-mono">runtimeReady: false</span>) is still off — the
+                      sandbox never connects your agent into a production room.
                     </p>
+                    <SandboxChat session={session} />
                   </div>
                 ) : null}
               </BetaPanel>

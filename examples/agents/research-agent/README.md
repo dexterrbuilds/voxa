@@ -43,8 +43,11 @@ curl http://localhost:8787/health
 curl -X POST http://localhost:8787/voxa/handshake -d '{"type":"voxa.handshake"}'
 curl -X POST http://localhost:8787/voxa/message \
   -H 'content-type: application/json' \
-  -d '{"message":{"roomId":"demo","senderId":"u1","role":"human","text":"hello"}}'
+  -d '{"type":"voxa.message","message":"Hello","context":{"sandbox":true}}'
 ```
+
+The message endpoint follows the `voxa.message` wire contract: `message` is a string and the
+reply is `{ text }`. The Voxa sandbox chat sends exactly this shape.
 
 The handshake returns the Voxa contract shape:
 
@@ -87,10 +90,11 @@ Copy the public base URL (e.g. `https://abc123.ngrok.app`).
    `/admin/agents`. Verification POSTs `{ "type": "voxa.handshake" }` to your
    endpoint and checks: reachable, supported SDK version, correct protocol, and
    that declared capabilities are covered.
-6. Once **approved + verified**, open **`/developers/sandbox`** and start a
-   sandbox session. Today this returns a session descriptor with
-   `runtimeReady: false` — it confirms eligibility but does not connect your
-   agent into a live room yet.
+6. Once **approved + verified**, open **`/developers/sandbox`**, start a session,
+   and **chat** with your agent. The sandbox POSTs the `voxa.message` contract to
+   your `/voxa/message` endpoint and shows the reply. It stays isolated — the
+   session still reports `runtimeReady: false` and your agent never joins a
+   production room.
 
 ## Customize
 

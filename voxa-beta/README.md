@@ -248,9 +248,23 @@ endpoint" button, a verification badge, and the stored report. Run
 **Developer sandbox** (`POST /api/agents/sandbox`, page `/developers/sandbox`). A developer can
 start an **isolated** sandbox session only for their **own** agent that is BOTH `approved` AND
 `verified`. The session returns a namespaced sandbox room id (`sandbox:<agentId>:<uuid>`, 30-min
-TTL, `runtimeReady: false`). It does **not** create a production room/participant, mint a LiveKit
-token, or dispatch the agent — the external-agent runtime is not live yet, so the sandbox
-validates eligibility and reserves an isolated id for the future runtime.
+TTL, `runtimeReady: false`).
+
+**Sandbox messaging is live** (`POST /api/agents/sandbox/message`). The sandbox chat sends
+`{ sandboxSessionId, message }`; the route re-validates ownership + approval + verification (the
+session is stateless — the agent id is parsed from the session id and re-checked against the DB
+every call), then the `SandboxRuntime` POSTs the SDK `voxa.message` contract
+(`{ type: "voxa.message", message, context: { sandbox: true } }`) to the agent's message endpoint
+(derived from the registered handshake URL: `…/voxa/handshake` → `…/voxa/message`) and returns the
+`{ text }` reply. Calls are rate-limited per user (30/min, `429` on excess). This still does
+**not** create a production room/participant, mint a LiveKit token, or place the agent in a room —
+it is a direct, isolated server-to-endpoint call. `runtimeReady` stays `false` because the room
+runtime is still off.
+
+The transport lives behind a reusable interface: `app/lib/server/agents/runtime/` defines
+`AgentRuntimeTransport`, and `SandboxRuntime` is the only implementation today. A future
+`ProductionRuntime` will implement the same interface (adding room/LiveKit dispatch) — it does not
+exist yet.
 
 **Runtime registry preparation** (`app/lib/agents/registry.ts`). A merge seam combines two agent
 sources into `RuntimeAgentDescriptor`s tagged with `source` (`first_party` | `registered`) and a

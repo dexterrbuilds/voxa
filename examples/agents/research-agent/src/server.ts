@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import {
   createAgentHandshake,
   createAgentMessageResponse,
-  type AgentMessageRequest,
+  type VoxaMessageRequest,
 } from "@voxa/sdk";
 
 // Minimal Voxa-compatible external agent.
@@ -72,10 +72,11 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Message: mock reply. The future sandbox runtime will POST `{ message, context }`.
+  // Message: mock reply. Voxa POSTs `{ type: "voxa.message", message, context }`.
   if (method === "POST" && url === "/voxa/message") {
-    const body = (await readJsonBody(req)) as AgentMessageRequest | null;
-    const prompt = body?.message?.text?.trim();
+    const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
+    // `message` is a string on the wire (see VoxaMessageRequest).
+    const prompt = typeof body?.message === "string" ? body.message.trim() : "";
     const reply = prompt
       ? `This is a sample response from the ${AGENT_NAME} about "${prompt}".`
       : `This is a sample response from the ${AGENT_NAME}.`;

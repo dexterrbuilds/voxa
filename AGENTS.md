@@ -284,9 +284,21 @@ This phase prepares external agents WITHOUT letting them into production rooms.
   auth + anon/bearer client (RLS-scoped to own agents). Allows a sandbox session ONLY for the
   caller's own agent that is BOTH `approved` AND `verified` (`app/lib/server/agents/sandbox.ts`,
   `checkSandboxEligibility` / `createSandboxSession`). It returns an **isolated** descriptor
-  (namespaced `sandbox:<agentId>:<uuid>` room id, 30-min TTL, `runtimeReady: false`) and does
-  NOT create a production `rooms`/`room_participants` row, mint a LiveKit token, or dispatch
-  the agent. The external-agent runtime is not live; the sandbox validates eligibility only.
+  (namespaced `sandbox:<agentId>:<uuid>` room id, 30-min TTL, `runtimeReady: false`).
+- **Sandbox messaging is live** (`POST /api/agents/sandbox/message`, Phase 3.5). Stateless
+  session: `parseSandboxSessionId` extracts the agent id from the session id and the route
+  re-validates ownership + approval + verification on every call, then `SandboxRuntime`
+  (`app/lib/server/agents/runtime/`) POSTs the SDK `voxa.message` contract
+  (`{ type: "voxa.message", message, context: { sandbox: true } }`) to the agent's message
+  endpoint — derived from the registered handshake URL (`…/voxa/handshake` → `…/voxa/message`) —
+  and returns `{ text }`. Rate-limited per user (30/min, in-memory; `app/lib/server/rate-limit.ts`)
+  → `429`. Errors are structured (`agent_unreachable`, `agent_bad_response`, `invalid_sandbox_session`,
+  `agent_not_found`, `agent_not_approved`, `agent_not_verified`). This still does NOT create a
+  production room/participant, mint a LiveKit token, or place the agent in a room.
+- **Runtime abstraction** (`app/lib/server/agents/runtime/types.ts`,
+  `SandboxRuntime.ts`). `AgentRuntimeTransport` is the reusable interface; `SandboxRuntime`
+  (`mode: "sandbox"`, forces `sandbox: true`) is the only implementation today. A future
+  `ProductionRuntime` will implement the same interface with room/LiveKit dispatch — not built yet.
 - **Runtime registry merge seam** (`app/lib/agents/registry.ts`). Defines
   `RuntimeAgentDescriptor` with a `source` (`first_party` | `registered`) and a hard
   `availableInRooms` gate. `getFirstPartyRuntimeAgents()` (from the manifest; `availableInRooms`

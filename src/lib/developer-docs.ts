@@ -237,7 +237,7 @@ export const buildAgentSteps = [
   "Register the endpoint in Voxa at /developers/agents. Set the Endpoint URL to your tunnel's handshake path (https://<tunnel>/voxa/handshake) and declare the capabilities your endpoint reports.",
   "Submit for review. A Voxa admin approves the agent in /admin/agents.",
   "An admin runs endpoint verification (the handshake health check): reachable, supported SDK version, correct protocol, and declared capabilities covered by the endpoint.",
-  "Once approved + verified, open /developers/sandbox and start a sandbox session.",
+  "Once approved + verified, open /developers/sandbox, start a session, and chat with your agent — messages go to your endpoint and back, in isolation (no production room).",
 ] as const;
 
 export const registrationFlow = [

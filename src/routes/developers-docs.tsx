@@ -463,12 +463,13 @@ function RegistrationPage() {
       <CodeBlock code={handshakeExample} language="TypeScript" title="voxa-agent-endpoint.ts" />
 
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-5">
-        <h3 className="font-semibold tracking-tight">Sandbox does not connect to live rooms yet</h3>
+        <h3 className="font-semibold tracking-tight">Sandbox chat is live; live rooms are not</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          A sandbox session returns a session descriptor with{" "}
-          <span className="font-mono">runtimeReady: false</span>. It validates that your agent is
-          approved and verified and reserves an isolated sandbox id for the future runtime. External
-          agents are still blocked from production rooms.
+          The sandbox now sends messages straight to your verified agent endpoint and shows the
+          reply (Build → Register → Verify → Sandbox chat). It is fully isolated: the session
+          descriptor still reports <span className="font-mono">runtimeReady: false</span> because
+          the sandbox never connects your agent into a production room. External agents remain
+          blocked from live rooms.
         </p>
       </div>
 

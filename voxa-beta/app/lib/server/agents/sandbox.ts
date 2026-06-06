@@ -13,6 +13,27 @@ import type { AgentRegistrationRecord } from "@/lib/server/agents/registration";
 export const SANDBOX_TTL_MS = 30 * 60 * 1000;
 export const SANDBOX_ROOM_PREFIX = "sandbox";
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// Sandbox sessions are stateless: the id encodes the agent id, and every message
+// re-validates ownership + approval + verification against the DB. This parses
+// and structurally validates `sandbox:<agentId>:<sessionUuid>` and returns the
+// embedded agent id. Returns null on any malformed id.
+export function parseSandboxSessionId(sessionId: string): { agentId: string } | null {
+  if (typeof sessionId !== "string") {
+    return null;
+  }
+  const parts = sessionId.split(":");
+  if (parts.length !== 3 || parts[0] !== SANDBOX_ROOM_PREFIX) {
+    return null;
+  }
+  const [, agentId, sessionUuid] = parts;
+  if (!uuidPattern.test(agentId) || !uuidPattern.test(sessionUuid)) {
+    return null;
+  }
+  return { agentId };
+}
+
 export type SandboxEligibility =
   | { ok: true }
   | { ok: false; code: string; status: number; message: string };

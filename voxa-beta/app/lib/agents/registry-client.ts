@@ -179,6 +179,32 @@ export async function startSandboxSession(agentId: string): Promise<SandboxSessi
   return data.session;
 }
 
+export type SandboxReply = {
+  reply: { text: string };
+  agent: { id: string; name: string };
+};
+
+export async function sendSandboxMessage(
+  sandboxSessionId: string,
+  message: string,
+): Promise<SandboxReply> {
+  const token = await getAccessToken();
+  const response = await fetch("/api/agents/sandbox/message", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ sandboxSessionId, message }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as SandboxReply;
+}
+
 export async function updateRegisteredAgent(
   agentId: string,
   payload: Partial<AgentRegistrationPayload>,

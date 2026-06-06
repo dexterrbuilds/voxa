@@ -22,7 +22,17 @@ export {
   VOXA_AGENT_PROTOCOL,
   VOXA_SDK_VERSION,
 } from "./handshake.js";
-export type { AgentMessageHandler, AgentMessageRequest } from "./messaging.js";
-export { createAgentMessageResponse } from "./messaging.js";
+export type {
+  AgentMessageHandler,
+  AgentMessageRequest,
+  VoxaMessageContext,
+  VoxaMessageRequest,
+  VoxaMessageResponse,
+} from "./messaging.js";
+export {
+  createAgentMessageResponse,
+  createVoxaMessageRequest,
+  VOXA_MESSAGE_TYPE,
+} from "./messaging.js";
 export { defineAgentRegistration, registerAgent } from "./registration.js";
 export { VoxaAgent } from "./VoxaAgent.js";
