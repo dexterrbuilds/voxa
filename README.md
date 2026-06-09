@@ -218,10 +218,13 @@ Phase 3 prepares external agents for testing without allowing them into producti
   endpoint and checks reachability, SDK/protocol compatibility, and that declared capabilities
   are covered. Admin-triggered via `POST /api/admin/agents/:id/verify`. The handshake contract
   ships in the SDK (`createAgentHandshake`, `VOXA_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`).
-- **Developer sandbox** (`POST /api/agents/sandbox`, page `/developers/sandbox`): a developer can
-  start an **isolated** sandbox session only for their own agent that is both `approved` and
-  `verified`. The session is a scaffold descriptor (namespaced room id, TTL, `runtimeReady:
-  false`) — it does not create a production room or dispatch the agent.
+- **Developer sandbox** (`POST /api/agents/sandbox` + `POST /api/agents/sandbox/message`, page
+  `/developers/sandbox`): a developer can start an **isolated** sandbox session only for their own
+  agent that is both `approved` and `verified`, then **chat** with it (messages go straight to the
+  verified endpoint and back). The `/developers/sandbox` page is a mini runtime environment — agent
+  metadata panel, runtime status (`Not started → Ready → Sending → Agent replied → Error →
+  Expired`), conversation history with timestamps + reset, and session-expiry handling. It never
+  creates a production room or dispatches the agent (`runtimeReady: false`).
 - **Runtime registry merge seam** (`voxa-beta/app/lib/agents/registry.ts`): merges first-party
   manifest agents with approved+verified DB agents into `RuntimeAgentDescriptor`s. Registered
   agents are always `availableInRooms: false`; nothing wires the merge into rooms yet.

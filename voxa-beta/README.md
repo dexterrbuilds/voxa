@@ -266,6 +266,17 @@ The transport lives behind a reusable interface: `app/lib/server/agents/runtime/
 `ProductionRuntime` will implement the same interface (adding room/LiveKit dispatch) — it does not
 exist yet.
 
+**Sandbox runtime v2 UI.** `/developers/sandbox` is a mini runtime environment, not just a chat
+box. Per agent it shows an **agent metadata panel** (name, slug, status, verification, endpoint,
+capabilities, permissions, tags) with a standing "Sandbox only — not available in live rooms yet."
+notice, a **runtime status** indicator (`Not started → Ready → Sending → Agent replied → Error →
+Expired`), and a **conversation** with per-turn timestamps, a **Reset conversation** button, and
+**session-expiry** handling: the panel watches `expiresAt`, switches to an Expired state, and lets
+the developer start a fresh session. Message UX: Enter to send, Shift+Enter for a newline, empty
+messages are blocked, send is disabled while a reply is pending, and agent/endpoint errors render
+inline. History is component-local state (not persisted). None of this changes the API or grants
+production-room access.
+
 **Runtime registry preparation** (`app/lib/agents/registry.ts`). A merge seam combines two agent
 sources into `RuntimeAgentDescriptor`s tagged with `source` (`first_party` | `registered`) and a
 hard `availableInRooms` gate. First-party `available` agents are room-eligible; registered DB

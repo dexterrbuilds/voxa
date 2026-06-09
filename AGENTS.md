@@ -299,6 +299,16 @@ This phase prepares external agents WITHOUT letting them into production rooms.
   `SandboxRuntime.ts`). `AgentRuntimeTransport` is the reusable interface; `SandboxRuntime`
   (`mode: "sandbox"`, forces `sandbox: true`) is the only implementation today. A future
   `ProductionRuntime` will implement the same interface with room/LiveKit dispatch — not built yet.
+- **Sandbox runtime v2 UI** (`/developers/sandbox`, Phase 3.6). The page is a mini runtime
+  environment, not just a chat: an agent metadata panel (name, slug, status, verification,
+  endpoint, capabilities, permissions, tags + a standing "Sandbox only — not available in live
+  rooms yet."), a runtime status model (`not_started` → `ready` → `sending` → `replied` /
+  `error` / `expired`), conversation history with per-turn timestamps + a Reset button, and
+  session-expiry handling (the panel polls `session.expiresAt`, shows an Expired state, and
+  offers "Start new session" which mints a fresh session — keyed by `sandboxRoomId` so a new
+  session remounts a clean conversation). Message UX: textarea, Enter to send / Shift+Enter for
+  newline, empty-message validation, send disabled while sending, and structured endpoint errors
+  surfaced inline. All purely client-side over the existing `/api/agents/sandbox*` routes.
 - **Runtime registry merge seam** (`app/lib/agents/registry.ts`). Defines
   `RuntimeAgentDescriptor` with a `source` (`first_party` | `registered`) and a hard
   `availableInRooms` gate. `getFirstPartyRuntimeAgents()` (from the manifest; `availableInRooms`
