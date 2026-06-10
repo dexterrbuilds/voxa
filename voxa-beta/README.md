@@ -53,6 +53,29 @@ In Supabase:
 
 Google sign-in remains visible in the UI, but it is intentionally not the active test path yet.
 
+## Public Agent Showcase
+
+The product app exposes a public showcase:
+
+- `/agents`
+- `/agents/[slug]`
+
+It displays first-party profiles plus public external agents that are all of:
+
+- `status = approved`
+- `verification_status = verified`
+- `visibility = public`
+
+The query layer (`app/lib/server/agents/showcase.ts`) runs server-side and maps records to a
+safe public view model. It exposes only avatar, name, slug, description, creator display
+name, capabilities, safe permissions, tags, verification status, and updated date. It never
+returns `endpoint_url`, `creator_user_id`, internal metadata, admin notes, review notes,
+verification reports, or internal-only fields.
+
+This is a developer-preview discovery surface, not a marketplace. There are no installs,
+public room invites, billing, reviews, rankings, payments, or runtime changes. If
+`SUPABASE_SERVICE_ROLE_KEY` is missing, the page still renders first-party fallback profiles.
+
 ## Nova Pipeline
 
 Nova uses a decoupled tap-to-talk pipeline for MVP control and cost:
@@ -184,6 +207,76 @@ A persistent banner states that **registered agents are not available in live ro
 reviewed and approved**, and the page links to the developer docs and SDK docs. Submitted
 agents stay registration-only: they do not feed `AgentSelector` and cannot be invited into
 rooms until approval tooling and a DB-backed runtime registry exist.
+
+### Agent analytics (`/developers/agents`)
+
+The developer dashboard includes owner-scoped usage analytics for each registered agent.
+This is visibility only — **not** billing, metering, monetization, quotas, pricing, token
+accounting, subscriptions, or revenue sharing.
+
+Apply the additive SQL before expecting counters to persist:
+
+```text
+supabase-agent-analytics-schema.sql
+```
+
+The schema creates `public.agent_analytics` with one aggregate row per agent and the
+SECURITY DEFINER RPC `increment_agent_analytics(...)`. Developers can select only their
+own analytics rows. Counter increments are server-side only and happen after existing
+route validation succeeds; the client never directly increments usage.
+
+Tracked fields:
+
+- `sandbox_sessions_started`
+- `sandbox_messages_sent`
+- `room_invites`
+- `room_messages_sent`
+- `last_active_at`
+
+Recording points:
+
+- `POST /api/agents/sandbox` — one session increment for each selected sandbox agent.
+- `POST /api/agents/sandbox/message` — one message increment for each runnable target.
+- `POST /api/agents/room/invite` — one invite increment only when a new room participant
+  is inserted.
+- `POST /api/agents/room/message` — one room-message increment only after a successful
+  text-agent reply.
+
+`GET /api/agents` and `GET /api/agents/:id` include analytics for the authenticated
+developer's own agents. Public `/agents` showcase routes never expose analytics.
+
+### Developer profiles (`/developers/[username]`)
+
+Developers can complete a lightweight public identity from the existing
+`/developers/agents` dashboard. Public pages live at `/developers/[username]` and show the
+developer's safe profile fields plus approved, verified, public agents they created.
+
+Apply the additive SQL before saving profiles:
+
+```text
+supabase-developer-profiles-schema.sql
+```
+
+The schema creates `public.developer_profiles` with:
+
+- `username`
+- `display_name`
+- `bio`
+- `avatar_url`
+- `website`
+- `x_handle`
+- `joined_at`
+
+Authenticated profile editing uses `GET/PATCH /api/developers/profile` with the user's
+Supabase bearer token and owner-scoped RLS. Public profile rendering uses the server-side
+helper `app/lib/server/developers/profile.ts`, maps only safe fields, and never exposes
+emails, Supabase user ids, auth metadata, endpoint URLs, internal metadata, admin notes,
+review notes, verification reports, or analytics.
+
+Public agent detail pages show **Built by {Developer}** as a clickable link when the
+creator has completed a profile. The `/agents` directory includes a simple Featured
+Developers section derived from public agents. This is not a social network: there is no
+following, messaging, likes, ratings, comments, or payments.
 
 ### Admin agent review (`/admin/agents`)
 
@@ -336,16 +429,97 @@ When the flag is on, those external agents can be **invited into a live room in 
   `room_participants` row via the **service role** (`participant_type='agent'`,
   `user_id=agent:<agentId>`) + a join event. No dispatch, no LiveKit, no audio.
 - **Message** — `POST /api/agents/room/message { roomId, agentId, message }`. Re-validates the same
-  checks + room membership + that the agent is in the room, rate-limits per user (20/min), then
-  sends **only the one message string** through `RoomTextRuntime` (context
-  `{ sandbox:false, roomId, agentId, mode:"room_text" }`) and returns the `{ text }` reply. Only the
-  owner can message; no room transcript is ever sent, and room messages are never auto-broadcast to
-  the agent.
+  checks + room membership + that the agent is in the room, rate-limits per user (20/min), loads the
+  agent's per-room thread, then sends the message + scoped history through `RoomTextRuntime` (context
+  `{ sandbox:false, roomId, agentId, mode:"room_text", history }`) and returns the `{ text }` reply.
+  Only the owner can message; no room transcript is ever sent, and room messages are never
+  auto-broadcast to the agent.
+
+#### Per-agent room thread memory (Phase 3.11)
+
+Each invited external agent has its own **room-local text thread** so follow-ups carry recent
+context. Stored in the existing `room_events` table (no schema change) under types
+`external_agent_user` / `external_agent_reply`, scoped by `user_id=agent:<agentId>` — one isolated
+thread per (room, agent), written/read/deleted via the **service role**
+(`app/lib/server/agents/room-memory.ts`).
+
+- **Context** — each message loads the last `EXTERNAL_AGENT_ROOM_MEMORY_TURNS` (default 10) turns
+  for that room + agent and sends them as `context.history` (`[{ role:"user"|"agent", text }]`).
+  Strictly scoped: **never** a full room transcript, other agents' threads, Nova memory, or audio.
+- **Persist** — on a successful reply the user message + reply are saved; on endpoint failure
+  nothing is saved (the thread is not corrupted).
+- **Read / clear** — `GET` / `DELETE /api/agents/room/thread?roomId=&agentId=` (same full security
+  posture). The selector card loads the thread (with timestamps) and offers a **Clear thread**
+  button that deletes **only** that agent's rows — never room events, Nova memory, or other agents.
+- **Cleanup** — on room close (`leaveSharedRoom`) the SECURITY DEFINER fn
+  `cleanup_external_agent_room_memory(room_id)` deletes only the `external_agent_*` rows for that
+  room (best-effort; the hourly `cleanup_expired_voxa_rooms` sweep is the backstop), preserving
+  normal room events. These rows are filtered out of the human-facing event feed.
 
 `SandboxRuntime` and `RoomTextRuntime` are separate `AgentRuntimeTransport` implementations that
 share one wire client (`app/lib/server/agents/runtime/voxaMessageClient.ts`); a future
 `ProductionRuntime` reuses the same interface. The Agent Selector shows an enabled "Invite
-(text-only)" button and a compact text chat; the room participant card gets a "Text-only" badge.
+(text-only)" button and a compact per-agent thread; the room participant card gets a "Text-only"
+badge.
+
+#### Room thread UI (Phase 3.12 polish)
+
+The in-room per-agent thread is a polished, mobile-friendly chat: compact message bubbles with
+per-turn timestamps, an empty state, and a live status label on the agent card — **In Room** →
+**Thinking** (awaiting the endpoint) → **Responding** (revealing) → **Error**, alongside the
+standing **Text-only** label.
+
+- **Simulated streaming** — if a reply sets `streaming: true`, the text is revealed
+  progressively (UI-only word-by-word, no SSE/websocket).
+- **Tools Used** — if the reply reports `tools`, a compact "Tools Used" panel renders under the
+  bubble, matching the sandbox display. Voxa never executes tools.
+- **Retry** — if an endpoint call fails, the user message stays and a **Retry** action resends the
+  **same** message. Nothing is persisted on failure, and retry does not duplicate memory rows (the
+  server persists only on success).
+- **Copy** — each agent reply has a **Copy** button with a "Copied" confirmation.
+
+All of this is client-side over the existing `/api/agents/room/message` + `/api/agents/room/thread`
+routes — still no audio, no transcript, no LiveKit.
+
+#### External-agent permissions & capability enforcement (Phase 3.13)
+
+External agents carry a small, typed permission set (`app/lib/agents/permissions.ts`) that gates what
+they may do in a room. The model is the single source of truth shared by the server (enforcement)
+and the UI.
+
+**Currently grantable** (and the minimal defaults a new agent gets):
+
+| Permission             | Room badge     | What it allows                                              |
+| ---------------------- | -------------- | ---------------------------------------------------------- |
+| `room_text_reply`      | Text reply     | Reply to a typed room message. **Required** for chat.      |
+| `memory_read_thread`   | Thread memory  | Include the recent per-agent thread as follow-up context.  |
+| `memory_write_thread`  | Thread memory  | Persist the message + reply to its own thread.             |
+| `tools_visualize`      | Tools display  | Report which tools it used (display only).                 |
+| `room_presence`        | Room presence  | Appear as a participant card.                              |
+
+**Future — types only, never grantable today:** `room_audio_listen`, `room_audio_speak`,
+`room_transcript_read`. These exist in the type so the model is complete, but they are **not
+selectable** in the dashboard, **not approvable** by admins, and **never effective** at runtime.
+
+**Server-side enforcement** (never trusts the client) lives in `/api/agents/room/message`:
+
+- Effective permissions = the agent's registered permissions ∩ grantable. Future permissions are
+  always dropped here. Legacy/empty agents fall back to the minimal default set.
+- `room_text_reply` is **required** — missing → `403 permission_denied`.
+- `memory_read_thread` gates loading thread history (omitted if not granted — no error, never a
+  transcript).
+- `memory_write_thread` gates persisting the exchange (skipped if not granted).
+- `tools_visualize` gates returning tools (stripped if not granted).
+- **Capability enforcement:** any reported tool whose name is not in the agent's registered
+  `capabilities` is marked `untrusted` (kept for display, flagged in the UI) rather than trusted.
+- Permissions are also sanitized at registration (`sanitizeRequestedPermissions`) so future
+  permissions are never even stored.
+
+The dashboard (`/developers/agents`) shows permissions as friendly checkboxes (defaults pre-checked,
+`room_text_reply` required, future permissions shown disabled as "coming soon"). The admin console
+(`/admin/agents`) shows requested permissions split into **Granted** vs **Blocked** (future
+permissions struck through, "never granted"). The room card shows friendly **Allowed** badges
+(Text reply / Thread memory / Tools display). No audio/transcript powers are added.
 
 **Room safety:** external agents are **never** dispatched to LiveKit, **never** publish audio,
 **never** receive room audio or transcripts, and **never** speak. The sandbox + this text-only mode

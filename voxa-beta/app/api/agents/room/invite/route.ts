@@ -7,6 +7,7 @@ import {
   validateRoomTextAgent,
 } from "@/lib/server/agents/room-access";
 import { getServiceRoleClient } from "@/lib/server/supabase-service";
+import { recordAgentAnalytics } from "@/lib/server/agents/analytics";
 
 export const runtime = "nodejs";
 
@@ -91,6 +92,11 @@ export async function POST(request: NextRequest) {
       type: "agent",
       message: `${validation.agent.name} joined the room (experimental text-only)`,
       user_id: participantUserId,
+    });
+    await recordAgentAnalytics(auth.supabase, {
+      agentId: validation.agent.id,
+      metric: "room_invites",
+      ownerUserId: auth.user.id,
     });
   }
 

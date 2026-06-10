@@ -51,6 +51,10 @@ reply is `{ text }`. This sample also opts into the optional `streaming: true` h
 array, so the Voxa sandbox shows a progressive (simulated) reveal and a "Tools Used" panel. Both
 fields are optional and backwards compatible — a plain `{ text }` reply still works.
 
+In experimental text-only room mode, Voxa also sends `context.history` (the recent per-agent thread
+turns for this room + agent). This sample acknowledges the follow-up by referencing the previous
+user turn. `history` is never a full room transcript — only this agent's scoped thread.
+
 The handshake returns the Voxa contract shape:
 
 ```json

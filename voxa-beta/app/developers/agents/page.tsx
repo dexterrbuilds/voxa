@@ -7,13 +7,18 @@ import {
   ArrowRight,
   BookOpen,
   Boxes,
+  ChartNoAxesColumnIncreasing,
   CheckCircle2,
+  Clock,
+  Globe,
   Loader2,
+  MessageSquareText,
   Pencil,
   Plus,
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  UserCircle,
   X,
 } from "lucide-react";
 import {
@@ -35,6 +40,17 @@ import {
   type RegisteredAgent,
   type RegisteredAgentStatus,
 } from "@/lib/agents/registry-client";
+import {
+  DEFAULT_EXTERNAL_AGENT_PERMISSIONS,
+  EXTERNAL_AGENT_PERMISSION_META,
+  FUTURE_EXTERNAL_AGENT_PERMISSIONS,
+  GRANTABLE_EXTERNAL_AGENT_PERMISSIONS,
+} from "@/lib/agents/permissions";
+import {
+  getDeveloperProfile,
+  updateDeveloperProfile,
+  type EditableDeveloperProfile,
+} from "@/lib/developers/profile-client";
 
 const DOCS_URL = "https://usevoxa.tech/developers/docs";
 const SDK_DOCS_URL = "https://usevoxa.tech/developers/docs/sdk";
@@ -53,6 +69,8 @@ type FormState = {
   metadata: string;
 };
 
+type ProfileFormState = Omit<EditableDeveloperProfile, "joinedAt">;
+
 const emptyForm: FormState = {
   name: "",
   slug: "",
@@ -60,11 +78,21 @@ const emptyForm: FormState = {
   avatarUrl: "",
   endpointUrl: "",
   capabilities: "",
-  permissions: "",
+  // Minimal default permissions for a new agent.
+  permissions: DEFAULT_EXTERNAL_AGENT_PERMISSIONS.join(", "),
   tags: "",
   status: "pending_review",
   visibility: "private",
   metadata: "",
+};
+
+const emptyProfileForm: ProfileFormState = {
+  avatarUrl: "",
+  bio: "",
+  displayName: "",
+  username: "",
+  website: "",
+  xHandle: "",
 };
 
 const statusLabels: Record<RegisteredAgentStatus, string> = {
@@ -121,6 +149,48 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "No activity yet";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "No activity yet";
+  }
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function metricNumber(value: number | undefined) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value ?? 0);
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-2 text-lg font-semibold tracking-tight text-[var(--foreground)]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function isEditableAgent(agent: RegisteredAgent) {
   return agent.status === "draft" || agent.status === "pending_review";
 }
@@ -172,10 +242,38 @@ export default function DeveloperAgentsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [profileForm, setProfileForm] = useState<ProfileFormState>(emptyProfileForm);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+
   const editingAgent = useMemo(
     () => agents.find((agent) => agent.id === editingId) ?? null,
     [agents, editingId],
   );
+
+  const overviewMetrics = useMemo(() => {
+    return agents.reduce(
+      (totals, agent) => ({
+        approvedAgents: totals.approvedAgents + (agent.status === "approved" ? 1 : 0),
+        roomMessages: totals.roomMessages + (agent.analytics?.roomMessagesSent ?? 0),
+        sandboxSessions:
+          totals.sandboxSessions + (agent.analytics?.sandboxSessionsStarted ?? 0),
+        totalAgents: totals.totalAgents + 1,
+        verifiedAgents:
+          totals.verifiedAgents + (agent.verificationStatus === "verified" ? 1 : 0),
+      }),
+      {
+        approvedAgents: 0,
+        roomMessages: 0,
+        sandboxSessions: 0,
+        totalAgents: 0,
+        verifiedAgents: 0,
+      },
+    );
+  }, [agents]);
 
   const loadAgents = useCallback(async () => {
     setListLoading(true);
@@ -194,6 +292,32 @@ export default function DeveloperAgentsPage() {
     }
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      const result = await getDeveloperProfile();
+      const profile = result.profile ?? result.suggestedProfile;
+      setProfileForm({
+        avatarUrl: profile.avatarUrl ?? "",
+        bio: profile.bio ?? "",
+        displayName: profile.displayName ?? "",
+        username: profile.username ?? "",
+        website: profile.website ?? "",
+        xHandle: profile.xHandle ?? "",
+      });
+      setProfileUsername(result.profile?.username ?? null);
+    } catch (error) {
+      const message =
+        error instanceof AgentRegistryError
+          ? error.message
+          : "Could not load your developer profile.";
+      setProfileError(message);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (initialized && !user) {
       router.replace("/login?next=/developers/agents");
@@ -203,11 +327,30 @@ export default function DeveloperAgentsPage() {
   useEffect(() => {
     if (initialized && user) {
       void loadAgents();
+      void loadProfile();
     }
-  }, [initialized, user, loadAgents]);
+  }, [initialized, user, loadAgents, loadProfile]);
 
   const updateField = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateProfileField = (key: keyof ProfileFormState, value: string) => {
+    setProfileForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const selectedPermissions = new Set(splitList(form.permissions));
+
+  const togglePermission = (permission: string) => {
+    setForm((prev) => {
+      const next = new Set(splitList(prev.permissions));
+      if (next.has(permission)) {
+        next.delete(permission);
+      } else {
+        next.add(permission);
+      }
+      return { ...prev, permissions: joinList([...next]) };
+    });
   };
 
   const resetForm = () => {
@@ -266,7 +409,8 @@ export default function DeveloperAgentsPage() {
       avatarUrl: form.avatarUrl.trim() || null,
       endpointUrl: form.endpointUrl.trim() || null,
       capabilities: splitList(form.capabilities),
-      permissions: splitList(form.permissions),
+      // room_text_reply is required; always include it so the agent can chat.
+      permissions: [...new Set(["room_text_reply", ...splitList(form.permissions)])],
       tags: splitList(form.tags),
       status: form.status,
       visibility: form.visibility,
@@ -311,6 +455,45 @@ export default function DeveloperAgentsPage() {
       setFormError(message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleProfileSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    if (!profileForm.displayName.trim()) {
+      setProfileError("Display name is required.");
+      return;
+    }
+
+    if (!profileForm.username.trim()) {
+      setProfileError("Username is required for your public profile URL.");
+      return;
+    }
+
+    setProfileSaving(true);
+    try {
+      const profile = await updateDeveloperProfile(profileForm);
+      setProfileForm({
+        avatarUrl: profile.avatarUrl ?? "",
+        bio: profile.bio ?? "",
+        displayName: profile.displayName ?? "",
+        username: profile.username ?? "",
+        website: profile.website ?? "",
+        xHandle: profile.xHandle ?? "",
+      });
+      setProfileUsername(profile.username);
+      setProfileSuccess("Developer profile saved.");
+    } catch (error) {
+      const message =
+        error instanceof AgentRegistryError
+          ? error.message
+          : "Could not save your developer profile.";
+      setProfileError(message);
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -408,6 +591,138 @@ export default function DeveloperAgentsPage() {
             SDK docs
           </a>
         </div>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <MetricCard label="Total Agents" value={metricNumber(overviewMetrics.totalAgents)} />
+          <MetricCard label="Approved" value={metricNumber(overviewMetrics.approvedAgents)} />
+          <MetricCard label="Verified" value={metricNumber(overviewMetrics.verifiedAgents)} />
+          <MetricCard
+            label="Sandbox Sessions"
+            value={metricNumber(overviewMetrics.sandboxSessions)}
+          />
+          <MetricCard label="Room Messages" value={metricNumber(overviewMetrics.roomMessages)} />
+        </div>
+
+        <BetaPanel className="mt-6 p-6 sm:p-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--foreground)]">
+                <UserCircle className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
+                Developer profile
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted-foreground)]">
+                Create the public identity that appears beside your approved agents. Voxa only
+                exposes these safe profile fields.
+              </p>
+            </div>
+            {profileUsername ? (
+              <a
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+                href={`/developers/${profileUsername}`}
+                target="_blank"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                View public profile
+              </a>
+            ) : null}
+          </div>
+
+          {profileError ? (
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{profileError}</span>
+            </div>
+          ) : null}
+
+          {profileSuccess ? (
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-emerald-200">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{profileSuccess}</span>
+            </div>
+          ) : null}
+
+          <form className="mt-5 space-y-4" noValidate onSubmit={handleProfileSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Username" hint="Your public URL: /developers/username">
+                <input
+                  className="beta-input w-full font-mono"
+                  disabled={profileLoading}
+                  maxLength={40}
+                  onChange={(event) => updateProfileField("username", event.target.value)}
+                  placeholder="your-name"
+                  value={profileForm.username}
+                />
+              </Field>
+              <Field label="Display name">
+                <input
+                  className="beta-input w-full"
+                  disabled={profileLoading}
+                  maxLength={80}
+                  onChange={(event) => updateProfileField("displayName", event.target.value)}
+                  placeholder="Ameen"
+                  value={profileForm.displayName}
+                />
+              </Field>
+            </div>
+
+            <Field label="Bio">
+              <textarea
+                className="beta-input min-h-[76px] w-full resize-y"
+                disabled={profileLoading}
+                maxLength={500}
+                onChange={(event) => updateProfileField("bio", event.target.value)}
+                placeholder="What you build, research, or care about in conversational AI."
+                value={profileForm.bio}
+              />
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Website">
+                <input
+                  className="beta-input w-full"
+                  disabled={profileLoading}
+                  maxLength={300}
+                  onChange={(event) => updateProfileField("website", event.target.value)}
+                  placeholder="https://..."
+                  value={profileForm.website}
+                />
+              </Field>
+              <Field label="X handle">
+                <input
+                  className="beta-input w-full"
+                  disabled={profileLoading}
+                  maxLength={40}
+                  onChange={(event) => updateProfileField("xHandle", event.target.value)}
+                  placeholder="@username"
+                  value={profileForm.xHandle}
+                />
+              </Field>
+              <Field label="Avatar URL">
+                <input
+                  className="beta-input w-full"
+                  disabled={profileLoading}
+                  maxLength={300}
+                  onChange={(event) => updateProfileField("avatarUrl", event.target.value)}
+                  placeholder="https://.../avatar.png"
+                  value={profileForm.avatarUrl}
+                />
+              </Field>
+            </div>
+
+            <div className="flex justify-end">
+              <BetaButton disabled={profileLoading || profileSaving} type="submit" variant="glass">
+                {profileSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving
+                  </>
+                ) : (
+                  "Save profile"
+                )}
+              </BetaButton>
+            </div>
+          </form>
+        </BetaPanel>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr,0.95fr]">
           {/* Registration / edit form */}
@@ -515,14 +830,70 @@ export default function DeveloperAgentsPage() {
 
                 <Field
                   label="Permissions"
-                  hint="Comma-separated, e.g. room:join, message:read, voice:speak."
+                  hint="What this agent may do in a room. Defaults are minimal and text-only."
                 >
-                  <input
-                    className="beta-input w-full"
-                    value={form.permissions}
-                    placeholder="room:join, message:read, voice:speak"
-                    onChange={(event) => updateField("permissions", event.target.value)}
-                  />
+                  <div className="space-y-1.5 rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3">
+                    {GRANTABLE_EXTERNAL_AGENT_PERMISSIONS.map((permission) => {
+                      const meta = EXTERNAL_AGENT_PERMISSION_META[permission];
+                      const required = permission === "room_text_reply";
+                      return (
+                        <label
+                          key={permission}
+                          className="flex cursor-pointer items-start gap-2.5 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 accent-[oklch(0.72_0.2_245)]"
+                            checked={selectedPermissions.has(permission) || required}
+                            disabled={required}
+                            onChange={() => togglePermission(permission)}
+                          />
+                          <span className="min-w-0">
+                            <span className="font-medium text-[var(--foreground)]">
+                              {meta.label}
+                            </span>
+                            {required ? (
+                              <span className="ml-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+                                required
+                              </span>
+                            ) : null}
+                            <span className="block text-xs text-[var(--muted-foreground)]">
+                              {meta.description}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                    <div className="mt-2 border-t border-[var(--glass-border)] pt-2">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+                        Coming soon (not available)
+                      </p>
+                      {FUTURE_EXTERNAL_AGENT_PERMISSIONS.map((permission) => {
+                        const meta = EXTERNAL_AGENT_PERMISSION_META[permission];
+                        return (
+                          <label
+                            key={permission}
+                            className="mt-1 flex cursor-not-allowed items-start gap-2.5 text-sm opacity-50"
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-4 w-4"
+                              checked={false}
+                              disabled
+                            />
+                            <span className="min-w-0">
+                              <span className="font-medium text-[var(--foreground)]">
+                                {meta.label}
+                              </span>
+                              <span className="block text-xs text-[var(--muted-foreground)]">
+                                {meta.description}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </Field>
 
                 <Field label="Tags" hint="Comma-separated keywords for discovery.">
@@ -663,6 +1034,7 @@ export default function DeveloperAgentsPage() {
                 const created = formatDate(agent.createdAt);
                 const updated = formatDate(agent.updatedAt);
                 const editable = isEditableAgent(agent);
+                const analytics = agent.analytics;
                 return (
                   <BetaPanel key={agent.id} className="p-5">
                     <div className="flex items-start justify-between gap-3">
@@ -675,6 +1047,12 @@ export default function DeveloperAgentsPage() {
                         </div>
                         <p className="mt-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                           {agent.slug} · {agent.visibility}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          Verification:{" "}
+                          <span className="text-[var(--foreground)]">
+                            {agent.verificationStatus.replace(/_/g, " ")}
+                          </span>
                         </p>
                       </div>
                       {editable ? (
@@ -711,6 +1089,39 @@ export default function DeveloperAgentsPage() {
                         ))}
                       </div>
                     ) : null}
+
+                    <div className="mt-4 border-t border-[var(--glass-border)] pt-4">
+                      <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[var(--foreground)]">
+                        <ChartNoAxesColumnIncreasing className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                        Usage analytics
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <MetricCard
+                          icon={<Boxes className="h-3 w-3" />}
+                          label="Sandbox Sessions"
+                          value={metricNumber(analytics?.sandboxSessionsStarted)}
+                        />
+                        <MetricCard
+                          icon={<MessageSquareText className="h-3 w-3" />}
+                          label="Sandbox Messages"
+                          value={metricNumber(analytics?.sandboxMessagesSent)}
+                        />
+                        <MetricCard
+                          icon={<Plus className="h-3 w-3" />}
+                          label="Room Invites"
+                          value={metricNumber(analytics?.roomInvites)}
+                        />
+                        <MetricCard
+                          icon={<MessageSquareText className="h-3 w-3" />}
+                          label="Room Messages"
+                          value={metricNumber(analytics?.roomMessagesSent)}
+                        />
+                      </div>
+                      <div className="mt-3 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                        <Clock className="h-3.5 w-3.5" />
+                        Last active: {formatDateTime(analytics?.lastActiveAt)}
+                      </div>
+                    </div>
 
                     {created || updated ? (
                       <p className="mt-3 text-xs text-[var(--muted-foreground)]">

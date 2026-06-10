@@ -28,6 +28,9 @@ export type AgentRuntimeTool = {
   name: string;
   status: AgentRuntimeToolStatus;
   detail?: string;
+  // Set true by Voxa when a reported tool is NOT in the agent's registered
+  // capabilities (capability enforcement). Display-only signal; never trusted.
+  untrusted?: boolean;
 };
 
 export type AgentRuntimeReply =

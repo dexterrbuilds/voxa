@@ -9,6 +9,7 @@ import { checkSandboxEligibility, parseSandboxSessionId } from "@/lib/server/age
 import { sandboxRuntime } from "@/lib/server/agents/runtime/SandboxRuntime";
 import type { AgentRuntimeTool } from "@/lib/server/agents/runtime/types";
 import { checkRateLimit } from "@/lib/server/rate-limit";
+import { recordAgentAnalyticsBatch } from "@/lib/server/agents/analytics";
 
 export const runtime = "nodejs";
 
@@ -162,6 +163,14 @@ export async function POST(request: NextRequest) {
           context: { sandbox: true },
         })
       : [];
+
+  if (runnable.length > 0) {
+    await recordAgentAnalyticsBatch(auth.supabase, {
+      agentIds: runnable.map((agent) => agent.agentId),
+      metric: "sandbox_messages_sent",
+      ownerUserId: auth.user.id,
+    });
+  }
 
   const successById = new Map(broadcastResults.map((result) => [result.agentId, result]));
 

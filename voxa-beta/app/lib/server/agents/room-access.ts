@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AgentRegistrationRecord } from "@/lib/server/agents/registration";
+import {
+  resolveEffectivePermissions,
+  type ExternalAgentPermission,
+} from "@/lib/agents/permissions";
 
 // Experimental, feature-flagged room visibility for external agents.
 //
@@ -124,6 +128,8 @@ export type RoomEligibleExternalAgent = {
   description: string;
   capabilities: string[];
   tags: string[];
+  // Effective (grantable-only) permissions — future permissions are dropped.
+  permissions: ExternalAgentPermission[];
 };
 
 function toRoomEligible(record: AgentRegistrationRecord): RoomEligibleExternalAgent {
@@ -133,6 +139,7 @@ function toRoomEligible(record: AgentRegistrationRecord): RoomEligibleExternalAg
     description: record.description,
     capabilities: record.capabilities ?? [],
     tags: record.tags ?? [],
+    permissions: resolveEffectivePermissions(record.permissions),
   };
 }
 

@@ -7,6 +7,7 @@ import {
   registryStorageError,
   type AgentRegistrationRecord,
 } from "@/lib/server/agents/registration";
+import { loadAgentAnalytics } from "@/lib/server/agents/analytics";
 
 export const runtime = "nodejs";
 
@@ -53,7 +54,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return result.response;
   }
 
-  return NextResponse.json({ agent: mapAgentRecord(result.record) });
+  const analytics = await loadAgentAnalytics(
+    result.auth.supabase,
+    result.auth.user.id,
+    result.record.id,
+  );
+
+  return NextResponse.json({ agent: mapAgentRecord(result.record, analytics) });
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
@@ -113,5 +120,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return registryStorageError(error);
   }
 
-  return NextResponse.json({ agent: mapAgentRecord(data) });
+  const analytics = await loadAgentAnalytics(result.auth.supabase, result.auth.user.id, data.id);
+
+  return NextResponse.json({ agent: mapAgentRecord(data, analytics) });
 }

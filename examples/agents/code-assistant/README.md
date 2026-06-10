@@ -50,3 +50,6 @@ Same flow as the research agent: tunnel the endpoint, register
 `https://<tunnel>/voxa/handshake` at `/developers/agents`, get it approved +
 verified, then select it (with other agents) on `/developers/sandbox`. Use
 **Send to all** to broadcast one message to every selected agent.
+
+In experimental text-only room mode it also reads `context.history` (its own
+scoped per-room thread) and references the previous user turn on follow-ups.

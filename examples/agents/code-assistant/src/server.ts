@@ -73,8 +73,14 @@ const server = createServer(async (req, res) => {
   if (method === "POST" && url === "/voxa/message") {
     const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
+    // Optional per-agent thread history (room-text mode).
+    const history = Array.isArray(body?.context?.history) ? body!.context!.history : [];
+    const priorUserTurns = history.filter((turn) => turn.role === "user");
+    const lastUserTurn = priorUserTurns[priorUserTurns.length - 1]?.text;
+    const followUp =
+      lastUserTurn && prompt ? ` Continuing from "${lastUserTurn}".` : "";
     const reply = prompt
-      ? `${AGENT_NAME} here — reviewing "${prompt}". Looks reasonable; consider adding a test and a guard clause.`
+      ? `${AGENT_NAME} here — reviewing "${prompt}".${followUp} Looks reasonable; consider adding a test and a guard clause.`
       : `${AGENT_NAME} here. Share a snippet or question and I'll review it.`;
     sendJson(
       res,

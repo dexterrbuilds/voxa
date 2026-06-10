@@ -22,6 +22,14 @@ export type AgentVerificationStatus =
   | "verified"
   | "verification_failed";
 
+export type RegisteredAgentAnalytics = {
+  sandboxSessionsStarted: number;
+  sandboxMessagesSent: number;
+  roomInvites: number;
+  roomMessagesSent: number;
+  lastActiveAt: string | null;
+};
+
 // Developers may only create/edit at these statuses and visibilities. The
 // backend enforces the same limits via validation + RLS; mirroring them here is
 // purely for a friendlier UI (no self-approval, no public publishing).
@@ -32,6 +40,7 @@ export type EditableAgentVisibility = Extract<
 >;
 
 export type RegisteredAgent = {
+  analytics: RegisteredAgentAnalytics;
   id: string;
   slug: string;
   name: string;
@@ -191,6 +200,9 @@ export type SandboxToolInvocation = {
   name: string;
   status: SandboxToolStatus;
   detail?: string;
+  // Set by Voxa when a reported tool is not in the agent's registered
+  // capabilities (capability enforcement). Display-only; never trusted.
+  untrusted?: boolean;
 };
 
 export type SandboxAgentReply =
@@ -250,6 +262,8 @@ export type RoomEligibleExternalAgent = {
   description: string;
   capabilities: string[];
   tags: string[];
+  // Effective (grantable-only) permissions this agent holds.
+  permissions: string[];
 };
 
 export type RoomEligibleExternalAgentsResult = {
@@ -314,6 +328,52 @@ export type RoomTextReply = {
   reply: { text: string; streaming?: boolean; tools?: SandboxToolInvocation[] };
   agent: { id: string; name: string };
 };
+
+export type RoomThreadTurn = {
+  role: "user" | "agent";
+  text: string;
+  createdAt: string;
+};
+
+// Load the recent per-agent room thread (best-effort; resolves to [] on failure
+// so the room UI never breaks).
+export async function loadExternalAgentRoomThread(
+  roomId: string,
+  agentId: string,
+): Promise<RoomThreadTurn[]> {
+  try {
+    const token = await getAccessToken();
+    const params = new URLSearchParams({ roomId, agentId });
+    const response = await fetch(`/api/agents/room/thread?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const data = (await response.json()) as { turns: RoomThreadTurn[] };
+    return data.turns ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Clear ONLY this agent's thread for this room.
+export async function clearExternalAgentRoomThread(
+  roomId: string,
+  agentId: string,
+): Promise<number> {
+  const token = await getAccessToken();
+  const params = new URLSearchParams({ roomId, agentId });
+  const response = await fetch(`/api/agents/room/thread?${params.toString()}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  const data = (await response.json()) as { deleted: number };
+  return data.deleted ?? 0;
+}
 
 // Send one experimental, text-only message to an external agent in a room.
 export async function sendRoomTextMessage(

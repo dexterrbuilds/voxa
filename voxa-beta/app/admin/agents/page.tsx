@@ -35,6 +35,10 @@ import type {
   AgentVerificationStatus,
   RegisteredAgentStatus,
 } from "@/lib/agents/registry-client";
+import {
+  EXTERNAL_AGENT_PERMISSION_META,
+  isGrantablePermission,
+} from "@/lib/agents/permissions";
 
 type StatusFilter = "all" | RegisteredAgentStatus;
 
@@ -179,6 +183,49 @@ function Chips({ values }: { values: string[] }) {
   );
 }
 
+// Show requested permissions split into what is actually granted (grantable) vs
+// future permissions that are BLOCKED and never approved/effective today.
+function PermissionsReview({ permissions }: { permissions: string[] }) {
+  const requested = [...new Set(permissions)];
+  const granted = requested.filter((p) => isGrantablePermission(p));
+  const blocked = requested.filter((p) => !isGrantablePermission(p));
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-[0.12em] text-emerald-300/80">Granted</span>
+        {granted.length === 0 ? (
+          <span className="text-[var(--muted-foreground)]">— (defaults apply)</span>
+        ) : (
+          granted.map((p) => (
+            <span
+              key={p}
+              className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 font-mono text-[10px] text-emerald-300"
+            >
+              {EXTERNAL_AGENT_PERMISSION_META[p as keyof typeof EXTERNAL_AGENT_PERMISSION_META]?.badge ?? p}
+            </span>
+          ))
+        )}
+      </div>
+      {blocked.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-rose-300/80">Blocked</span>
+          {blocked.map((p) => (
+            <span
+              key={p}
+              className="rounded-full border border-rose-400/25 bg-rose-400/[0.06] px-2 py-0.5 font-mono text-[10px] text-rose-300/90 line-through"
+            >
+              {p}
+            </span>
+          ))}
+          <span className="text-[10px] text-[var(--muted-foreground)]">
+            never granted (future capability)
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AgentCard({
   agent,
   onReview,
@@ -246,7 +293,7 @@ function AgentCard({
           <Chips values={agent.capabilities} />
         </DetailRow>
         <DetailRow label="Permissions">
-          <Chips values={agent.permissions} />
+          <PermissionsReview permissions={agent.permissions} />
         </DetailRow>
         <DetailRow label="Tags">
           <Chips values={agent.tags} />

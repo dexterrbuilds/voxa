@@ -65,6 +65,7 @@ export const roomPresenceConfig = {
 };
 let staleCleanupUnavailable = false;
 let novaMemoryCleanupUnavailable = false;
+let externalAgentMemoryCleanupUnavailable = false;
 
 function displayNameForUser(user: User) {
   return user.name || user.email || "Guest";
@@ -253,9 +254,10 @@ async function loadRoomRows(roomId: string) {
       .from("room_events")
       .select("*")
       .eq("room_id", roomId)
-      // Exclude Nova's short-term memory rows (conversation transcripts) from the
-      // human-facing event feed; they exist only as server-side session memory.
-      .not("type", "in", "(nova_user,nova_reply)")
+      // Exclude per-agent memory rows (Nova session memory + external-agent text
+      // threads) from the human-facing event feed; they exist only as scoped,
+      // server-side memory and are read through their own paths.
+      .not("type", "in", "(nova_user,nova_reply,external_agent_user,external_agent_reply)")
       .order("created_at", { ascending: true })
       .limit(50),
   ]);
@@ -419,6 +421,56 @@ async function cleanupNovaRoomMemory(roomId: string) {
   }
 }
 
+function isOptionalExternalAgentMemoryCleanupError(error: unknown) {
+  const roomError = error as { code?: string; message?: string } | null;
+  const message = roomError?.message ?? "";
+  return (
+    roomError?.code === "PGRST202" ||
+    /cleanup_external_agent_room_memory/i.test(message) ||
+    /function.*schema cache/i.test(message)
+  );
+}
+
+// Best-effort: drop external agents' per-room text threads
+// (`external_agent_user` / `external_agent_reply`) once a room has closed. Like
+// Nova memory, these rows have no client DELETE policy under RLS, so deletion
+// runs through a SECURITY DEFINER function. Never throws. The hourly
+// `cleanup_expired_voxa_rooms` sweep is the backstop.
+async function cleanupExternalAgentRoomMemory(roomId: string) {
+  const supabase = getSupabaseClient();
+
+  if (!supabase || externalAgentMemoryCleanupUnavailable) {
+    return null;
+  }
+
+  try {
+    const result = await supabase.rpc("cleanup_external_agent_room_memory", {
+      target_room_id: roomId,
+    });
+
+    if (result.error) {
+      if (isOptionalExternalAgentMemoryCleanupError(result.error)) {
+        externalAgentMemoryCleanupUnavailable = true;
+        console.warn(
+          "External agent memory cleanup is not installed in Supabase yet. Closed rooms will rely on the hourly expiry sweep.",
+        );
+        return null;
+      }
+      console.warn(`External agent memory cleanup failed for room ${roomId}:`, result.error.message);
+      return null;
+    }
+
+    const deletedRows = typeof result.data === "number" ? result.data : null;
+    console.info(
+      `External agent memory cleanup for room ${roomId}: deleted ${deletedRows ?? "unknown"} thread row(s).`,
+    );
+    return deletedRows;
+  } catch (error) {
+    console.warn(`External agent memory cleanup threw for room ${roomId}:`, error);
+    return null;
+  }
+}
+
 export async function joinSharedRoom(roomId: string, user: User): Promise<SharedRoomResult> {
   const supabase = getSupabaseClient();
 
@@ -534,9 +586,11 @@ export async function leaveSharedRoom(roomId: string, user: User) {
       throw ended.error;
     }
 
-    // The room is now closed (last human left): drop Nova's per-room session
-    // memory so transcripts do not linger. Best-effort — never blocks leaving.
+    // The room is now closed (last human left): drop per-room agent memory so it
+    // does not linger. Best-effort — never blocks leaving. Normal room events are
+    // preserved; the hourly expiry sweep is the backstop.
     await cleanupNovaRoomMemory(roomId);
+    await cleanupExternalAgentRoomMemory(roomId);
   }
 
   return loadRoomRows(roomId);

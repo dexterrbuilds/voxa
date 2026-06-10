@@ -37,6 +37,11 @@ routes for runtime, SDK, roadmap, and FAQ content. The docs are a professional p
 the Agent Runtime and SDK direction; they do not implement external agents, API keys,
 billing, marketplace publishing, or onboarding flows.
 
+The public Agent Showcase lives in the real product app at `/agents` (linked from the
+marketing developer pages). It is a discovery surface for first-party profiles and
+approved + verified + public external agent profiles. It is not a marketplace and does
+not support installs, public room invites, rankings, payments, reviews, or monetization.
+
 Developer SDK beta interest lives at `/developers/access`. The form is a client-side
 experience backed by the Vercel serverless endpoint `api/developer-access.js`. In
 production it writes submissions to Supabase table `public.developer_access_requests`.
@@ -58,6 +63,9 @@ available.
 - short-term room memory for Nova
 - multilingual STT defaults
 - optional Picovoice wake word, disabled by default with `NEXT_PUBLIC_WAKE_WORD_ENABLED=false`
+- public Agent Showcase at `/agents`
+- owner-scoped agent analytics in the developer dashboard
+- public developer profiles at `/developers/[username]`
 
 ```bash
 cd voxa-beta
@@ -167,6 +175,27 @@ Nova compatibility behavior where Nova uses `room_participants.user_id = "nova"`
 External agents remain disabled until Voxa adds approval tooling, endpoint verification,
 permissions enforcement, rate limits, abuse protection, and a DB-backed runtime registry.
 
+### Public Agent Showcase
+
+`voxa-beta` exposes a public showcase at **`/agents`** and public detail pages at
+**`/agents/[slug]`**.
+
+The server-side query layer in `voxa-beta/app/lib/server/agents/showcase.ts` reads only
+external agents that are:
+
+- `status = approved`
+- `verification_status = verified`
+- `visibility = public`
+
+It maps records to a safe public view model and never exposes `endpoint_url`,
+`creator_user_id`, internal metadata, admin notes, review notes, verification reports, or
+internal-only fields. If no external public agents are available, the showcase falls back
+to first-party manifest profiles (Nova, Research Agent, Code Assistant, Meeting
+Summarizer) to communicate the platform direction.
+
+The showcase is discovery-only. It does not wire external agents into rooms, does not
+create installs, does not add billing, and does not modify Nova Path A.
+
 ### Developer agent registration dashboard
 
 `voxa-beta` ships an authenticated developer UI at **`/developers/agents`** that drives the
@@ -187,6 +216,72 @@ marketing developer docs (`/developers/docs/registration`) link out to this dash
 
 Future work: review/approval tooling, endpoint verification, and a DB-backed runtime
 registry that lets approved external agents appear in the Agent Selector and join rooms.
+
+### Agent analytics dashboard
+
+`voxa-beta` adds lightweight usage visibility for developers at **`/developers/agents`**.
+This is analytics only — not billing, monetization, metering, quotas, pricing, or token
+accounting.
+
+Run the additive SQL in:
+
+```text
+voxa-beta/supabase-agent-analytics-schema.sql
+```
+
+It creates `public.agent_analytics` with one aggregate row per registered agent plus a
+server-side `increment_agent_analytics(...)` RPC. Developers can read only analytics for
+their own agents. Counters are updated only from server routes after the existing
+ownership, approval, verification, room-membership, and feature-flag checks succeed.
+
+Tracked counters:
+
+- sandbox sessions started
+- sandbox messages sent
+- room invites
+- room messages sent
+- last active time
+
+Recording points:
+
+- `POST /api/agents/sandbox`
+- `POST /api/agents/sandbox/message`
+- `POST /api/agents/room/invite`
+- `POST /api/agents/room/message`
+
+The dashboard shows owner-scoped overview totals plus per-agent compact analytics cards.
+Public showcase pages never expose analytics.
+
+### Developer profiles
+
+Developers can complete a public profile from **`/developers/agents`**. Public profiles
+live at **`/developers/[username]`** and connect builders to their approved, verified,
+public agents.
+
+Run the additive SQL in:
+
+```text
+voxa-beta/supabase-developer-profiles-schema.sql
+```
+
+It creates `public.developer_profiles` with safe public fields:
+
+- username
+- display name
+- bio
+- avatar URL
+- website
+- X handle
+- joined date
+
+The authenticated API is `GET/PATCH /api/developers/profile`. Public profile pages and
+agent ownership links use server-side sanitized query helpers. Voxa never exposes emails,
+Supabase user ids, auth metadata, endpoint URLs, internal metadata, admin notes, review
+notes, verification reports, or analytics on public profile pages.
+
+Agent detail pages show **Built by {Developer}** as a clickable link when the creator has
+completed a profile. `/agents` also includes a simple Featured Developers section. This is
+identity only, not a social network: no following, messaging, likes, ratings, or comments.
 
 ### Admin agent review tooling
 
@@ -236,8 +331,18 @@ Phase 3 prepares external agents for testing without allowing them into producti
   default `false`): when on, the caller's own approved + verified external agents appear in the
   live-room Agent Selector and can be **invited in text-only mode** (`POST /api/agents/room/invite`)
   and messaged (`POST /api/agents/room/message`, owner-only, rate-limited). Invite adds an `agent`
-  participant (`user_id=agent:<agentId>`) via the service role; messaging sends only the one user
-  message through `RoomTextRuntime` and returns text. External agents are **never** dispatched to
+  participant (`user_id=agent:<agentId>`) via the service role; messaging sends the user message
+  through `RoomTextRuntime` and returns text. Each agent gets its **own room-local text thread**
+  (`room_events` types `external_agent_user`/`external_agent_reply`, scoped per room+agent) so
+  follow-ups carry the last ~10 turns as `context.history`; a **Clear thread** button and room-close
+  cleanup (`cleanup_external_agent_room_memory`) keep it scoped, and the history is never a full
+  transcript, other agents, Nova memory, or audio. The in-room thread UI is polished: compact
+  bubbles with timestamps, status labels (In Room / Thinking / Responding / Error / Text-only),
+  simulated streaming, a Tools Used panel, **Retry** on failure (no duplicate memory), and **Copy**
+  on replies. A typed **permission model** (`room_text_reply`, `memory_read/write_thread`,
+  `tools_visualize`, `room_presence`) is enforced server-side — future `room_audio_*` /
+  `room_transcript_read` permissions exist as types but are never grantable or effective; tools not
+  in an agent's capabilities are marked untrusted. External agents are **never** dispatched to
   LiveKit, **never** publish audio, **never** receive room audio/transcripts, and **never** speak.
   Default-off keeps the selector unchanged.
 

@@ -26,13 +26,36 @@ the demo?* Prefer the version that moves toward an agent runtime. Today the code
 hardcodes a single agent ("nova") in many places; treat that as debt to unwind, not a
 pattern to extend.
 
-## What exists today vs. the vision
+## Current platform state
 
-The working product today is narrow: an invite-only, browser-based LiveKit voice room
-where authenticated humans talk to one agent, Nova. None of the platform vision
-(multi-agent, SDK, marketplace, memory, agent identity/permissions, cross-platform
-deployment to Meet/Zoom/X Spaces/Discord/Telegram/phone) is built yet. Build toward it;
-do not assume it is already there.
+Nova Path A remains the production voice experience. External agents now support
+registration, review, verification, sandbox messaging, multi-agent sandbox sessions,
+experimental room visibility, text-only room access, per-agent room memory, permissions
+enforcement, a public developer showcase, owner-scoped usage analytics, and public
+developer profiles. This is still **not** a marketplace, billing system, or social
+network: no public installs, public room invites, following, messaging, likes, ratings,
+comments, billing, rankings, payments, monetization, metering, pricing, quotas, or
+external-agent audio/LiveKit access.
+
+## Completed Phases
+
+- 3.0 Runtime Foundation
+- 3.1 Registration
+- 3.2 Review
+- 3.3 Verification
+- 3.4 Sandbox
+- 3.5 Sandbox Messaging
+- 3.6 Sandbox Runtime
+- 3.7 Streaming + Tools
+- 3.8 Multi-Agent Sandbox
+- 3.9 Room Visibility
+- 3.10 Room Text Agents
+- 3.11 Room Memory
+- 3.12 Room UX Polish
+- 3.13 Permissions Enforcement
+- 3.14 Agent Showcase
+- 3.15 Agent Analytics & Usage Dashboard
+- 3.16 Developer Profiles & Identity (current)
 
 ## This repo is 4 projects plus the SDK foundation
 
@@ -47,6 +70,77 @@ do not assume it is already there.
 5. **`packages/sdk/`** — Local SDK v0.1 foundation. Typed developer-facing agent
    contract only; no networking, auth, billing, publishing, marketplace, onchain
    identity, or LiveKit dispatch yet.
+
+## Feature flags
+
+- `NEXT_PUBLIC_NOVA_LIVEKIT_AGENT_ENABLED` — disabled Path B LiveKit Agent dispatch.
+- `NEXT_PUBLIC_WAKE_WORD_ENABLED` — optional browser-side Picovoice wake word.
+- `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS` — server-only, default-off external agent
+  visibility/text-only room access. Never expose as `NEXT_PUBLIC`.
+
+## Public Agent Showcase
+
+Route: **`/agents`** in `voxa-beta`.
+
+Server query: `app/lib/server/agents/showcase.ts` uses the service-role client to read
+only agents where `status=approved`, `verification_status=verified`, and
+`visibility=public`, then maps them to a sanitized public view model. It never exposes
+`endpoint_url`, `creator_user_id`, metadata, admin notes, review notes, verification
+reports, or internal fields. First-party manifest agents provide fallback/featured
+profiles. Detail route: `/agents/[slug]`.
+
+Purpose: communicate that Voxa is a developer agent platform. It is discovery-only:
+no installs, no invites, no payments, no reviews/ratings, and no runtime behavior changes.
+
+## Agent Analytics
+
+Route: **`/developers/agents`** in `voxa-beta`.
+
+Analytics are aggregate counters for the developer's own agents only. They are visibility
+only — not billing, monetization, metering, quotas, pricing, or token accounting.
+
+Schema: `voxa-beta/supabase-agent-analytics-schema.sql` creates
+`public.agent_analytics` plus the SECURITY DEFINER RPC
+`increment_agent_analytics(...)`. Developers can select only their own rows; increments
+happen server-side after the existing route validation succeeds.
+
+Counters:
+
+- `sandbox_sessions_started`
+- `sandbox_messages_sent`
+- `room_invites`
+- `room_messages_sent`
+- `last_active_at`
+
+Recording points:
+
+- `POST /api/agents/sandbox` records sandbox sessions for selected agents.
+- `POST /api/agents/sandbox/message` records sandbox messages for runnable targets.
+- `POST /api/agents/room/invite` records room invites only on a new agent participant.
+- `POST /api/agents/room/message` records room messages only after a successful agent reply.
+
+The dashboard loads analytics through the owner-scoped `/api/agents` and
+`/api/agents/:id` responses. Public showcase routes never expose analytics.
+
+## Developer Profiles
+
+Routes:
+
+- Public profile: **`/developers/[username]`** in `voxa-beta`
+- Authenticated profile API: **`/api/developers/profile`**
+- Profile completion UI: **`/developers/agents`**
+
+Schema: `voxa-beta/supabase-developer-profiles-schema.sql` creates
+`public.developer_profiles` with safe public identity fields: `username`, `display_name`,
+`bio`, `avatar_url`, `website`, `x_handle`, and `joined_at`.
+
+Public pages are server-rendered through `app/lib/server/developers/profile.ts` and expose
+only safe fields plus the developer's approved + verified + public agents. Never expose
+emails, Supabase user ids, auth metadata, endpoint URLs, internal metadata, admin notes,
+review notes, verification reports, or analytics.
+
+Agent detail pages link "Built by {Developer}" to the public profile when the developer
+has completed one. The `/agents` directory includes a simple Featured Developers section.
 
 ## Dev commands
 
@@ -374,6 +468,22 @@ This phase prepares external agents WITHOUT letting them into production rooms.
   and `RoomTextRuntime` share the wire transport `runtime/voxaMessageClient.ts`; a future
   `ProductionRuntime` reuses the same `AgentRuntimeTransport` interface. External agents still NEVER
   speak, never join LiveKit, and never get audio/transcripts.
+- **Per-agent room thread memory (Phase 3.11).** Each invited external agent gets its own
+  room-local text thread stored in `room_events` (no schema change) under types
+  `external_agent_user` / `external_agent_reply`, scoped by `user_id=agent:<agentId>` so each
+  (room, agent) pair is isolated (`app/lib/server/agents/room-memory.ts`, written/read/deleted via
+  SERVICE ROLE). On each `/api/agents/room/message` the route loads the last
+  `EXTERNAL_AGENT_ROOM_MEMORY_TURNS` (default 10) turns for THAT room+agent and sends them as
+  `context.history` (`[{role:"user"|"agent",text}]`); on success it persists the user message +
+  reply, on failure it persists nothing (thread stays intact). History is strictly scoped — never a
+  full room transcript, never other agents, never Nova memory, never audio. `GET/DELETE
+  /api/agents/room/thread?roomId=&agentId=` read / **clear** one agent's thread (re-validating flag +
+  ownership + approval + verification + membership + agent-in-room); the selector card shows the
+  thread with timestamps + a **Clear thread** button (clears only that agent's rows). These rows are
+  filtered out of the human event feed (`room-sync.ts`) and deleted on room close by the SECURITY
+  DEFINER fn `cleanup_external_agent_room_memory(room_id)` (best-effort from `leaveSharedRoom`;
+  hourly sweep is the backstop), preserving normal room events. Optional env
+  `EXTERNAL_AGENT_ROOM_MEMORY_TURNS`.
 
 **Still intentionally disabled:** external agents can only be invited in EXPERIMENTAL text-only mode
 behind a default-off flag (no audio, no LiveKit, no transcript, owner-only, never speak); public

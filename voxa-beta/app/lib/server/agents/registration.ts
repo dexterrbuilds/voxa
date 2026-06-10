@@ -1,5 +1,10 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeRequestedPermissions } from "@/lib/agents/permissions";
+import {
+  emptyAgentAnalytics,
+  type AgentAnalyticsSummary,
+} from "@/lib/server/agents/analytics";
 
 export type AgentRegistrationStatus =
   | "draft"
@@ -259,7 +264,10 @@ export function parseRegistrationBody(body: unknown, mode: "create" | "update") 
       parsed.name = name;
     }
     if (has("permissions")) {
-      parsed.permissions = cleanStringArray(input.permissions);
+      // Only grantable external-agent permissions are persisted; future
+      // audio/transcript permissions are never stored (defense-in-depth — the
+      // runtime also drops them).
+      parsed.permissions = sanitizeRequestedPermissions(cleanStringArray(input.permissions));
     }
     if (has("slug")) {
       parsed.slug = slug;
@@ -285,7 +293,7 @@ export function parseRegistrationBody(body: unknown, mode: "create" | "update") 
     endpoint_url: endpointUrl,
     metadata: cleanMetadata(input.metadata),
     name,
-    permissions: cleanStringArray(input.permissions),
+    permissions: sanitizeRequestedPermissions(cleanStringArray(input.permissions)),
     slug,
     status,
     tags: cleanStringArray(input.tags),
@@ -293,8 +301,12 @@ export function parseRegistrationBody(body: unknown, mode: "create" | "update") 
   };
 }
 
-export function mapAgentRecord(record: AgentRegistrationRecord) {
+export function mapAgentRecord(
+  record: AgentRegistrationRecord,
+  analytics: AgentAnalyticsSummary = emptyAgentAnalytics,
+) {
   return {
+    analytics,
     avatarUrl: record.avatar_url,
     capabilities: record.capabilities ?? [],
     createdAt: record.created_at,

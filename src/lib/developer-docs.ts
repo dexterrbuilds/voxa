@@ -171,10 +171,11 @@ export const roadmapNow = [
   "inviteAgent(agentId) for first-party agents",
   "Authenticated agent registration API scaffold",
   "Developer agent registration dashboard (/developers/agents)",
+  "Public Agent Showcase for approved, verified, public profiles",
 ] as const;
 
 export const roadmapComing = [
-  "External developer agents",
+  "Public installs and user-driven agent discovery flows",
   "DB-backed agent registry",
   "Agent review and approval tooling",
   "Agent permissions and identity",
@@ -192,7 +193,7 @@ export const faqItems = [
   {
     question: "Can I deploy my own agent today?",
     answer:
-      "Not yet. The SDK is in developer preview and external agent loading is not enabled. Voxa now has a developer dashboard (/developers/agents) for authenticated agent metadata submissions, but submitted agents stay in the review queue — they do not appear in rooms or the selector until reviewed and approved.",
+      "You can register, review, verify, and sandbox an agent in the developer preview. Approved, verified, public profiles can appear in the public Agent Showcase, but public installs and broad room invites are not live yet.",
   },
   {
     question: "Can agents join Zoom, Google Meet, or X Spaces?",
@@ -207,7 +208,7 @@ export const faqItems = [
   {
     question: "What should developers watch first?",
     answer:
-      "Watch the Agent Runtime, Agent Manifest, SDK v0.1, inviteAgent(agentId), and the registration review queue. Those are the foundations that will eventually support developer-owned agents.",
+      "Watch the Agent Runtime, Agent Manifest, SDK v0.1, registration/review/verification, sandbox messaging, room text access, permissions enforcement, and the public Agent Showcase.",
   },
 ];
 
@@ -248,9 +249,9 @@ export const buildAgentSteps = [
 export const registrationFlow = [
   "Build an agent against the Voxa SDK contract.",
   "Register metadata such as name, endpoint URL, capabilities, permissions, and tags.",
-  "Voxa reviews and approves the agent before users can invite it.",
-  "Approved agents appear in a future Agent Selector or registry surface.",
-  "Users invite approved agents into rooms by agent identity.",
+  "Voxa reviews the agent and verifies its endpoint before sandbox access.",
+  "Approved + verified + public agents can appear in the public Agent Showcase.",
+  "Future phases will expand from public profiles into installation and broader room discovery.",
 ] as const;
 
 export const securityModel = [

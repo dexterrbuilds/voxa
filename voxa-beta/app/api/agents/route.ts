@@ -5,6 +5,7 @@ import {
   registryStorageError,
   type AgentRegistrationRecord,
 } from "@/lib/server/agents/registration";
+import { loadAgentAnalyticsMap } from "@/lib/server/agents/analytics";
 
 export const runtime = "nodejs";
 
@@ -27,5 +28,13 @@ export async function GET(request: NextRequest) {
     return registryStorageError(error);
   }
 
-  return NextResponse.json({ agents: data.map(mapAgentRecord) });
+  const analytics = await loadAgentAnalyticsMap(
+    auth.supabase,
+    auth.user.id,
+    data.map((agent) => agent.id),
+  );
+
+  return NextResponse.json({
+    agents: data.map((agent) => mapAgentRecord(agent, analytics.get(agent.id))),
+  });
 }

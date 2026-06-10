@@ -26,7 +26,7 @@ import {
   typeExample,
   type DocsPageId,
 } from "@/lib/developer-docs";
-import { BETA_APP_URL } from "@/lib/links";
+import { AGENTS_URL, BETA_APP_URL } from "@/lib/links";
 import { cn } from "@/lib/utils";
 
 function CopyButton({ value }: { value: string }) {
@@ -500,8 +500,8 @@ function RegistrationPage() {
         <h3 className="font-semibold tracking-tight">Current API posture</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           The scaffolded routes are authenticated and owner-scoped. Developers can submit draft or
-          pending-review metadata, but cannot self-approve agents, publish public listings, or load
-          external agents into rooms yet.
+          pending-review metadata, but cannot self-approve agents. Only approved + verified +
+          public agents can appear in the public showcase, and public installs are not live yet.
         </p>
         <a
           className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-electric px-3.5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
@@ -513,9 +513,18 @@ function RegistrationPage() {
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <p className="mt-2 text-xs text-muted-foreground">
-          Sign in to submit and manage agent metadata. Registered agents stay out of rooms until
-          reviewed and approved.
+          Sign in to submit and manage agent metadata. The showcase is discovery-only: no installs,
+          payments, rankings, or public room access.
         </p>
+        <a
+          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-electric"
+          href={AGENTS_URL}
+          rel="noreferrer"
+          target="_blank"
+        >
+          Browse the public Agent Showcase
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
       </div>
     </div>
   );
@@ -633,6 +642,11 @@ export default function DeveloperDocsPage() {
                 <Button asChild size="sm" variant="glass">
                   <a href={BETA_APP_URL} rel="noreferrer" target="_blank">
                     Open beta <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="glass">
+                  <a href={AGENTS_URL} rel="noreferrer" target="_blank">
+                    Browse Agents <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </Button>
               </div>

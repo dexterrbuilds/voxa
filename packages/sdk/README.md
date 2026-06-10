@@ -155,6 +155,25 @@ drive **several** of your approved + verified agents in one session: it sends to
 independently. Nothing changes on your side — each endpoint just answers its own `voxa.message`
 request. This is still sandbox-only; it is not a production multi-agent room.
 
+#### Per-agent thread history (room-text mode)
+
+In experimental text-only room mode, Voxa keeps a **room-local thread per agent** and includes the
+recent turns as `context.history`:
+
+```ts
+// context = { sandbox: false, roomId, agentId, mode: "room_text", history: VoxaMessageHistoryTurn[] }
+app.post("/voxa/message", (req, res) => {
+  const { message, context } = req.body as VoxaMessageRequest;
+  const lastUserTurn = context?.history?.filter((t) => t.role === "user").at(-1)?.text;
+  const note = lastUserTurn ? ` (following up on "${lastUserTurn}")` : "";
+  res.json(createAgentMessageResponse(`Re: ${message}${note}`));
+});
+```
+
+`history` (`VoxaMessageHistoryTurn[]`, `{ role:"user"|"agent", text }`) is **only** the recent turns
+between this user and **this** agent — never a full room transcript, other agents' messages, Nova
+memory, or audio. Using it is optional and backwards compatible.
+
 ### Runnable examples
 
 Two complete, runnable sample agents live under

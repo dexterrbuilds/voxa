@@ -77,8 +77,17 @@ const server = createServer(async (req, res) => {
     const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
     // `message` is a string on the wire (see VoxaMessageRequest).
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
+    // Optional per-agent thread history (room-text mode). If present, acknowledge
+    // the follow-up by referencing the previous user turn.
+    const history = Array.isArray(body?.context?.history) ? body!.context!.history : [];
+    const priorUserTurns = history.filter((turn) => turn.role === "user");
+    const lastUserTurn = priorUserTurns[priorUserTurns.length - 1]?.text;
+    const followUp =
+      lastUserTurn && prompt
+        ? ` (following up on "${lastUserTurn}")`
+        : "";
     const reply = prompt
-      ? `This is a sample response from the ${AGENT_NAME} about "${prompt}".`
+      ? `This is a sample response from the ${AGENT_NAME} about "${prompt}"${followUp}.`
       : `This is a sample response from the ${AGENT_NAME}.`;
     // Opt into the sandbox streaming simulation + Tools Used panel. The reply is
     // still a plain `{ text }` for any consumer that ignores these fields, so this

@@ -28,6 +28,7 @@ export type {
   AgentToolInvocation,
   AgentToolStatus,
   VoxaMessageContext,
+  VoxaMessageHistoryTurn,
   VoxaMessageRequest,
   VoxaMessageResponse,
 } from "./messaging.js";

@@ -9,6 +9,14 @@ import type { AgentContext, AgentMessage, AgentResponse } from "./types.js";
 // The wire contract Voxa sends to an agent's POST /voxa/message endpoint.
 export const VOXA_MESSAGE_TYPE = "voxa.message";
 
+// One prior turn in a per-agent thread. `history` carries ONLY the recent turns
+// between this user and THIS agent — never room audio, a full room transcript,
+// other agents' messages, or Nova memory.
+export type VoxaMessageHistoryTurn = {
+  role: "user" | "agent";
+  text: string;
+};
+
 export type VoxaMessageContext = {
   // True when the message originates from the developer sandbox. In experimental
   // room text mode this is false and `mode: "room_text"` is set with `roomId` /
@@ -18,6 +26,8 @@ export type VoxaMessageContext = {
   mode?: "room_text" | (string & {});
   roomId?: string;
   agentId?: string;
+  // Recent per-agent thread turns (room-text mode). Capped to the last few turns.
+  history?: VoxaMessageHistoryTurn[];
 } & Record<string, unknown>;
 
 export type VoxaMessageRequest = {

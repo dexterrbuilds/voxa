@@ -10,6 +10,7 @@ import {
   createSandboxSession,
   SANDBOX_MAX_AGENTS,
 } from "@/lib/server/agents/sandbox";
+import { recordAgentAnalyticsBatch } from "@/lib/server/agents/analytics";
 
 export const runtime = "nodejs";
 
@@ -102,6 +103,11 @@ export async function POST(request: NextRequest) {
 
   // Preserve the requested order in the session descriptor.
   const ordered = agentIds.map((id) => data.find((agent) => agent.id === id)!);
+  await recordAgentAnalyticsBatch(auth.supabase, {
+    agentIds: ordered.map((agent) => agent.id),
+    metric: "sandbox_sessions_started",
+    ownerUserId: auth.user.id,
+  });
 
   return NextResponse.json({ session: createSandboxSession(ordered) }, { status: 201 });
 }

@@ -6,6 +6,7 @@ import { Section, SectionHeader, Eyebrow } from "@/components/site/Section";
 import { GridBackdrop } from "@/components/site/GridBackdrop";
 import { FeatureCard } from "@/components/site/FeatureCard";
 import { Button } from "@/components/ui/button";
+import { AGENTS_URL } from "@/lib/links";
 
 const sdkSnippet = `import { Relay } from "@Voxa/sdk";
 
@@ -113,6 +114,9 @@ export default function DevelopersPage() {
               <Button variant="glass" size="lg" asChild>
                 <RouterLink to="/developers/access">Request SDK Beta</RouterLink>
               </Button>
+              <Button variant="glass" size="lg" asChild>
+                <a href={AGENTS_URL}>Browse Agents</a>
+              </Button>
             </div>
           </div>
         </section>
@@ -198,11 +202,18 @@ export default function DevelopersPage() {
                 Explore the runtime foundation and join the waitlist for SDK access.
               </p>
               <div className="mt-8">
-                <Button asChild variant="electric" size="lg">
-                  <RouterLink to="/developers/access">
-                    Request SDK Beta <ArrowRight className="h-4 w-4" />
-                  </RouterLink>
-                </Button>
+                <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                  <Button asChild variant="electric" size="lg">
+                    <RouterLink to="/developers/access">
+                      Request SDK Beta <ArrowRight className="h-4 w-4" />
+                    </RouterLink>
+                  </Button>
+                  <Button asChild variant="glass" size="lg">
+                    <a href={AGENTS_URL}>
+                      Browse Agents <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
