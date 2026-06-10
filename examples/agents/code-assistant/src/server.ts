@@ -5,24 +5,24 @@ import {
   type VoxaMessageRequest,
 } from "@voxa/sdk";
 
-// Minimal Voxa-compatible external agent.
+// Minimal Voxa-compatible external agent — a sample CODE ASSISTANT.
 //
-// This is a SAMPLE for local development and Voxa sandbox testing. It implements
-// the three endpoints Voxa expects from an external agent:
+// A second sample (alongside research-agent) so the developer sandbox can be
+// tested with MULTIPLE agents that report different capabilities. It implements
+// the same three endpoints:
 //
 //   GET  /health          -> liveness probe
 //   POST /voxa/handshake  -> identity + capabilities (used by Voxa verification)
-//   POST /voxa/message    -> a (mock) agent reply
+//   POST /voxa/message    -> a (mock) reply with streaming + tool metadata
 //
-// Register the PUBLIC handshake URL (e.g. https://<tunnel>/voxa/handshake) as the
-// agent endpoint in Voxa. Passing verification only makes the agent eligible for
-// the developer sandbox — it does NOT place the agent into a live Voxa room yet.
+// Sandbox only: passing verification makes this agent eligible for the developer
+// sandbox after review + approval. It does NOT place the agent into a live room.
 
-const PORT = Number(process.env.PORT ?? 8787);
+const PORT = Number(process.env.PORT ?? 8788);
 
-const AGENT_NAME = "Research Agent";
-const AGENT_DESCRIPTION = "A sample Voxa-compatible research assistant";
-const AGENT_CAPABILITIES = ["web_search", "summaries", "citations"];
+const AGENT_NAME = "Code Assistant";
+const AGENT_DESCRIPTION = "A sample Voxa-compatible code review and debugging assistant";
+const AGENT_CAPABILITIES = ["code_review", "debugging", "architecture"];
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body);
@@ -52,13 +52,11 @@ const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
   const url = (req.url ?? "/").split("?")[0];
 
-  // Liveness probe.
   if (method === "GET" && url === "/health") {
     sendJson(res, 200, { status: "ok", agent: AGENT_NAME });
     return;
   }
 
-  // Handshake: Voxa verification POSTs `{ type: "voxa.handshake" }` here.
   if (method === "POST" && url === "/voxa/handshake") {
     sendJson(
       res,
@@ -72,25 +70,20 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Message: mock reply. Voxa POSTs `{ type: "voxa.message", message, context }`.
   if (method === "POST" && url === "/voxa/message") {
     const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
-    // `message` is a string on the wire (see VoxaMessageRequest).
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
     const reply = prompt
-      ? `This is a sample response from the ${AGENT_NAME} about "${prompt}".`
-      : `This is a sample response from the ${AGENT_NAME}.`;
-    // Opt into the sandbox streaming simulation + Tools Used panel. The reply is
-    // still a plain `{ text }` for any consumer that ignores these fields, so this
-    // stays backwards compatible.
+      ? `${AGENT_NAME} here — reviewing "${prompt}". Looks reasonable; consider adding a test and a guard clause.`
+      : `${AGENT_NAME} here. Share a snippet or question and I'll review it.`;
     sendJson(
       res,
       200,
       createAgentMessageResponse(reply, {
         streaming: true,
         tools: [
-          { name: "web_search", status: "completed" },
-          { name: "summarizer", status: "completed" },
+          { name: "code_search", status: "completed" },
+          { name: "linter", status: "completed" },
         ],
       }),
     );

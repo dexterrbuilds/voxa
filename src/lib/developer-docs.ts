@@ -225,9 +225,14 @@ app.post("/voxa/handshake", (req, res) => {
   );
 });
 
-// POST /voxa/message
+// POST /voxa/message  (streaming + tools are optional)
 app.post("/voxa/message", (req, res) => {
-  res.json(createAgentMessageResponse("This is a sample response."));
+  res.json(
+    createAgentMessageResponse("This is a sample response.", {
+      streaming: true,
+      tools: [{ name: "web_search", status: "completed" }],
+    }),
+  );
 });`;
 
 export const buildAgentSteps = [

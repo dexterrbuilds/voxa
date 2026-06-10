@@ -47,7 +47,9 @@ curl -X POST http://localhost:8787/voxa/message \
 ```
 
 The message endpoint follows the `voxa.message` wire contract: `message` is a string and the
-reply is `{ text }`. The Voxa sandbox chat sends exactly this shape.
+reply is `{ text }`. This sample also opts into the optional `streaming: true` hint and a `tools`
+array, so the Voxa sandbox shows a progressive (simulated) reveal and a "Tools Used" panel. Both
+fields are optional and backwards compatible — a plain `{ text }` reply still works.
 
 The handshake returns the Voxa contract shape:
 

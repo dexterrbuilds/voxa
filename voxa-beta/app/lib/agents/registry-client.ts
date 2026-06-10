@@ -53,12 +53,18 @@ export type RegisteredAgent = {
   updatedAt: string;
 };
 
+export type SandboxAgentSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  capabilities: string[];
+};
+
 export type SandboxSession = {
   mode: "sandbox";
   isolated: true;
   sandboxRoomId: string;
-  agentId: string;
-  agentName: string;
+  agents: SandboxAgentSummary[];
   expiresAt: string;
   runtimeReady: false;
   note: string;
@@ -160,7 +166,7 @@ export async function createRegisteredAgent(
   return data.agent;
 }
 
-export async function startSandboxSession(agentId: string): Promise<SandboxSession> {
+export async function startSandboxSession(agentIds: string[]): Promise<SandboxSession> {
   const token = await getAccessToken();
   const response = await fetch("/api/agents/sandbox", {
     method: "POST",
@@ -168,7 +174,7 @@ export async function startSandboxSession(agentId: string): Promise<SandboxSessi
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ agentId }),
+    body: JSON.stringify({ agentIds }),
   });
 
   if (!response.ok) {
@@ -179,15 +185,42 @@ export async function startSandboxSession(agentId: string): Promise<SandboxSessi
   return data.session;
 }
 
-export type SandboxReply = {
-  reply: { text: string };
-  agent: { id: string; name: string };
+export type SandboxToolStatus = "pending" | "running" | "completed" | "failed";
+
+export type SandboxToolInvocation = {
+  name: string;
+  status: SandboxToolStatus;
+  detail?: string;
+};
+
+export type SandboxAgentReply =
+  | {
+      agentId: string;
+      agentName: string;
+      ok: true;
+      reply: { text: string; streaming?: boolean; tools?: SandboxToolInvocation[] };
+    }
+  | {
+      agentId: string;
+      agentName: string;
+      ok: false;
+      error: { code: string; detail: string };
+    };
+
+export type SandboxMessageResult = { replies: SandboxAgentReply[] };
+
+export type SandboxMessageOptions = {
+  // Send to one specific agent in the session.
+  targetAgentId?: string;
+  // Send to every agent in the session.
+  broadcast?: boolean;
 };
 
 export async function sendSandboxMessage(
   sandboxSessionId: string,
   message: string,
-): Promise<SandboxReply> {
+  options: SandboxMessageOptions = {},
+): Promise<SandboxMessageResult> {
   const token = await getAccessToken();
   const response = await fetch("/api/agents/sandbox/message", {
     method: "POST",
@@ -195,14 +228,114 @@ export async function sendSandboxMessage(
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ sandboxSessionId, message }),
+    body: JSON.stringify({
+      sandboxSessionId,
+      message,
+      targetAgentId: options.targetAgentId,
+      broadcast: options.broadcast,
+    }),
   });
 
   if (!response.ok) {
     throw await parseError(response);
   }
 
-  return (await response.json()) as SandboxReply;
+  return (await response.json()) as SandboxMessageResult;
+}
+
+// Experimental, display-only external agents for the live-room Agent Selector.
+export type RoomEligibleExternalAgent = {
+  id: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  tags: string[];
+};
+
+export type RoomEligibleExternalAgentsResult = {
+  enabled: boolean;
+  agents: RoomEligibleExternalAgent[];
+};
+
+// Best-effort: fetch the caller's own approved + verified external agents that may
+// be SHOWN (display-only) in a room when the server feature flag is on. NEVER
+// throws — any failure (signed out, flag off, route/table missing) resolves to
+// `{ enabled: false, agents: [] }` so the room is never affected.
+export async function listRoomEligibleExternalAgents(): Promise<RoomEligibleExternalAgentsResult> {
+  try {
+    const token = await getAccessToken();
+    const response = await fetch("/api/agents/room-eligible", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      return { enabled: false, agents: [] };
+    }
+    const data = (await response.json()) as RoomEligibleExternalAgentsResult;
+    return { enabled: Boolean(data.enabled), agents: data.agents ?? [] };
+  } catch {
+    return { enabled: false, agents: [] };
+  }
+}
+
+// Compatibility participant id for external agents in a room (mirrors the server
+// `externalAgentParticipantId`). Used to detect whether an external agent is
+// already a participant.
+export function externalAgentParticipantId(agentId: string): string {
+  return `agent:${agentId}`;
+}
+
+// Invite the caller's own approved + verified external agent into a room as an
+// EXPERIMENTAL text-only participant. Throws AgentRegistryError on failure.
+export async function inviteExternalAgentToRoom(
+  roomId: string,
+  agentId: string,
+): Promise<{ participantUserId: string; agent: { id: string; name: string } }> {
+  const token = await getAccessToken();
+  const response = await fetch("/api/agents/room/invite", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ roomId, agentId }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as {
+    participantUserId: string;
+    agent: { id: string; name: string };
+  };
+}
+
+export type RoomTextReply = {
+  reply: { text: string; streaming?: boolean; tools?: SandboxToolInvocation[] };
+  agent: { id: string; name: string };
+};
+
+// Send one experimental, text-only message to an external agent in a room.
+export async function sendRoomTextMessage(
+  roomId: string,
+  agentId: string,
+  message: string,
+): Promise<RoomTextReply> {
+  const token = await getAccessToken();
+  const response = await fetch("/api/agents/room/message", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ roomId, agentId, message }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as RoomTextReply;
 }
 
 export async function updateRegisteredAgent(

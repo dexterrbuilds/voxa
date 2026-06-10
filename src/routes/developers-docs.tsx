@@ -465,11 +465,19 @@ function RegistrationPage() {
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-5">
         <h3 className="font-semibold tracking-tight">Sandbox chat is live; live rooms are not</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          The sandbox now sends messages straight to your verified agent endpoint and shows the
-          reply (Build → Register → Verify → Sandbox chat). It is fully isolated: the session
-          descriptor still reports <span className="font-mono">runtimeReady: false</span> because
-          the sandbox never connects your agent into a production room. External agents remain
-          blocked from live rooms.
+          The sandbox sends messages straight to your verified agent endpoint and shows the reply
+          (Build → Register → Verify → Sandbox chat). You can select{" "}
+          <span className="font-medium text-foreground">multiple</span> approved + verified agents
+          in one session and either target one agent or{" "}
+          <span className="font-medium text-foreground">broadcast</span> the same message to all of
+          them, with each reply shown independently. Replies can opt into a{" "}
+          <span className="font-medium text-foreground">streaming simulation</span> (set{" "}
+          <span className="font-mono">streaming: true</span> — revealed progressively client-side,
+          no SSE/websocket) and report a <span className="font-mono">tools</span> array, shown as a
+          read-only “Tools Used” panel (Voxa never executes tools). It is fully isolated: the
+          session still reports <span className="font-mono">runtimeReady: false</span> because the
+          sandbox never connects your agents into a production room, and this is not a public
+          multi-agent room. External agents remain blocked from live rooms.
         </p>
       </div>
 

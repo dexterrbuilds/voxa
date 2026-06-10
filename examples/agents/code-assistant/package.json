@@ -1,0 +1,20 @@
+{
+  "name": "voxa-code-assistant-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal Voxa-compatible external agent example (code assistant).",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "npm run build && node dist/server.js"
+  },
+  "dependencies": {
+    "@voxa/sdk": "file:../../../packages/sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3"
+  }
+}

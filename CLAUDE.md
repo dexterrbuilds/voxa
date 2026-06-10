@@ -285,30 +285,52 @@ This phase prepares external agents WITHOUT letting them into production rooms.
   caller's own agent that is BOTH `approved` AND `verified` (`app/lib/server/agents/sandbox.ts`,
   `checkSandboxEligibility` / `createSandboxSession`). It returns an **isolated** descriptor
   (namespaced `sandbox:<agentId>:<uuid>` room id, 30-min TTL, `runtimeReady: false`).
-- **Sandbox messaging is live** (`POST /api/agents/sandbox/message`, Phase 3.5). Stateless
-  session: `parseSandboxSessionId` extracts the agent id from the session id and the route
+- **Sandbox messaging is live** (`POST /api/agents/sandbox/message`, Phase 3.5+). Stateless
+  session: `parseSandboxSessionId` extracts the agent id(s) from the session id and the route
   re-validates ownership + approval + verification on every call, then `SandboxRuntime`
   (`app/lib/server/agents/runtime/`) POSTs the SDK `voxa.message` contract
-  (`{ type: "voxa.message", message, context: { sandbox: true } }`) to the agent's message
-  endpoint — derived from the registered handshake URL (`…/voxa/handshake` → `…/voxa/message`) —
-  and returns `{ text }`. Rate-limited per user (30/min, in-memory; `app/lib/server/rate-limit.ts`)
-  → `429`. Errors are structured (`agent_unreachable`, `agent_bad_response`, `invalid_sandbox_session`,
+  (`{ type: "voxa.message", message, context: { sandbox: true } }`) to each agent's message
+  endpoint — derived from the registered handshake URL (`…/voxa/handshake` → `…/voxa/message`).
+  Rate-limited per user (30/min, in-memory; `app/lib/server/rate-limit.ts`) → `429`. Errors are
+  structured (`agent_unreachable`, `agent_bad_response`, `invalid_sandbox_session`,
   `agent_not_found`, `agent_not_approved`, `agent_not_verified`). This still does NOT create a
   production room/participant, mint a LiveKit token, or place the agent in a room.
+- **Multi-agent sandbox sessions (Phase 3.8).** A session can reference one OR MORE of the caller's
+  own approved + verified agents. `POST /api/agents/sandbox` takes `{ agentIds: string[] }` (legacy
+  `{ agentId }` kept), validates every agent (owned/approved/verified/has-endpoint), and returns a
+  session whose id encodes all ids (`sandbox:<id1>,<id2>:<uuid>`, `SANDBOX_MAX_AGENTS = 5`) plus an
+  `agents` summary array. The message route routes by `targetAgentId` (must be in the session),
+  `broadcast: true` (all session agents via `SandboxRuntime.broadcastMessage`, per-agent results),
+  or default (first/active agent), returning a `replies[]` array (`{ agentId, agentName, ok,
+  reply | error }`). The `/developers/sandbox` page multi-selects eligible agents, starts a session,
+  picks the active agent via pills, and offers **Send to {agent}** / **Send to all**; each agent
+  reply is labeled, independently streamed, with its own Tools Used panel. Sandbox-only — NOT a
+  production multi-agent room; agents never enter the Agent Selector or live rooms.
 - **Runtime abstraction** (`app/lib/server/agents/runtime/types.ts`,
-  `SandboxRuntime.ts`). `AgentRuntimeTransport` is the reusable interface; `SandboxRuntime`
-  (`mode: "sandbox"`, forces `sandbox: true`) is the only implementation today. A future
-  `ProductionRuntime` will implement the same interface with room/LiveKit dispatch — not built yet.
-- **Sandbox runtime v2 UI** (`/developers/sandbox`, Phase 3.6). The page is a mini runtime
+  `SandboxRuntime.ts`). `AgentRuntimeTransport` is the reusable interface (`sendMessage`,
+  `sendMessageToAgent`, `broadcastMessage`); `SandboxRuntime` (`mode: "sandbox"`, forces
+  `sandbox: true`, parallel fan-out) is the only implementation today. A future `ProductionRuntime`
+  will implement the same interface with room/LiveKit dispatch — not built yet.
+- **Sandbox runtime v2/v3 UI** (`/developers/sandbox`, Phases 3.6–3.7). The page is a mini runtime
   environment, not just a chat: an agent metadata panel (name, slug, status, verification,
   endpoint, capabilities, permissions, tags + a standing "Sandbox only — not available in live
-  rooms yet."), a runtime status model (`not_started` → `ready` → `sending` → `replied` /
-  `error` / `expired`), conversation history with per-turn timestamps + a Reset button, and
-  session-expiry handling (the panel polls `session.expiresAt`, shows an Expired state, and
-  offers "Start new session" which mints a fresh session — keyed by `sandboxRoomId` so a new
-  session remounts a clean conversation). Message UX: textarea, Enter to send / Shift+Enter for
-  newline, empty-message validation, send disabled while sending, and structured endpoint errors
-  surfaced inline. All purely client-side over the existing `/api/agents/sandbox*` routes.
+  rooms yet."), a runtime status model, conversation history with per-turn timestamps + a Reset
+  button, and session-expiry handling (the panel polls `session.expiresAt`, shows an Expired
+  state, and offers "Start new session" — keyed by `sandboxRoomId` so a new session remounts a
+  clean conversation). Message UX: textarea, Enter to send / Shift+Enter for newline,
+  empty-message validation, send disabled while busy, structured endpoint errors inline.
+- **Streaming + tool simulation (Phase 3.7).** The wire reply (`VoxaMessageResponse`) may carry
+  optional `streaming?: boolean` and `tools?: AgentToolInvocation[]` (`{ name, status, detail? }`,
+  status `pending|running|completed|failed`). `SandboxRuntime` parses these defensively (drops
+  malformed tools, caps the list) and the message route returns them. When `streaming` is true the
+  sandbox UI shows "{agent} is thinking…" then reveals the reply word-by-word (a CLIENT-SIDE
+  SIMULATION — no SSE/websocket); tools render as a read-only "Tools Used" panel. Voxa never
+  executes tools. The runtime status model mirrors the reusable event model: `not_started → ready
+  → thinking → streaming → replied | error | expired`. The runtime event contract
+  (`AgentRuntimeEvent`: `thinking`, `streaming`, `tool_start`, `tool_complete`,
+  `response_complete`, `error`) lives in `app/lib/server/agents/runtime/types.ts` for a future
+  real streaming transport / `ProductionRuntime` to emit. All purely client-side over the existing
+  `/api/agents/sandbox*` routes.
 - **Runtime registry merge seam** (`app/lib/agents/registry.ts`). Defines
   `RuntimeAgentDescriptor` with a `source` (`first_party` | `registered`) and a hard
   `availableInRooms` gate. `getFirstPartyRuntimeAgents()` (from the manifest; `availableInRooms`
@@ -317,22 +339,54 @@ This phase prepares external agents WITHOUT letting them into production rooms.
   Nothing in room/selector code calls the merge yet — it exists so enabling DB agents in rooms
   is one deliberate change (flip the gate + add dispatch), not a rewrite.
 
-- **Runnable sample agent** (`examples/agents/research-agent/`). A minimal Node/TS HTTP server
-  (`GET /health`, `POST /voxa/handshake`, `POST /voxa/message`) built on `@voxa/sdk`
-  (`createAgentHandshake`, `createAgentMessageResponse`). Developers run it locally, tunnel it
-  (ngrok/cloudflared), register the `…/voxa/handshake` URL, get it approved + verified, then
-  sandbox it. The SDK's `tsconfig` is `NodeNext` so its emitted ESM is Node-runnable; relative
-  source specifiers carry `.js`. voxa-beta does not import `@voxa/sdk` (it keeps its own copy of
-  the contract in `verification.ts`).
+- **Runnable sample agents** (`examples/agents/research-agent/`, `examples/agents/code-assistant/`).
+  Minimal Node/TS HTTP servers (`GET /health`, `POST /voxa/handshake`, `POST /voxa/message`) built
+  on `@voxa/sdk` (`createAgentHandshake`, `createAgentMessageResponse`) that report different
+  capabilities + tools and return `streaming: true`. Run them on different ports (8787 / 8788),
+  tunnel them, register the `…/voxa/handshake` URLs, get them approved + verified, then select both
+  in the multi-agent sandbox. The SDK's `tsconfig` is `NodeNext` so its emitted ESM is
+  Node-runnable; relative source specifiers carry `.js`. voxa-beta does not import `@voxa/sdk` (it
+  keeps its own copy of the contract in `verification.ts`).
 
-**Still intentionally disabled:** registered agents never enter production rooms or
-`AgentSelector`; no billing, marketplace, or onchain identity; Nova Path A is unchanged.
+- **Experimental room visibility (Phase 3.9, feature-flagged).** Server-only flag
+  `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS` (default `false`, never `NEXT_PUBLIC`). When `false`
+  (default) the live-room Agent Selector is unchanged. When `true`, the caller's OWN approved +
+  verified external agents (`status=approved`, `verification_status=verified`, `endpoint_url` not
+  null, `visibility` in private/unlisted — public excluded) are SHOWN in the selector under an
+  "Experimental · Text-only developer agents" section. Read path: server-only
+  `app/lib/server/agents/room-access.ts` (`externalAgentsInRoomsEnabled`,
+  `getOwnRoomEligibleExternalAgents`) → `GET /api/agents/room-eligible` (returns
+  `{ enabled: false, agents: [] }` when off) → browser `listRoomEligibleExternalAgents()`
+  (best-effort, never throws → never breaks a room) → `AgentSelector`. Scoped to the caller's own
+  agents (not admin-all) as the safer default.
+- **Experimental text-only room mode (Phase 3.10).** When the flag is on, those external agents can
+  be **invited into a live room in TEXT-ONLY mode**. Invite (`POST /api/agents/room/invite`) and
+  messaging (`POST /api/agents/room/message`) both re-validate flag + ownership + approval +
+  verification + endpoint + room membership on every call (server is the source of truth). Invite
+  inserts a `room_participants` row via SERVICE ROLE (`app/lib/server/supabase-service.ts`) with
+  `participant_type='agent'` and `user_id=agent:<agentId>` (`externalAgentParticipantId`) + a join
+  event — NO dispatch/LiveKit/audio. Messaging sends ONLY the one user message via `RoomTextRuntime`
+  (`app/lib/server/agents/runtime/RoomTextRuntime.ts`, `mode:"room_text"`, forces `sandbox:false`,
+  context `{ roomId, agentId, mode:"room_text" }`) to the agent's endpoint and returns the text
+  reply; **no room audio, no transcript, no auto-broadcast** of room messages. Rate-limited per user
+  (20/min). Only the owner can message; the reply is returned to the caller and shown in the
+  selector's compact text panel (the room participant card gets a "Text-only" badge). `SandboxRuntime`
+  and `RoomTextRuntime` share the wire transport `runtime/voxaMessageClient.ts`; a future
+  `ProductionRuntime` reuses the same `AgentRuntimeTransport` interface. External agents still NEVER
+  speak, never join LiveKit, and never get audio/transcripts.
+
+**Still intentionally disabled:** external agents can only be invited in EXPERIMENTAL text-only mode
+behind a default-off flag (no audio, no LiveKit, no transcript, owner-only, never speak); public
+marketplace agents are never room-eligible; no billing or onchain identity; Nova Path A, wake word,
+and Talk to Agent are unchanged.
 
 ## Key env (voxa-beta/.env.local — see voxa-beta/.env.example)
 
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY`
 (server-only — admin review API uses it to bypass RLS) and `ADMIN_EMAILS` (server-only,
-comma-separated admin allowlist for `/admin/agents`); `LIVEKIT_URL`,
+comma-separated admin allowlist for `/admin/agents`); `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS`
+(server-only, default `false` — gates display-only external-agent visibility in the Agent
+Selector); `LIVEKIT_URL`,
 `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (server-only — never prefix LiveKit/Deepgram/
 Gemini/OpenAI keys with `NEXT_PUBLIC`); `DEEPGRAM_API_KEY` (+ optional `DEEPGRAM_MODEL`
 default `nova-3`, `DEEPGRAM_LANGUAGE` default `multi`); `GOOGLE_API_KEY` +

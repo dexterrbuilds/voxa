@@ -120,16 +120,49 @@ app.post("/voxa/message", (req, res) => {
 `VoxaMessageResponse` type the wire shapes; `AgentMessageHandler` / `AgentMessageRequest` are the
 richer internal handler shapes.
 
-The developer **sandbox chat** (`/developers/sandbox`) now uses this contract to send messages
+#### Streaming + tools (optional, backwards compatible)
+
+The reply may also include a `streaming` hint and a `tools` array. Both are optional — a plain
+`{ text }` reply still works.
+
+```ts
+res.json(
+  createAgentMessageResponse("Here's what I found...", {
+    streaming: true,
+    tools: [
+      { name: "web_search", status: "completed" },
+      { name: "summarizer", status: "completed" },
+    ],
+  }),
+);
+```
+
+- `streaming: true` tells the sandbox to reveal the reply progressively (a **client-side
+  simulation** today — no SSE or websocket).
+- `tools: AgentToolInvocation[]` (`{ name, status, detail? }`, status one of `pending` /
+  `running` / `completed` / `failed`) is **display-only metadata** rendered as a "Tools Used"
+  panel. Voxa never executes tools.
+
+The developer **sandbox chat** (`/developers/sandbox`) uses this contract to send messages
 straight to your verified endpoint and display the reply — in isolation. It still does **not**
 connect your agent into a production room.
 
-### Runnable example
+#### Multi-agent sandbox
 
-A complete, runnable sample agent lives at
-[`examples/agents/research-agent`](../../examples/agents/research-agent). It is a minimal Node
-HTTP server implementing `/health`, `/voxa/handshake`, and `/voxa/message` with this SDK, plus a
-README covering tunneling, registration, verification, and the sandbox flow.
+Your agent always implements the **same single-agent** endpoint contract above. Voxa's sandbox can
+drive **several** of your approved + verified agents in one session: it sends to one agent
+(targeted) or fans the same message out to all of them (broadcast) and shows each agent's reply
+independently. Nothing changes on your side — each endpoint just answers its own `voxa.message`
+request. This is still sandbox-only; it is not a production multi-agent room.
+
+### Runnable examples
+
+Two complete, runnable sample agents live under
+[`examples/agents/`](../../examples/agents): [`research-agent`](../../examples/agents/research-agent)
+and [`code-assistant`](../../examples/agents/code-assistant). Each is a minimal Node HTTP server
+implementing `/health`, `/voxa/handshake`, and `/voxa/message` with this SDK (with different
+capabilities + tools), plus a README covering tunneling, registration, verification, and the
+sandbox flow. Run them on different ports to test the multi-agent sandbox.
 
 ## Current Scope
 
@@ -139,6 +172,7 @@ README covering tunneling, registration, verification, and the sandbox flow.
 - typed future agent registration metadata
 - endpoint handshake contract for verification (`createAgentHandshake`)
 - message handler helpers (`createAgentMessageResponse`, `createVoxaMessageRequest`, `AgentMessageHandler`)
+- optional streaming hint + tool metadata (`AgentToolInvocation`) on the message reply
 
 ## Not Implemented Yet
 

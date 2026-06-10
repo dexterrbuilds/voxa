@@ -25,6 +25,8 @@ export {
 export type {
   AgentMessageHandler,
   AgentMessageRequest,
+  AgentToolInvocation,
+  AgentToolStatus,
   VoxaMessageContext,
   VoxaMessageRequest,
   VoxaMessageResponse,

@@ -124,8 +124,15 @@ function ParticipantCard({
             {initialsFor(participant.name)}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-base font-semibold tracking-tight text-white">
-              {participant.name}
+            <div className="flex items-center gap-2">
+              <span className="truncate text-base font-semibold tracking-tight text-white">
+                {participant.name}
+              </span>
+              {participant.id.startsWith("agent:") && (
+                <span className="shrink-0 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-amber-300">
+                  Text-only
+                </span>
+              )}
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs text-[oklch(0.65_0.02_260)]">
               {isAgent ? (
@@ -530,6 +537,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
               invitingAgentId={invitingAgentId}
               onInvite={handleInviteAgent}
               participants={participants}
+              roomId={room.id}
               statusLabelForAgent={statusLabelForAgent}
             />
 

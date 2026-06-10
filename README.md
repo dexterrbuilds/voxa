@@ -219,18 +219,30 @@ Phase 3 prepares external agents for testing without allowing them into producti
   are covered. Admin-triggered via `POST /api/admin/agents/:id/verify`. The handshake contract
   ships in the SDK (`createAgentHandshake`, `VOXA_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`).
 - **Developer sandbox** (`POST /api/agents/sandbox` + `POST /api/agents/sandbox/message`, page
-  `/developers/sandbox`): a developer can start an **isolated** sandbox session only for their own
-  agent that is both `approved` and `verified`, then **chat** with it (messages go straight to the
-  verified endpoint and back). The `/developers/sandbox` page is a mini runtime environment — agent
-  metadata panel, runtime status (`Not started → Ready → Sending → Agent replied → Error →
-  Expired`), conversation history with timestamps + reset, and session-expiry handling. It never
-  creates a production room or dispatches the agent (`runtimeReady: false`).
+  `/developers/sandbox`): a developer can start an **isolated** sandbox session for one OR MORE of
+  their own `approved` + `verified` agents, then **chat** with them (messages go straight to the
+  verified endpoints and back). The `/developers/sandbox` page is a multi-agent mini runtime — agent
+  multi-select, active-agent metadata panel, runtime status (`Not started → Ready → Thinking →
+  Streaming → Replied → Error → Expired`), conversation history with timestamps + reset,
+  session-expiry handling, a **streaming/tool simulation** (a reply may set `streaming: true`,
+  revealed word-by-word client-side — no SSE/websocket — and report `tools`, shown as a read-only
+  "Tools Used" panel; Voxa never executes tools), and **target / broadcast** routing (**Send to
+  {agent}** or **Send to all**, with per-agent labeled replies). It never creates a production room
+  or dispatches the agents (`runtimeReady: false`) and is not a public multi-agent room.
 - **Runtime registry merge seam** (`voxa-beta/app/lib/agents/registry.ts`): merges first-party
   manifest agents with approved+verified DB agents into `RuntimeAgentDescriptor`s. Registered
   agents are always `availableInRooms: false`; nothing wires the merge into rooms yet.
+- **Experimental text-only room mode** (server-only flag `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS`,
+  default `false`): when on, the caller's own approved + verified external agents appear in the
+  live-room Agent Selector and can be **invited in text-only mode** (`POST /api/agents/room/invite`)
+  and messaged (`POST /api/agents/room/message`, owner-only, rate-limited). Invite adds an `agent`
+  participant (`user_id=agent:<agentId>`) via the service role; messaging sends only the one user
+  message through `RoomTextRuntime` and returns text. External agents are **never** dispatched to
+  LiveKit, **never** publish audio, **never** receive room audio/transcripts, and **never** speak.
+  Default-off keeps the selector unchanged.
 
-None of this places external agents into production rooms, adds billing/marketplace/onchain, or
-changes Nova Path A.
+None of this gives external agents room audio/voice or transcripts (text-only, behind a default-off
+flag), adds billing/marketplace/onchain, or changes Nova Path A.
 
 ## Generic Agent Invite Flow
 

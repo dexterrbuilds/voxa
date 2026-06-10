@@ -251,20 +251,34 @@ start an **isolated** sandbox session only for their **own** agent that is BOTH 
 TTL, `runtimeReady: false`).
 
 **Sandbox messaging is live** (`POST /api/agents/sandbox/message`). The sandbox chat sends
-`{ sandboxSessionId, message }`; the route re-validates ownership + approval + verification (the
-session is stateless — the agent id is parsed from the session id and re-checked against the DB
-every call), then the `SandboxRuntime` POSTs the SDK `voxa.message` contract
-(`{ type: "voxa.message", message, context: { sandbox: true } }`) to the agent's message endpoint
-(derived from the registered handshake URL: `…/voxa/handshake` → `…/voxa/message`) and returns the
-`{ text }` reply. Calls are rate-limited per user (30/min, `429` on excess). This still does
-**not** create a production room/participant, mint a LiveKit token, or place the agent in a room —
-it is a direct, isolated server-to-endpoint call. `runtimeReady` stays `false` because the room
-runtime is still off.
+`{ sandboxSessionId, message, targetAgentId?, broadcast? }`; the route re-validates ownership +
+approval + verification (the session is stateless — the agent ids are parsed from the session id
+and re-checked against the DB every call), then the `SandboxRuntime` POSTs the SDK `voxa.message`
+contract (`{ type: "voxa.message", message, context: { sandbox: true } }`) to each agent's message
+endpoint (derived from the registered handshake URL: `…/voxa/handshake` → `…/voxa/message`) and
+returns a `replies[]` array (`{ agentId, agentName, ok, reply | error }`). Calls are rate-limited
+per user (30/min, `429` on excess; one increment per request, even for a broadcast). This still
+does **not** create a production room/participant, mint a LiveKit token, or place the agent in a
+room — it is a direct, isolated server-to-endpoint call. `runtimeReady` stays `false`.
+
+**Multi-agent sandbox sessions (Phase 3.8).** A sandbox session can reference one OR MORE of the
+caller's own approved + verified agents. `POST /api/agents/sandbox` accepts `{ agentIds: string[] }`
+(legacy `{ agentId }` still works), validates **every** selected agent (owned, approved, verified,
+has an endpoint), and returns a session whose id encodes all agent ids
+(`sandbox:<id1>,<id2>:<uuid>`, max 5 agents) plus an `agents` summary array. Messaging routes by
+`targetAgentId` (one agent — must belong to the session), `broadcast: true` (all session agents,
+fanned out by `SandboxRuntime.broadcastMessage`, each result independent), or neither (defaults to
+the first/active agent). The `/developers/sandbox` page lets a developer multi-select eligible
+agents, start a session, pick the active agent via pills, and use **Send to {agent}** or **Send to
+all** — each agent reply is labeled and streamed independently with its own Tools Used panel. This
+is **sandbox-only**: it is not a production multi-agent room, agents never join the Agent Selector
+or live rooms, and `runtimeReady` stays `false`.
 
 The transport lives behind a reusable interface: `app/lib/server/agents/runtime/` defines
-`AgentRuntimeTransport`, and `SandboxRuntime` is the only implementation today. A future
-`ProductionRuntime` will implement the same interface (adding room/LiveKit dispatch) — it does not
-exist yet.
+`AgentRuntimeTransport` (`sendMessage` / `sendMessageToAgent` / `broadcastMessage`), and
+`SandboxRuntime` is the only implementation today (`broadcastMessage` fans one message out to many
+endpoints in parallel). A future `ProductionRuntime` will implement the same interface (adding
+room/LiveKit dispatch) — it does not exist yet.
 
 **Sandbox runtime v2 UI.** `/developers/sandbox` is a mini runtime environment, not just a chat
 box. Per agent it shows an **agent metadata panel** (name, slug, status, verification, endpoint,
@@ -277,12 +291,66 @@ messages are blocked, send is disabled while a reply is pending, and agent/endpo
 inline. History is component-local state (not persisted). None of this changes the API or grants
 production-room access.
 
+**Streaming + tool simulation (v3).** The message reply may include optional `streaming: true` and
+a `tools` array (`{ name, status, detail? }`). When `streaming` is set, the sandbox shows
+"{agent} is thinking…" then reveals the reply word-by-word — a **client-side simulation**, not SSE
+or a websocket. Reported `tools` render as a read-only **"Tools Used"** panel (✓ per tool); Voxa
+never executes tools. `SandboxRuntime` parses both fields defensively and the message route passes
+them through. The runtime status model (`Not started → Ready → Thinking → Streaming → Agent replied
+→ Error → Expired`) mirrors the reusable `AgentRuntimeEvent` contract
+(`thinking`/`streaming`/`tool_start`/`tool_complete`/`response_complete`/`error`) in
+`app/lib/server/agents/runtime/types.ts`, which a future real streaming transport / `ProductionRuntime`
+will emit. Still no production-room access.
+
 **Runtime registry preparation** (`app/lib/agents/registry.ts`). A merge seam combines two agent
 sources into `RuntimeAgentDescriptor`s tagged with `source` (`first_party` | `registered`) and a
 hard `availableInRooms` gate. First-party `available` agents are room-eligible; registered DB
 agents (approved + verified) are merged for visibility but **always** `availableInRooms: false`.
 No room/selector code calls the merge yet — enabling DB agents in rooms is a single deliberate
 change later, not a rewrite.
+
+### Experimental external-agent room visibility (feature-flagged, display-only)
+
+A **server-only** flag, `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS` (default `false`, never
+`NEXT_PUBLIC`), gates whether approved + verified external agents are *shown* in the live-room
+Agent Selector. This is **display-only** — chosen for safety (Option A).
+
+- **Flag off (default):** the Agent Selector is unchanged. No external agents appear.
+- **Flag on:** the caller's **own** agents that are `approved` + `verified` + have an
+  `endpoint_url` + are `private`/`unlisted` (public excluded) appear under an
+  "Experimental · Text-only developer agents" section. Scoped to the caller's own agents (not
+  admin-all).
+
+Read path: `app/lib/server/agents/room-access.ts` (`externalAgentsInRoomsEnabled`,
+`getOwnRoomEligibleExternalAgents`) → `GET /api/agents/room-eligible` (returns
+`{ enabled: false, agents: [] }` when the flag is off) → browser
+`listRoomEligibleExternalAgents()` (best-effort; any failure resolves to empty so a room never
+breaks) → `AgentSelector`.
+
+#### Experimental text-only room mode
+
+When the flag is on, those external agents can be **invited into a live room in text-only mode**:
+
+- **Invite** — `POST /api/agents/room/invite { roomId, agentId }`. Re-validates flag + ownership +
+  approval + verification + endpoint, confirms the caller is a human room member, then inserts a
+  `room_participants` row via the **service role** (`participant_type='agent'`,
+  `user_id=agent:<agentId>`) + a join event. No dispatch, no LiveKit, no audio.
+- **Message** — `POST /api/agents/room/message { roomId, agentId, message }`. Re-validates the same
+  checks + room membership + that the agent is in the room, rate-limits per user (20/min), then
+  sends **only the one message string** through `RoomTextRuntime` (context
+  `{ sandbox:false, roomId, agentId, mode:"room_text" }`) and returns the `{ text }` reply. Only the
+  owner can message; no room transcript is ever sent, and room messages are never auto-broadcast to
+  the agent.
+
+`SandboxRuntime` and `RoomTextRuntime` are separate `AgentRuntimeTransport` implementations that
+share one wire client (`app/lib/server/agents/runtime/voxaMessageClient.ts`); a future
+`ProductionRuntime` reuses the same interface. The Agent Selector shows an enabled "Invite
+(text-only)" button and a compact text chat; the room participant card gets a "Text-only" badge.
+
+**Room safety:** external agents are **never** dispatched to LiveKit, **never** publish audio,
+**never** receive room audio or transcripts, and **never** speak. The sandbox + this text-only mode
+are the only places they execute, both behind the default-off flag. Nova Path A, wake word, Talk to
+Agent, room sync, and LiveKit are untouched.
 
 ### Agent Selector UI
 
