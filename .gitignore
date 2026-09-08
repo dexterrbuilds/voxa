@@ -43,3 +43,7 @@ supabase-participant-sync-policies.sql
 .env.local
 .env.production
 .env.development
+
+# Local AI coding context
+AGENTS.md
+CLAUDE.md
