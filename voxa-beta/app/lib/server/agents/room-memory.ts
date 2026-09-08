@@ -19,10 +19,7 @@ import { externalAgentParticipantId } from "@/lib/server/agents/room-access";
 
 export const EXTERNAL_AGENT_USER_TYPE = "external_agent_user";
 export const EXTERNAL_AGENT_REPLY_TYPE = "external_agent_reply";
-export const EXTERNAL_AGENT_MEMORY_TYPES = [
-  EXTERNAL_AGENT_USER_TYPE,
-  EXTERNAL_AGENT_REPLY_TYPE,
-];
+export const EXTERNAL_AGENT_MEMORY_TYPES = [EXTERNAL_AGENT_USER_TYPE, EXTERNAL_AGENT_REPLY_TYPE];
 
 // How many recent turns to feed back as context (8–12). Default 10.
 export function getRoomTextHistoryTurns(): number {
@@ -89,16 +86,21 @@ export async function recordExternalAgentExchange(
       type: EXTERNAL_AGENT_USER_TYPE,
       message: params.userText,
       user_id: participantUserId,
+      created_at: new Date().toISOString(),
     },
     {
       room_id: params.roomId,
       type: EXTERNAL_AGENT_REPLY_TYPE,
       message: params.replyText,
       user_id: participantUserId,
+      created_at: new Date(Date.now() + 1).toISOString(),
     },
   ]);
   if (error) {
-    console.warn(`Could not persist external agent thread for room ${params.roomId}:`, error.message);
+    console.warn(
+      `Could not persist external agent thread for room ${params.roomId}:`,
+      error.message,
+    );
   }
 }
 

@@ -7,13 +7,15 @@
 // A ProductionRuntime would implement the same interface but add room/LiveKit
 // dispatch — it does not exist yet, and external agents stay out of rooms.
 
-export type AgentRuntimeMode = "sandbox" | "room_text" | "production";
+export type AgentRuntimeMode = "sandbox" | "room_text" | "voice_beta" | "production";
 
 export type AgentRuntimeMessageContext = {
   sandbox?: boolean;
 } & Record<string, unknown>;
 
 export type AgentRuntimeMessageInput = {
+  signal?: AbortSignal;
+  requestId?: string;
   // The agent's REGISTERED endpoint (the verified handshake URL). The transport
   // derives the message endpoint from it.
   endpointUrl: string;
@@ -42,7 +44,16 @@ export type AgentRuntimeReply =
       tools?: AgentRuntimeTool[];
       raw: unknown;
     }
-  | { ok: false; code: "agent_unreachable" | "agent_bad_response"; detail: string };
+  | {
+      ok: false;
+      code:
+        | "agent_unreachable"
+        | "agent_bad_response"
+        | "agent_timeout"
+        | "agent_cancelled"
+        | "agent_busy";
+      detail: string;
+    };
 
 // One target agent for broadcast: its registered endpoint + identity for labeling.
 export type AgentRuntimeTarget = {
@@ -52,6 +63,8 @@ export type AgentRuntimeTarget = {
 };
 
 export type AgentRuntimeBroadcastInput = {
+  signal?: AbortSignal;
+  requestId?: string;
   targets: AgentRuntimeTarget[];
   message: string;
   context?: AgentRuntimeMessageContext;

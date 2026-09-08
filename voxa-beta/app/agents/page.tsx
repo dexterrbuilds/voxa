@@ -30,8 +30,8 @@ export default async function AgentsPage() {
               Developers build agents for Voxa.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)]">
-              Browse verified agent profiles from Voxa and early developers. This is a
-              public developer preview, not an install marketplace or public room access surface.
+              Browse verified agent profiles from Voxa and early developers. This is a public
+              developer preview, not an install marketplace or public room access surface.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <BetaButton href="/developers/agents">
@@ -73,7 +73,9 @@ export default async function AgentsPage() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-[var(--foreground)]">{item.label}</div>
+                      <div className="text-sm font-medium text-[var(--foreground)]">
+                        {item.label}
+                      </div>
                       <div className="text-xs text-[var(--muted-foreground)]">{item.value}</div>
                     </div>
                   </div>

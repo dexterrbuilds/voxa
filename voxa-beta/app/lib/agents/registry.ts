@@ -113,8 +113,6 @@ export function mergeRuntimeAgents(
 
 // Convenience: the only agents that may currently enter rooms. Equivalent to the
 // first-party `available` set — registered agents are never included.
-export function getRoomEligibleAgents(
-  agents: RuntimeAgentDescriptor[],
-): RuntimeAgentDescriptor[] {
+export function getRoomEligibleAgents(agents: RuntimeAgentDescriptor[]): RuntimeAgentDescriptor[] {
   return agents.filter((agent) => agent.availableInRooms);
 }

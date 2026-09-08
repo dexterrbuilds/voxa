@@ -22,7 +22,9 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.supabase
     .from("developer_profiles")
-    .select("user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at")
+    .select(
+      "user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at",
+    )
     .eq("user_id", auth.user.id)
     .maybeSingle<DeveloperProfileRecord>();
 
@@ -76,7 +78,9 @@ export async function PATCH(request: NextRequest) {
       },
       { onConflict: "user_id" },
     )
-    .select("user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at")
+    .select(
+      "user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at",
+    )
     .single<DeveloperProfileRecord>();
 
   if (error) {

@@ -1,5 +1,47 @@
 # Voxa App Setup
 
+## Current Hardening Pass
+
+- `/developers/agents`: paste a handshake endpoint, **Test connection**, inspect reported
+  capabilities and explicitly apply detected metadata. Detection never grants permissions,
+  verifies ownership, approves, publishes, or registers an agent automatically.
+- `/api/agents/discover`: authenticated, rate-limited, 5-second bounded probe. Shared outbound
+  transport validates public DNS, pins the socket address, rejects redirects/private targets,
+  and bounds response bytes. Local agents need an HTTPS tunnel.
+- Sandbox messages use NDJSON to deliver each completed reply independently. This is **not
+  token streaming**. Artificial word-by-word delays were removed. Stop/reset/unmount cancel
+  pending work; a slow agent does not block a different idle agent.
+- Room text messages have request IDs, per-process in-flight coordination, retry/stop states,
+  and late-response guards. Context is permission-filtered, at most 12 turns / 12,000 characters
+  (default DB load remains 10 turns). Room identity is whitelisted; no profiles or room transcript
+  are added. Human mic and Nova Path A behavior are unchanged.
+- Room refresh requests are coalesced; room, participants, and recent events load in parallel.
+  Polling stays at 3 seconds, and online recovery triggers a refresh.
+- Public showcase identity comes only from opted-in developer profiles, never auth emails.
+  Planned first-party agents are marked Coming soon rather than Verified.
+
+### Analytics Migration
+
+Run `supabase-agent-analytics-server-writes.sql` **after the existing analytics schema**.
+It preserves counters and owner-only RLS while revoking browser RPC execution and granting
+it only to `service_role`. Deploy alongside the new analytics helper. Existing
+`SUPABASE_SERVICE_ROLE_KEY` must be configured server-side; missing analytics configuration
+must not break agent responses. No new secrets or flags are required.
+
+### Regression Checks
+
+```sh
+npx tsc --noEmit
+npm run build
+npm run lint
+node --require ./tests/register.cjs --test tests/runtime.test.cjs tests/routes.test.cjs
+```
+
+`tests/browser-smoke.mjs` uses Playwright against `SMOKE_URL` (default localhost:3100).
+It tests actual rendered pages with **controlled auth/provider fixtures**, not production
+account writes. `tests/analytics.sql` is for an **empty disposable PostgreSQL database only**,
+never a Supabase project. See [full validation and limits](../docs/platform-hardening.md).
+
 ## Supabase Email Authentication
 
 Voxa uses Supabase Auth. Email/password is the active sign-in path for local product testing.
@@ -207,6 +249,31 @@ A persistent banner states that **registered agents are not available in live ro
 reviewed and approved**, and the page links to the developer docs and SDK docs. Submitted
 agents stay registration-only: they do not feed `AgentSelector` and cannot be invited into
 rooms until approval tooling and a DB-backed runtime registry exist.
+
+### Bring Your Own Agent / self-import
+
+Developers can import an **existing** agent from another runtime — **OpenClaw**, LangChain,
+CrewAI, AutoGen, or other — through the same registration form. Importing is **not** automatic
+access: it never bypasses review, verification, sandbox, permissions, or room gating, and
+imported runtimes are **not trusted by default**.
+
+- **Model** (additive, `supabase-agent-import-schema.sql`): `import_source` (default
+  `custom_endpoint`) + `import_metadata jsonb` (optional repository / docs URLs — internal).
+  The source model lives in `app/lib/agents/import-sources.ts`.
+- **Dashboard:** a **Source / runtime** selector, optional repository / docs URLs, a per-source
+  adapter note, and a standing security panel: Voxa never runs your tools (only explicit user
+  messages are sent), imports are reviewed + sandboxed before any room use, they get no room
+  audio or transcript, and OpenClaw/public runtimes are not trusted by default.
+- **Adapter contract:** an imported agent wraps its runtime behind the **same** Voxa endpoints
+  (`GET /health`, `POST /voxa/handshake`, `POST /voxa/message`, optional `POST /voxa/voice`).
+  The adapter maps `Voxa request → upstream runtime → Voxa response`. A mock lives at
+  [`examples/agents/openclaw-adapter`](../examples/agents/openclaw-adapter) (no real OpenClaw
+  credentials required).
+- **Verification: no bypass** — imports still require endpoint reachable + valid handshake +
+  compatible SDK/protocol + declared capabilities + admin approval.
+- **Showcase:** public agent cards/detail show a friendly provenance label ("Native Voxa
+  Agent", "Custom Endpoint", "Imported from OpenClaw", …). Endpoint URLs and internal metadata
+  are never exposed.
 
 ### Agent analytics (`/developers/agents`)
 
@@ -525,6 +592,51 @@ permissions struck through, "never granted"). The room card shows friendly **All
 **never** receive room audio or transcripts, and **never** speak. The sandbox + this text-only mode
 are the only places they execute, both behind the default-off flag. Nova Path A, wake word, Talk to
 Agent, room sync, and LiveKit are untouched.
+
+#### Private voice agent beta (Phase 4.0)
+
+A **highly restricted, push-to-talk** voice bridge for external agents. It is **not** room audio:
+the agent never joins LiveKit, never gets a room audio stream, never gets a transcript, and never
+auto-listens. Voice is always user-initiated, one captured clip per tap, played back to the
+**initiating user only**.
+
+**Two gates** (both required):
+
+- Server-only flag `EXPERIMENTAL_EXTERNAL_AGENT_VOICE=false` (also requires
+  `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS=true`). Never `NEXT_PUBLIC`.
+- An **admin-granted** `room_voice_beta` permission on the agent. This permission is **not**
+  developer-requestable, **not** selectable in the dashboard, and is stripped from registration
+  payloads (`sanitizeRequestedPermissions`). It can only be granted from the admin console
+  (`PATCH /api/admin/agents/:id/permissions`, "Grant voice beta"). It is admin-grantable but a real
+  effective permission (`ADMIN_GRANTABLE_EXTERNAL_AGENT_PERMISSIONS`).
+
+**Flow** (`POST /api/agents/room/voice`, multipart audio + roomId + agentId):
+
+```
+User taps "Talk to {agent}" → silence-bounded clip (its OWN mic stream)
+  → Deepgram STT (reused Nova provider)
+  → VoiceAgentRuntime POSTs { type:"voxa.voice", message:<transcript>, context:{mode:"voice_beta",roomId,agentId,history} }
+  → agent returns { text, voice? }
+  → Edge/OpenAI TTS (reused Nova provider) → audio
+  → returned as base64 and played LOCALLY in the user's browser
+  → transcript + reply persisted into the SAME per-agent thread (no separate transcript system)
+```
+
+`VoiceAgentRuntime` (`app/lib/server/agents/runtime/VoiceAgentRuntime.ts`) is **separate** from
+`SandboxRuntime` and `RoomTextRuntime` but shares the wire client (parameterized `type`). Client
+capture lives in `app/lib/agents/voice-capture.ts` — entirely separate from `RoomVoice.tsx` / Nova
+Path A, using its own `getUserMedia` stream (never the LiveKit room mic) and local `<audio>`
+playback.
+
+**Every voice request re-validates** flag + ownership + approval + verification + room membership +
+agent-in-room + `room_voice_beta`. Rate-limited per user (10/min, stricter than text). The agent's
+`voice.preferredVoice` is accepted in the contract but **not honored yet** — the configured default
+Nova TTS voice is always used (TODO: future approved per-agent voice profiles). Capability vocabulary
+adds `voice_input`/`voice_output`; `room_audio_listen`/`room_audio_speak` remain future-blocked.
+
+The Agent Selector shows a **Voice Beta** badge and a **"Talk to {agent}"** push-to-talk button
+(only when the flag is on and the agent has `room_voice_beta`). Text chat + thread memory keep
+working unchanged — voice is purely additive.
 
 ### Agent Selector UI
 

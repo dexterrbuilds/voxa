@@ -7,10 +7,7 @@ import {
   validateRoomTextAgent,
 } from "@/lib/server/agents/room-access";
 import { getServiceRoleClient } from "@/lib/server/supabase-service";
-import {
-  clearExternalAgentThread,
-  loadExternalAgentThread,
-} from "@/lib/server/agents/room-memory";
+import { clearExternalAgentThread, loadExternalAgentThread } from "@/lib/server/agents/room-memory";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -18,7 +15,9 @@ export const runtime = "nodejs";
 // Shared validation for both GET (read thread) and DELETE (clear thread). Applies
 // the full security posture: flag + auth + ownership + approval + verification +
 // human room membership + agent-in-room.
-async function resolveThreadRequest(request: NextRequest): Promise<
+async function resolveThreadRequest(
+  request: NextRequest,
+): Promise<
   | { response: NextResponse }
   | { ok: true; service: SupabaseClient; roomId: string; agentId: string }
 > {
@@ -28,7 +27,9 @@ async function resolveThreadRequest(request: NextRequest): Promise<
   }
 
   if (!externalAgentsInRoomsEnabled()) {
-    return { response: jsonError("External agents in rooms are not enabled.", 403, "feature_disabled") };
+    return {
+      response: jsonError("External agents in rooms are not enabled.", 403, "feature_disabled"),
+    };
   }
 
   const roomId = (request.nextUrl.searchParams.get("roomId") ?? "").trim();
@@ -47,7 +48,9 @@ async function resolveThreadRequest(request: NextRequest): Promise<
 
   const service = getServiceRoleClient();
   if (!service) {
-    return { response: jsonError("Room agent threads are not configured.", 500, "service_not_configured") };
+    return {
+      response: jsonError("Room agent threads are not configured.", 500, "service_not_configured"),
+    };
   }
 
   const [isMember, agentPresent] = await Promise.all([
@@ -55,7 +58,9 @@ async function resolveThreadRequest(request: NextRequest): Promise<
     isExternalAgentInRoom(service, roomId, validation.agent.id),
   ]);
   if (!isMember) {
-    return { response: jsonError("You must be in the room to view this thread.", 403, "not_room_member") };
+    return {
+      response: jsonError("You must be in the room to view this thread.", 403, "not_room_member"),
+    };
   }
   if (!agentPresent) {
     return { response: jsonError("This agent is not in the room.", 409, "agent_not_in_room") };
@@ -81,6 +86,10 @@ export async function DELETE(request: NextRequest) {
   if ("response" in resolved) {
     return resolved.response;
   }
-  const deleted = await clearExternalAgentThread(resolved.service, resolved.roomId, resolved.agentId);
+  const deleted = await clearExternalAgentThread(
+    resolved.service,
+    resolved.roomId,
+    resolved.agentId,
+  );
   return NextResponse.json({ ok: true, deleted });
 }

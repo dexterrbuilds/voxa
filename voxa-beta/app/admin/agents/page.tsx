@@ -9,36 +9,26 @@ import {
   BadgeCheck,
   CheckCircle2,
   Loader2,
+  Mic,
   RefreshCw,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import {
-  BetaButton,
-  BetaEyebrow,
-  BetaHeader,
-  BetaPanel,
-  BetaShell,
-} from "@/components/BetaChrome";
+import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
 import {
   AdminApiError,
   listAdminAgents,
   reviewAdminAgent,
+  setAgentVoiceBeta,
   verifyAdminAgent,
   type AdminAgent,
   type ReviewAction,
 } from "@/lib/agents/admin-client";
-import type {
-  AgentVerificationStatus,
-  RegisteredAgentStatus,
-} from "@/lib/agents/registry-client";
-import {
-  EXTERNAL_AGENT_PERMISSION_META,
-  isGrantablePermission,
-} from "@/lib/agents/permissions";
+import type { AgentVerificationStatus, RegisteredAgentStatus } from "@/lib/agents/registry-client";
+import { EXTERNAL_AGENT_PERMISSION_META, isGrantablePermission } from "@/lib/agents/permissions";
 
 type StatusFilter = "all" | RegisteredAgentStatus;
 
@@ -77,31 +67,29 @@ const availableActions: Record<RegisteredAgentStatus, ReviewAction[]> = {
   disabled: ["approve"],
 };
 
-const actionMeta: Record<
-  ReviewAction,
-  { label: string; icon: typeof CheckCircle2; tone: string }
-> = {
-  approve: {
-    label: "Approve",
-    icon: CheckCircle2,
-    tone: "border-emerald-400/40 text-emerald-200 hover:bg-emerald-400/10",
-  },
-  reject: {
-    label: "Reject",
-    icon: XCircle,
-    tone: "border-rose-400/40 text-rose-200 hover:bg-rose-400/10",
-  },
-  disable: {
-    label: "Disable",
-    icon: Ban,
-    tone: "border-amber-400/40 text-amber-200 hover:bg-amber-400/10",
-  },
-  return_to_review: {
-    label: "Return to review",
-    icon: RotateCcw,
-    tone: "border-sky-400/40 text-sky-200 hover:bg-sky-400/10",
-  },
-};
+const actionMeta: Record<ReviewAction, { label: string; icon: typeof CheckCircle2; tone: string }> =
+  {
+    approve: {
+      label: "Approve",
+      icon: CheckCircle2,
+      tone: "border-emerald-400/40 text-emerald-200 hover:bg-emerald-400/10",
+    },
+    reject: {
+      label: "Reject",
+      icon: XCircle,
+      tone: "border-rose-400/40 text-rose-200 hover:bg-rose-400/10",
+    },
+    disable: {
+      label: "Disable",
+      icon: Ban,
+      tone: "border-amber-400/40 text-amber-200 hover:bg-amber-400/10",
+    },
+    return_to_review: {
+      label: "Return to review",
+      icon: RotateCcw,
+      tone: "border-sky-400/40 text-sky-200 hover:bg-sky-400/10",
+    },
+  };
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) {
@@ -201,7 +189,8 @@ function PermissionsReview({ permissions }: { permissions: string[] }) {
               key={p}
               className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 font-mono text-[10px] text-emerald-300"
             >
-              {EXTERNAL_AGENT_PERMISSION_META[p as keyof typeof EXTERNAL_AGENT_PERMISSION_META]?.badge ?? p}
+              {EXTERNAL_AGENT_PERMISSION_META[p as keyof typeof EXTERNAL_AGENT_PERMISSION_META]
+                ?.badge ?? p}
             </span>
           ))
         )}
@@ -230,11 +219,13 @@ function AgentCard({
   agent,
   onReview,
   onVerify,
+  onVoiceBeta,
   busy,
 }: {
   agent: AdminAgent;
   onReview: (action: ReviewAction, note: string) => void;
   onVerify: () => void;
+  onVoiceBeta: (grant: boolean) => void;
   busy: boolean;
 }) {
   const [note, setNote] = useState("");
@@ -244,6 +235,7 @@ function AgentCard({
   const reviewedAt = formatDateTime(agent.reviewedAt);
   const verifiedAt = formatDateTime(agent.verifiedAt);
   const metadataKeys = Object.keys(agent.metadata ?? {});
+  const hasVoiceBeta = (agent.permissions ?? []).includes("room_voice_beta");
 
   return (
     <BetaPanel className="p-5 sm:p-6">
@@ -255,21 +247,38 @@ function AgentCard({
             </h3>
             <StatusBadge status={agent.status} />
             <VerificationBadge status={agent.verificationStatus} />
+            {hasVoiceBeta ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-amber-300">
+                <Mic className="h-2.5 w-2.5" />
+                Voice beta
+              </span>
+            ) : null}
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
               {agent.visibility}
             </span>
           </div>
           <p className="mt-0.5 font-mono text-xs text-[var(--muted-foreground)]">{agent.slug}</p>
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onVerify}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-sky-400/40 px-2.5 py-1.5 text-xs font-medium text-sky-200 transition-colors hover:bg-sky-400/10 disabled:opacity-50"
-        >
-          <BadgeCheck className="h-3.5 w-3.5" />
-          Verify endpoint
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onVerify}
+            className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/40 px-2.5 py-1.5 text-xs font-medium text-sky-200 transition-colors hover:bg-sky-400/10 disabled:opacity-50"
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            Verify endpoint
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onVoiceBeta(!hasVoiceBeta)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/40 px-2.5 py-1.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-400/10 disabled:opacity-50"
+          >
+            <Mic className="h-3.5 w-3.5" />
+            {hasVoiceBeta ? "Revoke voice beta" : "Grant voice beta"}
+          </button>
+        </div>
       </div>
 
       {agent.description ? (
@@ -455,6 +464,29 @@ export default function AdminAgentsPage() {
     }
   };
 
+  const handleVoiceBeta = async (agent: AdminAgent, grant: boolean) => {
+    setBusyId(agent.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const updated = await setAgentVoiceBeta(agent.id, grant);
+      setNotice(
+        grant
+          ? `${updated.name} was granted the private voice beta.`
+          : `${updated.name} was removed from the private voice beta.`,
+      );
+      setAgents((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (caught) {
+      setError(
+        caught instanceof AdminApiError
+          ? caught.message
+          : "Could not update voice beta. Try again.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const heading = useMemo(() => {
     if (filter === "all") {
       return "All submitted agents";
@@ -616,7 +648,11 @@ export default function AdminAgentsPage() {
             <BetaPanel className="p-8 text-center">
               <p className="text-sm font-medium text-[var(--foreground)]">No agents to review.</p>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Nothing matches the {filter === "all" ? "current" : statusLabels[filter as RegisteredAgentStatus].toLowerCase()} filter.
+                Nothing matches the{" "}
+                {filter === "all"
+                  ? "current"
+                  : statusLabels[filter as RegisteredAgentStatus].toLowerCase()}{" "}
+                filter.
               </p>
             </BetaPanel>
           ) : null}
@@ -628,6 +664,7 @@ export default function AdminAgentsPage() {
               busy={busyId === agent.id}
               onReview={(action, note) => void handleReview(agent, action, note)}
               onVerify={() => void handleVerify(agent)}
+              onVoiceBeta={(grant) => void handleVoiceBeta(agent, grant)}
             />
           ))}
         </div>

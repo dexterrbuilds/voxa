@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import {
   getAuthenticatedSupabase,
   jsonError,
@@ -10,6 +10,8 @@ import { sandboxRuntime } from "@/lib/server/agents/runtime/SandboxRuntime";
 import type { AgentRuntimeTool } from "@/lib/server/agents/runtime/types";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { recordAgentAnalyticsBatch } from "@/lib/server/agents/analytics";
+import { agentRequestId, runAgentRequest } from "@/lib/server/agents/runtime/requests";
+import { buildAgentContext } from "@/lib/server/agents/runtime/context";
 
 export const runtime = "nodejs";
 
@@ -86,7 +88,11 @@ export async function POST(request: NextRequest) {
   } else if (typeof targetAgentId === "string" && targetAgentId.trim()) {
     const wanted = targetAgentId.trim();
     if (!parsed.agentIds.includes(wanted)) {
-      return jsonError("Target agent is not part of this sandbox session.", 400, "target_not_in_session");
+      return jsonError(
+        "Target agent is not part of this sandbox session.",
+        400,
+        "target_not_in_session",
+      );
     }
     targetIds = [wanted];
   } else {
@@ -155,51 +161,111 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const broadcastResults =
-    runnable.length > 0
-      ? await sandboxRuntime.broadcastMessage({
-          targets: runnable,
-          message: text,
-          context: { sandbox: true },
-        })
-      : [];
-
-  if (runnable.length > 0) {
-    await recordAgentAnalyticsBatch(auth.supabase, {
-      agentIds: runnable.map((agent) => agent.agentId),
-      metric: "sandbox_messages_sent",
-      ownerUserId: auth.user.id,
+  const requestId = agentRequestId(request.headers.get("X-Voxa-Request-Id"));
+  const executeTarget = async (
+    target: (typeof runnable)[number],
+    signal: AbortSignal,
+  ): Promise<ReplyEntry & { durationMs?: number }> => {
+    const started = performance.now();
+    try {
+      const result = await runAgentRequest(
+        `sandbox:${auth.user.id}:${sandboxSessionId}:${target.agentId}`,
+        requestId,
+        async () => {
+          const reply = await sandboxRuntime.sendMessageToAgent({
+            endpointUrl: target.endpointUrl,
+            message: text,
+            signal,
+            requestId,
+            context: buildAgentContext({ agentId: target.agentId, allowMemory: false }),
+          });
+          if (reply.ok)
+            after(() =>
+              recordAgentAnalyticsBatch(auth.supabase, {
+                agentIds: [target.agentId],
+                metric: "sandbox_messages_sent",
+                ownerUserId: auth.user.id,
+              }),
+            );
+          return reply;
+        },
+      );
+      const reply = result.ok
+        ? result.value
+        : {
+            ok: false as const,
+            code: "agent_busy",
+            detail: "This agent is already responding. Try again shortly.",
+          };
+      return reply.ok
+        ? {
+            agentId: target.agentId,
+            agentName: target.agentName,
+            ok: true,
+            durationMs: Math.round(performance.now() - started),
+            reply: { text: reply.text, tools: reply.tools ?? [], streaming: false },
+          }
+        : {
+            agentId: target.agentId,
+            agentName: target.agentName,
+            ok: false,
+            error: { code: reply.code, detail: reply.detail },
+          };
+    } catch {
+      return {
+        agentId: target.agentId,
+        agentName: target.agentName,
+        ok: false,
+        error: { code: "agent_request_failed", detail: "This agent could not finish. Try again." },
+      };
+    }
+  };
+  // Stream completed agent replies independently. JSON remains available for older clients.
+  if (request.headers.get("accept")?.includes("application/x-ndjson")) {
+    const controller = new AbortController();
+    const cancel = () => controller.abort();
+    request.signal.addEventListener("abort", cancel, { once: true });
+    if (request.signal.aborted) cancel();
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(output) {
+        const emit = (value: unknown) => {
+          if (!controller.signal.aborted)
+            output.enqueue(encoder.encode(JSON.stringify(value) + "\n"));
+        };
+        void (async () => {
+          try {
+            for (const entry of validationErrors) emit(entry);
+            await Promise.all(
+              runnable.map(async (target) => {
+                emit(await executeTarget(target, controller.signal));
+              }),
+            );
+            if (!controller.signal.aborted) output.close();
+          } catch {
+            if (!controller.signal.aborted)
+              output.error(new Error("Agent connection interrupted."));
+          } finally {
+            request.signal.removeEventListener("abort", cancel);
+          }
+        })();
+      },
+      cancel,
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-store",
+        "X-Accel-Buffering": "no",
+      },
     });
   }
 
-  const successById = new Map(broadcastResults.map((result) => [result.agentId, result]));
-
-  // Build replies preserving the requested order.
-  const replies: ReplyEntry[] = targetIds.map((id) => {
-    const validationError = validationErrors.find((entry) => entry.agentId === id);
-    if (validationError) {
-      return validationError;
-    }
-    const result = successById.get(id)!;
-    if (result.reply.ok) {
-      return {
-        agentId: id,
-        agentName: result.agentName,
-        ok: true,
-        reply: {
-          text: result.reply.text,
-          streaming: result.reply.streaming ?? false,
-          tools: result.reply.tools ?? [],
-        },
-      };
-    }
-    return {
-      agentId: id,
-      agentName: result.agentName,
-      ok: false,
-      error: { code: result.reply.code, detail: result.reply.detail },
-    };
-  });
+  const results = await Promise.all(
+    runnable.map((target) => executeTarget(target, request.signal)),
+  );
+  const byId = new Map([...validationErrors, ...results].map((entry) => [entry.agentId, entry]));
+  const replies = targetIds.map((id) => byId.get(id)!);
 
   return NextResponse.json({ replies });
 }

@@ -200,6 +200,12 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   const [novaVisualState, setNovaVisualState] = useState<AgentVisualState>("online");
   const [manualNovaState, setManualNovaState] = useState<AgentVisualState | null>(null);
   const [invitingAgentId, setInvitingAgentId] = useState<string | null>(null);
+  const [externalStates, setExternalStates] = useState<Record<string, AgentVisualState>>({});
+  const onAgentState = useCallback((agentId: string, state: "in-room" | "thinking" | "error") => {
+    setExternalStates((previous) =>
+      previous[agentId] === state ? previous : { ...previous, [agentId]: state },
+    );
+  }, []);
   const consumedInviteRequest = useRef(false);
   const router = useRouter();
 
@@ -253,15 +259,24 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       return;
     }
 
-    const refresh = () => {
-      void refreshSharedRoom(room.id);
+    let refreshing = false;
+    const refresh = async () => {
+      if (refreshing || !navigator.onLine) return;
+      refreshing = true;
+      try {
+        await refreshSharedRoom(room.id);
+      } finally {
+        refreshing = false;
+      }
     };
 
     const channel = subscribeToRoom(room.id, refresh);
     const intervalId = window.setInterval(refresh, 3000);
+    window.addEventListener("online", refresh);
 
     return () => {
       window.clearInterval(intervalId);
+      window.removeEventListener("online", refresh);
       unsubscribeFromSharedRoom(channel);
     };
   }, [refreshSharedRoom, room?.id, sharedRoomEnabled, subscribeToRoom, unsubscribeFromSharedRoom]);
@@ -301,18 +316,20 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
   ]);
 
   const novaInRoom = room
-    ? isAgentInRoom(defaultAgentId, room.participants) || room.invitedAgents.includes(defaultAgentId)
+    ? isAgentInRoom(defaultAgentId, room.participants) ||
+      room.invitedAgents.includes(defaultAgentId)
     : false;
   const participants = room?.participants ?? [];
   const agentStates = useMemo(() => {
     const nextStates = new Map<string, AgentVisualState>();
+    for (const [id, state] of Object.entries(externalStates)) nextStates.set(`agent:${id}`, state);
 
     if (novaInRoom) {
       nextStates.set(defaultAgentId, novaVisualState);
     }
 
     return nextStates;
-  }, [novaInRoom, novaVisualState]);
+  }, [novaInRoom, novaVisualState, externalStates]);
   const voiceByParticipantId = useMemo(
     () => new Map(voiceParticipants.map((participant) => [participant.id, participant])),
     [voiceParticipants],
@@ -334,41 +351,44 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
     setNovaVisualState("in-room");
   }, [invitingAgentId, novaInRoom]);
 
-  const handleInviteAgent = useCallback(async (agentId: string) => {
-    if (!room) {
-      return;
-    }
-
-    const alreadyInRoom =
-      isAgentInRoom(agentId, room.participants) || room.invitedAgents.includes(agentId);
-
-    if (alreadyInRoom || invitingAgentId) {
-      return;
-    }
-
-    setInvitingAgentId(agentId);
-    if (agentId === defaultAgentId) {
-      setNovaVisualState("joining");
-    }
-
-    if (!sharedRoomEnabled) {
-      inviteAgent(room.id, agentId);
-      setInvitingAgentId(null);
-      if (agentId === defaultAgentId) {
-        setNovaVisualState("in-room");
+  const handleInviteAgent = useCallback(
+    async (agentId: string) => {
+      if (!room) {
+        return;
       }
-      return;
-    }
 
-    const nextRoom = await inviteAgentShared(room.id, agentId, "manual");
+      const alreadyInRoom =
+        isAgentInRoom(agentId, room.participants) || room.invitedAgents.includes(agentId);
 
-    if (!nextRoom) {
-      setInvitingAgentId(null);
-      if (agentId === defaultAgentId) {
-        setNovaVisualState("online");
+      if (alreadyInRoom || invitingAgentId) {
+        return;
       }
-    }
-  }, [inviteAgent, inviteAgentShared, invitingAgentId, room, sharedRoomEnabled]);
+
+      setInvitingAgentId(agentId);
+      if (agentId === defaultAgentId) {
+        setNovaVisualState("joining");
+      }
+
+      if (!sharedRoomEnabled) {
+        inviteAgent(room.id, agentId);
+        setInvitingAgentId(null);
+        if (agentId === defaultAgentId) {
+          setNovaVisualState("in-room");
+        }
+        return;
+      }
+
+      const nextRoom = await inviteAgentShared(room.id, agentId, "manual");
+
+      if (!nextRoom) {
+        setInvitingAgentId(null);
+        if (agentId === defaultAgentId) {
+          setNovaVisualState("online");
+        }
+      }
+    },
+    [inviteAgent, inviteAgentShared, invitingAgentId, room, sharedRoomEnabled],
+  );
 
   const novaVoice = voiceByParticipantId.get(defaultAgentId);
   const liveNovaState = novaInRoom ? agentStateFromVoice(novaVoice) : null;
@@ -533,6 +553,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
 
           <aside className="space-y-4">
             <AgentSelector
+              onAgentState={onAgentState}
               invitedAgentIds={room.invitedAgents}
               invitingAgentId={invitingAgentId}
               onInvite={handleInviteAgent}

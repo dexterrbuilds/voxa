@@ -1,12 +1,6 @@
 export type AgentId = string;
 
-export type AgentStatus =
-  | "idle"
-  | "in_room"
-  | "listening"
-  | "thinking"
-  | "speaking"
-  | "error";
+export type AgentStatus = "idle" | "in_room" | "listening" | "thinking" | "speaking" | "error";
 
 export type AgentCapability =
   | "voice"

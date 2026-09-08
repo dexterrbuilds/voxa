@@ -53,8 +53,7 @@ end $$;
 
 -- 5. Atomic server-side counter increment.
 -- Routes call this after they have already validated ownership/eligibility. The
--- function still verifies owner_user_id = auth.uid() and the agent belongs to
--- that user before changing counters.
+-- Only server service-role calls may increment. Agent ownership is checked again.
 create or replace function public.increment_agent_analytics(
   p_agent_id uuid,
   p_owner_user_id uuid,
@@ -67,18 +66,18 @@ security definer
 set search_path = public
 as $$
 declare
-  increment_by integer := greatest(coalesce(p_amount, 1), 0);
+  increment_by integer := p_amount;
 begin
-  if auth.uid() is null or auth.uid() <> p_owner_user_id then
+  if auth.role() is distinct from 'service_role' then
     raise exception 'not authorized';
   end if;
 
-  if p_metric not in (
+  if p_metric is null or p_metric not in (
     'sandbox_sessions_started',
     'sandbox_messages_sent',
     'room_invites',
     'room_messages_sent'
-  ) then
+  ) or p_amount is null or p_amount < 1 or p_amount > 100 then
     raise exception 'invalid analytics metric';
   end if;
 
@@ -130,5 +129,7 @@ begin
 end;
 $$;
 
+revoke execute on function public.increment_agent_analytics(uuid, uuid, text, integer)
+  from public, anon, authenticated;
 grant execute on function public.increment_agent_analytics(uuid, uuid, text, integer)
-  to authenticated;
+  to service_role;

@@ -19,7 +19,7 @@ function initialsFor(name: string) {
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "Recently updated";
+    return "First-party preview";
   }
 
   const date = new Date(value);
@@ -31,6 +31,7 @@ function formatDate(value: string | null) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   })}`;
 }
 
@@ -77,13 +78,19 @@ export function AgentCard({ agent, compact = false }: { agent: PublicAgent; comp
               {agent.name}
             </h3>
             <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
-              <CheckCircle2 className="h-3 w-3" />
-              Verified
+              {agent.verificationStatus === "verified" && <CheckCircle2 className="h-3 w-3" />}
+              {agent.verificationStatus === "verified" ? "Verified" : "Coming soon"}
             </span>
           </div>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            by {agent.creatorDisplayName} · {agent.source === "first_party" ? "First-party" : "Developer"}
+            by {agent.creatorDisplayName} ·{" "}
+            {agent.source === "first_party" ? "First-party" : "Developer"}
           </p>
+          {agent.importLabel ? (
+            <span className="mt-1.5 inline-flex items-center rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-2 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)]">
+              {agent.importLabel}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -148,6 +155,7 @@ export default function AgentDirectoryClient({
         agent.name,
         agent.description,
         agent.creatorDisplayName,
+        agent.importLabel ?? "",
         ...agent.capabilities,
         ...agent.tags,
       ]
@@ -246,12 +254,14 @@ export default function AgentDirectoryClient({
                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--subtle-fill)] pl-10 pr-3 text-sm outline-none transition focus:border-[oklch(0.72_0.2_245/0.55)] sm:w-72"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search agents"
+                aria-label="Search agents and developers"
                 value={query}
               />
             </label>
             <label className="relative block">
               <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
               <select
+                aria-label="Filter by capability"
                 className="h-11 w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--subtle-fill)] pl-10 pr-8 text-sm outline-none transition focus:border-[oklch(0.72_0.2_245/0.55)] sm:w-60"
                 onChange={(event) => setCapability(event.target.value)}
                 value={capability}

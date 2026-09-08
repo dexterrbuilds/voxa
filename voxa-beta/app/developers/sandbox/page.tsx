@@ -22,13 +22,7 @@ import {
   Wrench,
   XCircle,
 } from "lucide-react";
-import {
-  BetaButton,
-  BetaEyebrow,
-  BetaHeader,
-  BetaPanel,
-  BetaShell,
-} from "@/components/BetaChrome";
+import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
 import {
   AgentRegistryError,
@@ -39,8 +33,6 @@ import {
   type SandboxSession,
   type SandboxToolInvocation,
 } from "@/lib/agents/registry-client";
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 // ---- Runtime status model (mirrors AgentRuntimeEvent lifecycle) -------------
 
@@ -59,7 +51,8 @@ const runtimeStatusMeta: Record<
 > = {
   not_started: {
     label: "Not started",
-    className: "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
+    className:
+      "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
     icon: Circle,
   },
   ready: {
@@ -161,7 +154,7 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
       <span className="font-mono uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
         {label}
       </span>
-      <span className="min-w-0 break-words text-[oklch(0.78_0.02_260)]">{children}</span>
+      <span className="min-w-0 break-words text-[var(--foreground)]">{children}</span>
     </div>
   );
 }
@@ -186,10 +179,10 @@ function Chips({ values }: { values: string[] }) {
 
 function AgentMetadataPanel({ agent }: { agent: RegisteredAgent }) {
   return (
-    <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
-        Active agent
-      </p>
+    <details className="border-b border-[var(--glass-border)] pb-4">
+      <summary className="cursor-pointer text-sm font-medium text-[var(--foreground)]">
+        {agent.name} · Connection and capabilities
+      </summary>
       <div className="mt-3 space-y-2">
         <MetaRow label="Name">{agent.name}</MetaRow>
         <MetaRow label="Slug">
@@ -216,9 +209,9 @@ function AgentMetadataPanel({ agent }: { agent: RegisteredAgent }) {
       </div>
       <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-amber-400/25 bg-amber-400/[0.06] px-2.5 py-1 text-[11px] font-medium text-amber-200">
         <Lock className="h-3 w-3" />
-        Sandbox only — not available in live rooms yet.
+        Sandbox session · Room permissions remain separate.
       </p>
-    </div>
+    </details>
   );
 }
 
@@ -236,6 +229,8 @@ type ChatTurn =
       tools?: SandboxToolInvocation[];
       streaming?: boolean;
       error?: string;
+      durationMs?: number;
+      prompt?: string;
     };
 
 function MultiAgentSandboxPanel({
@@ -259,14 +254,21 @@ function MultiAgentSandboxPanel({
   const [expired, setExpired] = useState(() => Date.now() >= new Date(session.expiresAt).getTime());
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const mountedRef = useRef(true);
+  const generation = useRef(0);
+  const requests = useRef(new Map<string, AbortController>());
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
   const idRef = useRef(0);
   const newId = () => String((idRef.current += 1));
   const multiAgent = session.agents.length > 1;
 
   useEffect(() => {
     mountedRef.current = true;
+    const activeRequests = requests.current;
     return () => {
       mountedRef.current = false;
+      generation.current += 1;
+      activeRequests.forEach((controller) => controller.abort());
+      activeRequests.clear();
     };
   }, []);
 
@@ -274,6 +276,7 @@ function MultiAgentSandboxPanel({
     const check = () => {
       if (Date.now() >= new Date(session.expiresAt).getTime()) {
         setExpired(true);
+        requests.current.forEach((controller) => controller.abort());
       }
     };
     check();
@@ -285,8 +288,12 @@ function MultiAgentSandboxPanel({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [turns, status]);
 
-  const busy = status === "thinking" || status === "streaming";
-  const effectiveStatus: RuntimeStatus = expired ? "expired" : status;
+  const busy = pendingIds.includes(activeAgentId);
+  const effectiveStatus: RuntimeStatus = expired
+    ? "expired"
+    : pendingIds.length > 0
+      ? "thinking"
+      : status;
   const activeAgent = sessionAgents.find((agent) => agent.id === activeAgentId) ?? sessionAgents[0];
 
   const patchTurnById = (id: string, patch: Partial<Extract<ChatTurn, { kind: "agent" }>>) => {
@@ -295,82 +302,81 @@ function MultiAgentSandboxPanel({
     );
   };
 
-  // Simulated per-response token streaming (client-side only; no SSE/websocket).
-  const streamInto = async (id: string, fullText: string) => {
-    const tokens = fullText.match(/\S+\s*/g) ?? [fullText];
-    let acc = "";
-    for (const token of tokens) {
-      if (!mountedRef.current) return;
-      acc += token;
-      patchTurnById(id, { text: acc });
-      await sleep(40);
-    }
-    if (!mountedRef.current) return;
-    patchTurnById(id, { text: fullText, streaming: false });
-  };
-
-  const send = async (broadcast: boolean) => {
-    const text = input.trim();
-    if (!text || busy || expired) {
+  const send = async (broadcast: boolean, retry?: { text: string; agentId: string }) => {
+    const text = retry?.text ?? input.trim();
+    const targetIds = retry
+      ? [retry.agentId]
+      : broadcast
+        ? session.agents.map((agent) => agent.id)
+        : [activeAgentId];
+    if (!text || targetIds.some((id) => requests.current.has(id)) || expired) {
       return;
     }
+    const epoch = generation.current;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const slots = new Map<string, string>();
+    for (const agentId of targetIds) {
+      requests.current.set(agentId, controller);
+      slots.set(agentId, newId());
+    }
+    setPendingIds([...requests.current.keys()]);
     setError(null);
     setInput("");
-    setTurns((prev) => [...prev, { kind: "developer", id: newId(), text, at: Date.now() }]);
+    setTurns((prev) => [
+      ...prev,
+      { kind: "developer", id: newId(), text, at: Date.now() },
+      ...targetIds.map((agentId) => ({
+        kind: "agent" as const,
+        id: slots.get(agentId)!,
+        agentId,
+        agentName: session.agents.find((agent) => agent.id === agentId)?.name ?? "Agent",
+        text: "",
+        at: Date.now(),
+        streaming: true,
+        prompt: text,
+      })),
+    ]);
     setStatus("thinking");
     try {
-      const result = await sendSandboxMessage(
-        session.sandboxRoomId,
-        text,
-        broadcast ? { broadcast: true } : { targetAgentId: activeAgentId },
-      );
-      if (!mountedRef.current) return;
-
-      const streamJobs: Promise<void>[] = [];
-      for (const entry of result.replies) {
-        const id = newId();
-        if (entry.ok) {
-          const streaming = entry.reply.streaming === true;
-          setTurns((prev) => [
-            ...prev,
-            {
-              kind: "agent",
-              id,
-              agentId: entry.agentId,
-              agentName: entry.agentName,
-              text: streaming ? "" : entry.reply.text,
-              at: Date.now(),
-              tools: entry.reply.tools,
-              streaming,
-            },
-          ]);
-          if (streaming) {
-            streamJobs.push(streamInto(id, entry.reply.text));
-          }
-        } else {
-          setTurns((prev) => [
-            ...prev,
-            {
-              kind: "agent",
-              id,
-              agentId: entry.agentId,
-              agentName: entry.agentName,
-              text: "",
-              at: Date.now(),
-              error: entry.error.detail,
-            },
-          ]);
-        }
-      }
-
-      if (streamJobs.length > 0) {
-        setStatus("streaming");
-        await Promise.all(streamJobs);
-      }
-      if (!mountedRef.current) return;
+      await sendSandboxMessage(session.sandboxRoomId, text, {
+        ...(broadcast && !retry ? { broadcast: true } : { targetAgentId: targetIds[0] }),
+        signal: controller.signal,
+        onReply: (entry) => {
+          if (!mountedRef.current || generation.current !== epoch || controller.signal.aborted)
+            return;
+          const id = slots.get(entry.agentId);
+          if (!id) return;
+          slots.delete(entry.agentId);
+          requests.current.delete(entry.agentId);
+          setPendingIds([...requests.current.keys()]);
+          patchTurnById(
+            id,
+            entry.ok
+              ? {
+                  text: entry.reply.text,
+                  tools: entry.reply.tools,
+                  streaming: false,
+                  durationMs: entry.durationMs,
+                }
+              : { text: "", error: entry.error.detail, streaming: false },
+          );
+        },
+      });
+      if (!mountedRef.current || generation.current !== epoch) return;
+      if (slots.size) throw new Error("Agent connection interrupted.");
       setStatus("replied");
     } catch (caught) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || generation.current !== epoch) return;
+      for (const id of slots.values())
+        patchTurnById(id, {
+          streaming: false,
+          error: controller.signal.aborted
+            ? "Request stopped. You can retry."
+            : caught instanceof Error
+              ? caught.message
+              : "Could not reach this agent.",
+        });
       setError(
         caught instanceof AgentRegistryError ? caught.message : "Could not reach the sandbox.",
       );
@@ -378,10 +384,20 @@ function MultiAgentSandboxPanel({
       if (caught instanceof AgentRegistryError && caught.code === "invalid_sandbox_session") {
         setExpired(true);
       }
+    } finally {
+      clearTimeout(timeout);
+      for (const id of targetIds)
+        if (requests.current.get(id) === controller) requests.current.delete(id);
+      if (mountedRef.current && generation.current === epoch)
+        setPendingIds([...requests.current.keys()]);
     }
   };
 
   const resetConversation = () => {
+    generation.current += 1;
+    requests.current.forEach((controller) => controller.abort());
+    requests.current.clear();
+    setPendingIds([]);
     setTurns([]);
     setError(null);
     setStatus(expired ? "expired" : "ready");
@@ -389,6 +405,15 @@ function MultiAgentSandboxPanel({
 
   return (
     <div className="space-y-4">
+      {pendingIds.length > 0 && (
+        <button
+          type="button"
+          className="beta-button-glass"
+          onClick={() => requests.current.forEach((controller) => controller.abort())}
+        >
+          Stop pending replies
+        </button>
+      )}
       {/* Runtime status + session facts */}
       <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -402,22 +427,21 @@ function MultiAgentSandboxPanel({
           </div>
           <RuntimeStatusBadge status={effectiveStatus} />
         </div>
-        <dl className="mt-3 grid gap-1.5 text-xs text-[var(--muted-foreground)]">
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-mono uppercase tracking-[0.12em]">Session id</dt>
-            <dd className="break-all font-mono text-[oklch(0.78_0.02_260)]">
-              {session.sandboxRoomId}
-            </dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-mono uppercase tracking-[0.12em]">Expires at</dt>
-            <dd>{new Date(session.expiresAt).toLocaleString()}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-mono uppercase tracking-[0.12em]">Runtime</dt>
-            <dd className="font-mono text-amber-300">runtimeReady: {String(session.runtimeReady)}</dd>
-          </div>
-        </dl>
+        <details className="mt-3 text-xs text-[var(--muted-foreground)]">
+          <summary className="cursor-pointer">Session details</summary>
+          <dl className="mt-3 grid gap-1.5">
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 font-mono uppercase tracking-[0.12em]">Session id</dt>
+              <dd className="break-all font-mono text-[var(--foreground)]">
+                {session.sandboxRoomId}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 font-mono uppercase tracking-[0.12em]">Expires at</dt>
+              <dd>{new Date(session.expiresAt).toLocaleString()}</dd>
+            </div>
+          </dl>
+        </details>
         <button
           type="button"
           onClick={onNewSelection}
@@ -470,7 +494,12 @@ function MultiAgentSandboxPanel({
           </button>
         </div>
 
-        <div ref={scrollRef} className="mt-3 max-h-96 space-y-2.5 overflow-y-auto">
+        <div
+          ref={scrollRef}
+          role="log"
+          aria-label="Agent replies"
+          className="mt-3 max-h-96 space-y-2.5 overflow-y-auto break-words"
+        >
           {turns.length === 0 ? (
             <p className="text-sm text-[var(--muted-foreground)]">
               Send a message to {multiAgent ? "your selected agent or all agents" : "your agent"}.
@@ -498,7 +527,7 @@ function MultiAgentSandboxPanel({
                   className={`max-w-[85%] rounded-lg border px-3 py-2 text-sm leading-relaxed ${
                     turn.error
                       ? "border-rose-400/30 bg-rose-400/[0.08] text-rose-200"
-                      : "border-[var(--glass-border)] bg-[var(--background)] text-[oklch(0.78_0.02_260)]"
+                      : "border-[var(--glass-border)] bg-[var(--background)] text-[var(--foreground)]"
                   }`}
                 >
                   {turn.error ? (
@@ -522,14 +551,28 @@ function MultiAgentSandboxPanel({
                 ) : null}
                 <span className="mt-1 px-1 font-mono text-[10px] text-[var(--muted-foreground)]">
                   {turn.agentName} · {formatTime(turn.at)}
+                  {turn.durationMs !== undefined
+                    ? ` · ${(turn.durationMs / 1000).toFixed(1)}s`
+                    : ""}
                 </span>
+                {turn.error && turn.prompt && (
+                  <button
+                    type="button"
+                    className="mt-1 text-xs underline"
+                    disabled={pendingIds.includes(turn.agentId)}
+                    onClick={() => void send(false, { text: turn.prompt!, agentId: turn.agentId })}
+                  >
+                    Retry {turn.agentName}
+                  </button>
+                )}
               </div>
             ),
           )}
-          {status === "thinking" ? (
+          {pendingIds.length > 0 ? (
             <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Waiting for {multiAgent ? "agents" : activeAgent?.name ?? "the agent"}...
+              {pendingIds.length} {pendingIds.length === 1 ? "agent is" : "agents are"}{" "}
+              responding...
             </div>
           ) : null}
         </div>
@@ -566,9 +609,10 @@ function MultiAgentSandboxPanel({
             <textarea
               className="beta-input min-h-[44px] w-full resize-none"
               rows={1}
+              aria-label="Message your agent"
               value={input}
               maxLength={4000}
-              placeholder="Message your agent...  (Enter to send, Shift+Enter for newline)"
+              placeholder="Message your agent..."
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
@@ -591,7 +635,7 @@ function MultiAgentSandboxPanel({
                 <button
                   type="button"
                   onClick={() => void send(true)}
-                  disabled={busy || !input.trim()}
+                  disabled={pendingIds.length > 0 || !input.trim()}
                   className="inline-flex items-center gap-1.5 rounded-md border border-[oklch(0.72_0.2_245/0.5)] px-3.5 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[oklch(0.72_0.2_245/0.1)] disabled:opacity-50"
                 >
                   <Users className="h-4 w-4" />
@@ -669,10 +713,7 @@ export default function DeveloperSandboxPage() {
     }
   }, [initialized, user, loadAgents]);
 
-  const eligibleAgents = useMemo(
-    () => agents.filter((agent) => eligibility(agent).ok),
-    [agents],
-  );
+  const eligibleAgents = useMemo(() => agents.filter((agent) => eligibility(agent).ok), [agents]);
 
   // Full records for the agents in the active session (for metadata panels).
   const sessionAgents = useMemo(() => {
@@ -776,8 +817,8 @@ export default function DeveloperSandboxPage() {
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-sky-400/25 bg-sky-400/[0.06] p-4">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
           <p className="text-sm leading-relaxed text-[oklch(0.82_0.02_260)]">
-            The sandbox is isolated from live rooms and only opens for your own agents that are
-            both <span className="font-medium">approved</span> and{" "}
+            The sandbox is isolated from live rooms and only opens for your own agents that are both{" "}
+            <span className="font-medium">approved</span> and{" "}
             <span className="font-medium">endpoint-verified</span>. Messaging is live and goes
             straight to your endpoints, but the room runtime stays off — the sandbox never connects
             your agents into a production room, and this is not a public multi-agent room.

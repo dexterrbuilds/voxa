@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/server/agents/registration";
 import {
   externalAgentsInRoomsEnabled,
+  externalAgentVoiceEnabled,
   getOwnRoomEligibleExternalAgents,
 } from "@/lib/server/agents/room-access";
 
@@ -23,9 +24,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (!externalAgentsInRoomsEnabled()) {
-    return NextResponse.json({ enabled: false, agents: [] });
+    return NextResponse.json({ enabled: false, voiceEnabled: false, agents: [] });
   }
 
   const agents = await getOwnRoomEligibleExternalAgents(auth.supabase, auth.user.id);
-  return NextResponse.json({ enabled: true, agents });
+  return NextResponse.json({ enabled: true, voiceEnabled: externalAgentVoiceEnabled(), agents });
 }

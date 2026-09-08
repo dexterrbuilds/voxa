@@ -91,9 +91,10 @@ async function getAccessToken() {
 }
 
 async function parseError(response: Response) {
-  const payload = (await response.json().catch(() => null)) as
-    | { error?: string; code?: string }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+    code?: string;
+  } | null;
 
   return new AdminApiError(
     payload?.error ?? "Something went wrong. Try again.",
@@ -104,7 +105,9 @@ async function parseError(response: Response) {
 
 export async function listAdminAgents(status?: string): Promise<AdminAgent[]> {
   const token = await getAccessToken();
-  const url = status ? `/api/admin/agents?status=${encodeURIComponent(status)}` : "/api/admin/agents";
+  const url = status
+    ? `/api/admin/agents?status=${encodeURIComponent(status)}`
+    : "/api/admin/agents";
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -130,6 +133,26 @@ export async function reviewAdminAgent(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ action, note }),
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  const data = (await response.json()) as { agent: AdminAgent };
+  return data.agent;
+}
+
+// Admin-only grant/revoke of the special room_voice_beta permission.
+export async function setAgentVoiceBeta(agentId: string, grant: boolean): Promise<AdminAgent> {
+  const token = await getAccessToken();
+  const response = await fetch(`/api/admin/agents/${encodeURIComponent(agentId)}/permissions`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: grant ? "grant_voice_beta" : "revoke_voice_beta" }),
   });
 
   if (!response.ok) {

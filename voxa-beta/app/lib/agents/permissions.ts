@@ -10,24 +10,34 @@
 // the UI (dashboard, admin, room) can share one source of truth.
 
 export type ExternalAgentPermission =
-  // Currently grantable:
+  // Developer-grantable:
   | "room_text_reply"
   | "tools_visualize"
   | "memory_read_thread"
   | "memory_write_thread"
   | "room_presence"
+  // Admin-only (NOT developer-requestable). Gates the private push-to-talk voice
+  // beta. Granted only from the admin review surface.
+  | "room_voice_beta"
   // Future — types only; NEVER granted today:
   | "room_audio_listen"
   | "room_audio_speak"
   | "room_transcript_read";
 
-// Permissions a developer may request and an agent may actually use today.
+// Permissions a developer may request (and an agent may use) today.
 export const GRANTABLE_EXTERNAL_AGENT_PERMISSIONS: ExternalAgentPermission[] = [
   "room_text_reply",
   "memory_read_thread",
   "memory_write_thread",
   "tools_visualize",
   "room_presence",
+];
+
+// Permissions only a Voxa admin may grant. These are NOT selectable in the
+// developer dashboard and are stripped from developer-submitted payloads, but
+// they ARE effective at runtime once an admin grants them.
+export const ADMIN_GRANTABLE_EXTERNAL_AGENT_PERMISSIONS: ExternalAgentPermission[] = [
+  "room_voice_beta",
 ];
 
 // Minimal default for a newly registered agent.
@@ -87,6 +97,13 @@ export const EXTERNAL_AGENT_PERMISSION_META: Record<ExternalAgentPermission, Per
     description: "Show as a participant card in the room.",
     grantable: true,
   },
+  room_voice_beta: {
+    label: "Private voice beta",
+    badge: "Voice Beta",
+    description:
+      "Push-to-talk private voice (STT in, TTS back to the user only). Admin-granted; not room audio.",
+    grantable: false,
+  },
   room_audio_listen: {
     label: "Listen to room audio",
     badge: "Audio",
@@ -108,26 +125,43 @@ export const EXTERNAL_AGENT_PERMISSION_META: Record<ExternalAgentPermission, Per
 };
 
 const GRANTABLE_SET = new Set<string>(GRANTABLE_EXTERNAL_AGENT_PERMISSIONS);
+const ADMIN_GRANTABLE_SET = new Set<string>(ADMIN_GRANTABLE_EXTERNAL_AGENT_PERMISSIONS);
 
 export function isGrantablePermission(value: string): value is ExternalAgentPermission {
   return GRANTABLE_SET.has(value);
+}
+
+// Admin-only permissions (e.g. room_voice_beta). Effective at runtime, but never
+// developer-requestable.
+export function isAdminGrantablePermission(value: string): value is ExternalAgentPermission {
+  return ADMIN_GRANTABLE_SET.has(value);
+}
+
+// Any permission that can be effective at runtime = developer-grantable OR
+// admin-granted. Future audio/transcript permissions are in neither set.
+export function isEffectivePermission(value: string): value is ExternalAgentPermission {
+  return GRANTABLE_SET.has(value) || ADMIN_GRANTABLE_SET.has(value);
 }
 
 export function isExternalAgentPermission(value: string): value is ExternalAgentPermission {
   return value in EXTERNAL_AGENT_PERMISSION_META;
 }
 
-// The effective permissions an agent actually holds at runtime: its registered
-// permissions intersected with the grantable set (future permissions are dropped
-// here, so they can never be effective). If none are recorded (legacy/empty
-// agents), fall back to the minimal default so the current text-only flow keeps
-// working.
+// The effective permissions an agent actually holds at runtime: registered ∩
+// (developer-grantable ∪ admin-granted). Future audio/transcript permissions are
+// dropped here, so they can never be effective. If no developer-grantable
+// permissions are recorded (legacy/empty agents), fall back to the minimal
+// default so the current text-only flow keeps working — while still preserving
+// any admin-granted permissions (e.g. room_voice_beta).
 export function resolveEffectivePermissions(
   registered: string[] | null | undefined,
 ): ExternalAgentPermission[] {
-  const granted = (registered ?? []).filter(isGrantablePermission);
-  const unique = [...new Set(granted)];
-  return unique.length > 0 ? unique : [...DEFAULT_EXTERNAL_AGENT_PERMISSIONS];
+  const recorded = [...new Set((registered ?? []).filter(isEffectivePermission))];
+  const developerGrantable = recorded.filter(isGrantablePermission);
+  const adminGranted = recorded.filter(isAdminGrantablePermission);
+  const base =
+    developerGrantable.length > 0 ? developerGrantable : [...DEFAULT_EXTERNAL_AGENT_PERMISSIONS];
+  return [...new Set([...base, ...adminGranted])];
 }
 
 export function hasPermission(

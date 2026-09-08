@@ -88,9 +88,7 @@ function getServiceRoleClient(): SupabaseClient | null {
 // Validate that the caller is signed in AND in ADMIN_EMAILS, then hand back a
 // service-role client for privileged data access. Returns a NextResponse on any
 // failure so routes can `if (admin instanceof NextResponse) return admin;`.
-export async function requireAdmin(
-  request: NextRequest,
-): Promise<AdminContext | NextResponse> {
+export async function requireAdmin(request: NextRequest): Promise<AdminContext | NextResponse> {
   const auth = await getAuthenticatedSupabase(request);
   if (auth instanceof NextResponse) {
     return auth;
@@ -119,9 +117,7 @@ export function isMissingReviewColumns(error: unknown) {
   const code = (error as { code?: string }).code;
   const message = (error as { message?: string }).message ?? "";
   return (
-    code === "PGRST204" ||
-    code === "42703" ||
-    /reviewed_by|reviewed_at|review_note/i.test(message)
+    code === "PGRST204" || code === "42703" || /reviewed_by|reviewed_at|review_note/i.test(message)
   );
 }
 

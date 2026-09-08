@@ -98,8 +98,7 @@ const defaultAgentId = defaultAgent?.id ?? "nova";
 const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 // Temporary auth diagnostics. Off by default; set NEXT_PUBLIC_AUTH_DEBUG=true to enable.
-const AUTH_DEBUG =
-  typeof process !== "undefined" && process.env.NEXT_PUBLIC_AUTH_DEBUG === "true";
+const AUTH_DEBUG = typeof process !== "undefined" && process.env.NEXT_PUBLIC_AUTH_DEBUG === "true";
 export function authDebug(event: string, data?: Record<string, unknown>) {
   if (AUTH_DEBUG) {
     console.info(`[voxa-auth] ${event}`, data ?? {});
@@ -346,9 +345,7 @@ function roomWithAgent(room: Room, agentId: string) {
 
   return {
     ...room,
-    invitedAgents: alreadyInvited
-      ? room.invitedAgents
-      : [...room.invitedAgents, agent.id],
+    invitedAgents: alreadyInvited ? room.invitedAgents : [...room.invitedAgents, agent.id],
     participants: hasAgentParticipant
       ? room.participants.map((participant) =>
           participant.id === participantUserId

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getServiceRoleClient } from "@/lib/server/supabase-service";
 
 export type AgentAnalyticsMetric =
   | "sandbox_sessions_started"
@@ -113,7 +114,7 @@ export async function loadAgentAnalytics(
 }
 
 export async function recordAgentAnalytics(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   params: {
     agentId: string;
     metric: AgentAnalyticsMetric;
@@ -121,15 +122,21 @@ export async function recordAgentAnalytics(
     amount?: number;
   },
 ) {
-  const { error } = await supabase.rpc("increment_agent_analytics", {
-    p_agent_id: params.agentId,
-    p_owner_user_id: params.ownerUserId,
-    p_metric: params.metric,
-    p_amount: params.amount ?? 1,
-  });
+  try {
+    const service = getServiceRoleClient();
+    if (!service) return;
+    const { error } = await service.rpc("increment_agent_analytics", {
+      p_agent_id: params.agentId,
+      p_owner_user_id: params.ownerUserId,
+      p_metric: params.metric,
+      p_amount: params.amount ?? 1,
+    });
 
-  if (error && !isAnalyticsUnavailable(error)) {
-    console.warn(`Could not record ${params.metric} for agent ${params.agentId}.`, error.message);
+    if (error && !isAnalyticsUnavailable(error)) {
+      console.warn(`Could not record ${params.metric} for agent ${params.agentId}.`, error.message);
+    }
+  } catch {
+    console.warn("Agent analytics write unavailable.");
   }
 }
 

@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
     .eq("user_id", participantUserId)
     .limit(1);
 
+  if (existing.error)
+    return jsonError("Could not check room membership. Try again.", 503, "invite_failed");
+
   if (!existing.error && (existing.data?.length ?? 0) === 0) {
     const inserted = await service.from("room_participants").insert({
       room_id: roomId.trim(),
@@ -87,6 +90,12 @@ export async function POST(request: NextRequest) {
     if (inserted.error && inserted.error.code !== "23505") {
       return jsonError("Could not add the agent to the room.", 500, "invite_failed");
     }
+    if (inserted.error?.code === "23505")
+      return NextResponse.json({
+        ok: true,
+        participantUserId,
+        agent: { id: validation.agent.id, name: validation.agent.name },
+      });
     await service.from("room_events").insert({
       room_id: roomId.trim(),
       type: "agent",

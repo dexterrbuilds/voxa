@@ -31,11 +31,18 @@ export type {
   VoxaMessageHistoryTurn,
   VoxaMessageRequest,
   VoxaMessageResponse,
+  VoxaVoiceContext,
+  VoxaVoiceRequest,
+  VoxaVoiceResponse,
 } from "./messaging.js";
 export {
   createAgentMessageResponse,
   createVoxaMessageRequest,
+  createVoxaVoiceRequest,
   VOXA_MESSAGE_TYPE,
+  VOXA_VOICE_TYPE,
 } from "./messaging.js";
 export { defineAgentRegistration, registerAgent } from "./registration.js";
 export { VoxaAgent } from "./VoxaAgent.js";
+export { createVoxaAgent } from "./adapter.js";
+export type { VoxaAdapterOptions } from "./adapter.js";

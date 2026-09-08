@@ -11,6 +11,41 @@ platform agents through the same contract.
 
 Nova is the first demonstration agent running on Voxa. Nova is not the product.
 
+## Minimal Framework-Neutral Adapter
+
+```ts
+import { createVoxaAgent } from "@voxa/sdk";
+
+export const handle = createVoxaAgent({
+  identity: {
+    name: "Research Agent",
+    description: "Researches a question using my existing runtime.",
+    capabilities: ["web_search"],
+  },
+  runtime: "custom_endpoint", // or openclaw, langchain, crewai, autogen, other
+  tools: true,
+  async onMessage(message, context, signal) {
+    // Delegate to your runtime; propagate signal to its network requests.
+    return { text: `You asked: ${message}` };
+  },
+});
+```
+
+Mount the Fetch API handler in your server. It answers `GET /health` and POST bodies
+with `type: "voxa.handshake"` / `"voxa.message"`; optional `onVoice` handles the existing
+private `voxa.voice` **transcribed-text** contract, not raw room audio. JSON inputs are
+capped at 64 KiB, messages at 4,000 characters, replies at 32,000 characters. Provider
+exceptions return a generic error rather than credentials or stack traces.
+
+Runnable Node bridge: [fetch-adapter example](../../examples/agents/fetch-adapter/README.md).
+Paste its public `/voxa/handshake` URL into Voxa's **Test connection** flow. Detection is
+descriptive only: review, verification, ownership and permissions still apply. A reported
+voice capability is not a voice permission. Voxa does not execute reported tools or
+automatically integrate any framework. Deploy your own endpoint security/abuse controls.
+
+Validate with `npm run typecheck`, `npm run build`, and
+`node --test tests/adapter.test.mjs`. This local package is not published to npm.
+
 ## Install
 
 This SDK is local-only for now:

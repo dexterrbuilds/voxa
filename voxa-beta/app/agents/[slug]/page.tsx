@@ -145,10 +145,13 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
             <div className="mt-8 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-400">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Verified Agent
+                {agent.verificationStatus === "verified" && (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                )}
+                {agent.verificationStatus === "verified" ? "Verified Agent" : "Coming soon"}
               </span>
               <Pill>{agent.source === "first_party" ? "Built by Voxa" : "External developer"}</Pill>
+              {agent.importLabel ? <Pill>{agent.importLabel}</Pill> : null}
               <Pill>{formatDate(agent.updatedAt)}</Pill>
             </div>
 
@@ -217,9 +220,7 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
                   {agent.tags.length > 0 ? (
                     agent.tags.map((tag) => <Pill key={tag}>#{tag}</Pill>)
                   ) : (
-                    <p className="text-sm text-[var(--muted-foreground)]">
-                      No tags published yet.
-                    </p>
+                    <p className="text-sm text-[var(--muted-foreground)]">No tags published yet.</p>
                   )}
                 </div>
               </BetaPanel>
@@ -233,8 +234,11 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
                 <h2 className="font-semibold tracking-tight">Verification</h2>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
-                This profile is visible because the agent is approved, verified, and public.
-                Endpoint details and internal review data stay private.
+                {agent.verificationStatus === "coming_soon"
+                  ? "This first-party agent is planned and is not yet available."
+                  : agent.source === "first_party"
+                    ? "Built and maintained by Voxa. Public profiles do not grant room access."
+                    : "This agent is approved, verified, and public. Endpoint details and internal review data stay private."}
               </p>
             </BetaPanel>
 

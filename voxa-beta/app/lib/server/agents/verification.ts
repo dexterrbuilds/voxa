@@ -1,4 +1,5 @@
 import type { AgentVerificationStatus } from "@/lib/server/agents/registration";
+import { requestAgentJson } from "./runtime/endpoint";
 
 // Endpoint health check service.
 //
@@ -24,6 +25,8 @@ export type AgentHandshake = {
     description?: string;
     capabilities: string[];
     permissions?: string[];
+    runtime?: string;
+    supports?: { text?: boolean; voice?: boolean; tools?: boolean };
   };
 };
 
@@ -57,36 +60,48 @@ function buildReport(checks: VerificationCheck[], endpointUrl: string | null): V
   };
 }
 
-async function fetchHandshake(endpointUrl: string): Promise<
-  | { ok: true; handshake: AgentHandshake }
-  | { ok: false; detail: string }
-> {
+export async function fetchHandshake(
+  endpointUrl: string,
+  signal?: AbortSignal,
+): Promise<{ ok: true; handshake: AgentHandshake } | { ok: false; detail: string }> {
   const controller = new AbortController();
+  const cancel = () => controller.abort();
+  signal?.addEventListener("abort", cancel, { once: true });
+  if (signal?.aborted) controller.abort();
   const timeout = setTimeout(() => controller.abort(), HANDSHAKE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(endpointUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ type: "voxa.handshake" }),
+    const response = await requestAgentJson({
+      url: endpointUrl,
+      body: { type: "voxa.handshake" },
       signal: controller.signal,
+      maxBytes: 32768,
     });
 
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       return { ok: false, detail: `Endpoint responded with HTTP ${response.status}.` };
     }
 
-    const payload = (await response.json().catch(() => null)) as AgentHandshake | null;
-    if (!payload || typeof payload !== "object") {
+    const payload = response.payload as AgentHandshake | null;
+    if (
+      !payload ||
+      typeof payload !== "object" ||
+      !payload.agent ||
+      !Array.isArray(payload.agent.capabilities) ||
+      payload.agent.capabilities.length > 32 ||
+      !payload.agent.capabilities.every((cap) => typeof cap === "string" && cap.length <= 48)
+    ) {
       return { ok: false, detail: "Endpoint did not return a JSON handshake." };
     }
 
     return { ok: true, handshake: payload };
   } catch (error) {
-    const reason = error instanceof Error && error.name === "AbortError" ? "timed out" : "was unreachable";
+    const reason =
+      error instanceof Error && error.name === "AbortError" ? "timed out" : "was unreachable";
     return { ok: false, detail: `Endpoint ${reason}.` };
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", cancel);
   }
 }
 
@@ -123,7 +138,8 @@ export async function runAgentVerification(agent: VerifiableAgent): Promise<Veri
   // Check 2: SDK / protocol compatibility.
   const protocolOk = handshake.protocol === VOXA_AGENT_PROTOCOL;
   const versionOk =
-    typeof handshake.sdkVersion === "string" && SUPPORTED_SDK_VERSIONS.includes(handshake.sdkVersion);
+    typeof handshake.sdkVersion === "string" &&
+    SUPPORTED_SDK_VERSIONS.includes(handshake.sdkVersion);
   checks.push({
     name: "sdk_compatible",
     ok: protocolOk && versionOk,

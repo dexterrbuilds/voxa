@@ -26,10 +26,7 @@ export async function GET(request: NextRequest) {
     return jsonError("Unknown agent status filter.", 400, "invalid_status_filter");
   }
 
-  let query = admin.service
-    .from("agents")
-    .select("*")
-    .order("updated_at", { ascending: false });
+  let query = admin.service.from("agents").select("*").order("updated_at", { ascending: false });
 
   if (status) {
     query = query.eq("status", status);

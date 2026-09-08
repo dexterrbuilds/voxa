@@ -68,7 +68,8 @@ export default function Home() {
               Begin inside an AI conversation room.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[oklch(0.65_0.02_260)]">
-              Start an invite-only room with {defaultAgentName} online and ready to join the conversation.
+              Start an invite-only room with {defaultAgentName} online and ready to join the
+              conversation.
             </p>
             <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
               <BetaStat label="Access" value="Invite-only" />

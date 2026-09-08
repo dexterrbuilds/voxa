@@ -2,6 +2,47 @@
 
 Guidance for Codex when working in the Voxa repository.
 
+## Platform Hardening (Current Follow-Up)
+
+The real product is still `voxa-beta/`. Nova Path A, human LiveKit audio, auth and
+the existing default-off external-agent gates are preserved. The worktree also includes
+the pre-existing private external voice beta; this pass does not enable it.
+
+- Shared outbound transport: `runtime/endpoint.ts` validates public DNS, pins sockets,
+  rejects redirects, bounds JSON, and propagates aborts. Handshake discovery and all
+  external runtimes reuse it. Local endpoints need a public HTTPS tunnel.
+- `POST /api/agents/discover` is authenticated, rate-limited and descriptive only.
+  `AgentConnectionTest` explicitly prefills metadata; never grants permissions/review.
+- `runtime/context.ts` bounds permitted per-agent history to 12 messages / 12,000
+  characters. Existing DB history default is 10. No full room transcript/private profile.
+- `runtime/requests.ts` coordinates per-process requests (60-second replay cache).
+  It is NOT distributed/exactly-once. Timeouts/cancellations are classified in transport.
+- Sandbox NDJSON delivers completed agent replies independently, NOT token streaming.
+  Artificial typing delays are removed; stop/reset/late-response guards are implemented.
+- Room polling is coalesced; room/participants/latest events load in parallel. Local
+  external thinking/error states use existing participant cards. No shared state protocol added.
+- Analytics increments now use service role only. Apply
+  `supabase-agent-analytics-server-writes.sql` with the updated app; owner SELECT RLS stays.
+  Existing `SUPABASE_SERVICE_ROLE_KEY` is required server-side. No new env variables.
+- Public creator identity comes only from developer profiles, never auth/email fallbacks.
+  Planned first-party agents no longer claim verification.
+- SDK `createVoxaAgent` is a bounded Fetch handler; runnable bridge:
+  `examples/agents/fetch-adapter`. Framework adapters remain untrusted until reviewed.
+
+Validation: beta `npx tsc --noEmit`, `npm run build`, `npm run lint`;
+`node --require ./tests/register.cjs --test tests/runtime.test.cjs tests/routes.test.cjs`.
+SDK: typecheck/build + `node --test tests/adapter.test.mjs`.
+Browser fixture tests: `tests/browser-smoke.mjs`; PostgreSQL test:
+`tests/analytics.sql` (**disposable DB only**, never Supabase).
+See `docs/platform-hardening.md` for rollout and limits.
+
+Known debt: distributed leases/rate limits, signed server-enforced sandbox expiry,
+atomic room ending/multi-tab presence, true token streaming, authenticated endpoint
+ownership. No production migration/deployment was performed. Keep README, beta README,
+AGENTS and CLAUDE in sync; do not push local context files intentionally. These memory
+files are currently tracked in this checkout despite earlier local-only guidance.
+
+
 ## Product Philosophy
 
 Voxa is **not** building an AI meeting assistant.
@@ -55,7 +96,9 @@ external-agent audio/LiveKit access.
 - 3.13 Permissions Enforcement
 - 3.14 Agent Showcase
 - 3.15 Agent Analytics & Usage Dashboard
-- 3.16 Developer Profiles & Identity (current)
+- 3.16 Developer Profiles & Identity
+- 3.17 Bring Your Own Agent / Self-Import
+- Current follow-up: platform hardening (see above)
 
 ## This repo is 4 projects plus the SDK foundation
 
@@ -149,7 +192,7 @@ has completed one. The `/agents` directory includes a simple Featured Developers
 - Product: `cd voxa-beta && npm install && npm run dev` (Next, http://localhost:3000)
 - Agent: `cd voxa-agent && pip install -e . && python src/agent.py dev`
 - SDK: `cd packages/sdk && npm run typecheck`
-- No test suite exists in any project.
+- Focused runtime/API tests exist in `voxa-beta/tests`; SDK tests in `packages/sdk/tests`.
 
 ## voxa-beta architecture (the real product)
 
@@ -329,6 +372,32 @@ or join rooms. The marketing docs page `/developers/docs/registration` (in `src/
 to this dashboard. Do not wire registered agents into rooms until approval tooling and a
 DB-backed runtime registry exist.
 
+## Bring Your Own Agent / self-import (Phase 3.17)
+
+Developers can self-import an EXISTING agent from another runtime (OpenClaw, LangChain,
+CrewAI, AutoGen, other) into the SAME registration flow. The import source is descriptive
+provenance only — it NEVER bypasses review, verification, sandbox, permissions, or room
+gating, and imported runtimes (especially OpenClaw) are NOT trusted by default.
+
+- **Model:** additive columns on `public.agents` via `supabase-agent-import-schema.sql` —
+  `import_source text default 'custom_endpoint'` and `import_metadata jsonb default '{}'`.
+  The client-safe source model is `app/lib/agents/import-sources.ts`. `registration.ts`
+  validates/normalizes `import_source` (unknown → `custom_endpoint`) and cleans
+  `import_metadata` (repository/docs URLs go here — internal, never exposed publicly).
+- **Dashboard:** `/developers/agents` adds a Source/runtime selector, optional repository +
+  docs URLs, a per-source adapter note (esp. OpenClaw must expose a Voxa-compatible adapter
+  endpoint), and a standing security panel ("Voxa never runs your tools; only explicit user
+  messages are sent; reviewed + sandboxed before rooms; no room audio/transcript; OpenClaw
+  not trusted by default").
+- **Adapter contract:** an imported agent wraps its runtime behind the SAME Voxa endpoints
+  (`GET /health`, `POST /voxa/handshake`, `POST /voxa/message`, optional `POST /voxa/voice`).
+  Sample mock at `examples/agents/openclaw-adapter/` (no real OpenClaw credentials needed).
+- **Verification: NO bypass.** Imports still require endpoint reachable + valid handshake +
+  compatible SDK/protocol + declared capabilities + admin approval.
+- **Showcase:** public agent cards/detail show a friendly provenance label
+  (`PublicAgent.importLabel`): "Native Voxa Agent", "Custom Endpoint", "Imported from
+  OpenClaw", etc. Never exposes endpoint URLs or internal metadata.
+
 ## Admin agent review tooling
 
 The admin review surface lets authorized reviewers move submitted agents through the
@@ -416,14 +485,14 @@ This phase prepares external agents WITHOUT letting them into production rooms.
 - **Streaming + tool simulation (Phase 3.7).** The wire reply (`VoxaMessageResponse`) may carry
   optional `streaming?: boolean` and `tools?: AgentToolInvocation[]` (`{ name, status, detail? }`,
   status `pending|running|completed|failed`). `SandboxRuntime` parses these defensively (drops
-  malformed tools, caps the list) and the message route returns them. When `streaming` is true the
-  sandbox UI shows "{agent} is thinking…" then reveals the reply word-by-word (a CLIENT-SIDE
-  SIMULATION — no SSE/websocket); tools render as a read-only "Tools Used" panel. Voxa never
+  malformed tools, caps the list) and the message route returns them. The current sandbox
+  delivers each completed reply over NDJSON immediately; simulated typing delays were removed.
+  This is not provider token streaming. Tools render as a read-only "Tools Used" panel. Voxa never
   executes tools. The runtime status model mirrors the reusable event model: `not_started → ready
   → thinking → streaming → replied | error | expired`. The runtime event contract
   (`AgentRuntimeEvent`: `thinking`, `streaming`, `tool_start`, `tool_complete`,
   `response_complete`, `error`) lives in `app/lib/server/agents/runtime/types.ts` for a future
-  real streaming transport / `ProductionRuntime` to emit. All purely client-side over the existing
+  real token-streaming transport / `ProductionRuntime` to emit. Current delivery uses the existing
   `/api/agents/sandbox*` routes.
 - **Runtime registry merge seam** (`app/lib/agents/registry.ts`). Defines
   `RuntimeAgentDescriptor` with a `source` (`first_party` | `registered`) and a hard

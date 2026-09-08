@@ -561,9 +561,7 @@ function VoiceSession({
   const wakeListening =
     wakeReady &&
     !wake.error &&
-    (wake.status === "listening" ||
-      wake.status === "detected" ||
-      wake.status === "initializing");
+    (wake.status === "listening" || wake.status === "detected" || wake.status === "initializing");
 
   const novaLabel =
     novaState === "listening"
@@ -579,20 +577,19 @@ function VoiceSession({
     novaState === "listening" ? "Stop" : novaState === "error" ? "Retry" : "Talk to Agent";
   const novaButtonDisabled =
     !connected || isUpdatingNova || novaState === "thinking" || novaState === "speaking";
-  const agentActionHint =
-    !novaInRoom
-      ? "Invite an agent to the room first."
-      : novaState === "listening"
-        ? "Listening... stop speaking to send."
-        : novaState === "thinking"
-          ? "Sending to agent..."
-          : novaState === "speaking"
-            ? `${defaultAgentName} is speaking.`
-            : novaState === "error"
-              ? "Try again when you are ready."
-              : wakeFeatureEnabled
-                ? `Say "Hey ${defaultAgentName}" or tap to speak.`
-                : "Tap once, speak, then pause to send.";
+  const agentActionHint = !novaInRoom
+    ? "Invite an agent to the room first."
+    : novaState === "listening"
+      ? "Listening... stop speaking to send."
+      : novaState === "thinking"
+        ? "Sending to agent..."
+        : novaState === "speaking"
+          ? `${defaultAgentName} is speaking.`
+          : novaState === "error"
+            ? "Try again when you are ready."
+            : wakeFeatureEnabled
+              ? `Say "Hey ${defaultAgentName}" or tap to speak.`
+              : "Tap once, speak, then pause to send.";
 
   return (
     <>
@@ -787,8 +784,8 @@ export default function RoomVoice({
     return (
       <div className="inline-flex rounded-2xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
         <span className="beta-status-pill">
-        <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-        Preparing voice
+          <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+          Preparing voice
         </span>
       </div>
     );

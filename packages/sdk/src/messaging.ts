@@ -36,6 +36,44 @@ export type VoxaMessageRequest = {
   context?: VoxaMessageContext;
 };
 
+// Private push-to-talk VOICE BETA contract. Voxa transcribes the user's clip
+// (STT) and POSTs `voxa.voice` with the TRANSCRIBED TEXT to the same message
+// endpoint, then synthesizes the text reply (TTS) and plays it back to the user
+// ONLY. The agent never receives room audio, a room transcript, or a LiveKit
+// stream — it only sees the transcribed text + its own scoped thread history.
+export const VOXA_VOICE_TYPE = "voxa.voice";
+
+export type VoxaVoiceContext = {
+  mode: "voice_beta";
+  roomId?: string;
+  agentId?: string;
+  history?: VoxaMessageHistoryTurn[];
+} & Record<string, unknown>;
+
+export type VoxaVoiceRequest = {
+  type: typeof VOXA_VOICE_TYPE;
+  message: string;
+  context?: VoxaVoiceContext;
+};
+
+export type VoxaVoiceResponse = {
+  // `text` is REQUIRED — Voxa synthesizes it with TTS for playback.
+  text: string;
+  // Optional voice preference. NOT honored yet — Voxa always uses the configured
+  // default TTS voice for now.
+  // TODO: future approved per-agent voice profiles may honor this.
+  voice?: {
+    preferredVoice?: string;
+  };
+} & Record<string, unknown>;
+
+export function createVoxaVoiceRequest(
+  message: string,
+  context?: VoxaVoiceContext,
+): VoxaVoiceRequest {
+  return { type: VOXA_VOICE_TYPE, message, context };
+}
+
 // Tool execution model (types only — Voxa does not execute tools). An agent may
 // report which tools it used while producing a reply, so the sandbox can show a
 // "Tools Used" panel. This is descriptive metadata, not an execution protocol.

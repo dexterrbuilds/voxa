@@ -21,13 +21,16 @@ export type PublicAgent = {
   examplePrompts: string[];
   featured: boolean;
   id: string;
+  // Friendly provenance label ("Native Voxa Agent" / "Imported from OpenClaw" /
+  // "Custom Endpoint"). Display only — never an endpoint URL or internal metadata.
+  importLabel: string | null;
   name: string;
   permissions: string[];
   slug: string;
   source: PublicAgentSource;
   tags: string[];
   updatedAt: string | null;
-  verificationStatus: "verified";
+  verificationStatus: "verified" | "coming_soon";
 };
 
 export type PublicAgentDirectoryData = {

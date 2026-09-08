@@ -2,6 +2,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { PublicAgent, PublicDeveloperProfile } from "@/lib/agents/showcase-types";
 import { getServiceRoleClient } from "@/lib/server/supabase-service";
 import type { AgentRegistrationRecord } from "@/lib/server/agents/registration";
+import { IMPORT_SOURCE_META, normalizeImportSource } from "@/lib/agents/import-sources";
 
 export type DeveloperProfileRecord = {
   avatar_url: string | null;
@@ -23,6 +24,7 @@ type PublicAgentRecord = Pick<
   | "creator_user_id"
   | "description"
   | "id"
+  | "import_source"
   | "name"
   | "permissions"
   | "slug"
@@ -32,6 +34,18 @@ type PublicAgentRecord = Pick<
 >;
 
 const usernamePattern = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+const reservedUsernames = new Set([
+  "agents",
+  "sandbox",
+  "docs",
+  "access",
+  "beta",
+  "api",
+  "admin",
+  "settings",
+  "login",
+  "voxa",
+]);
 
 export function normalizeUsername(value: string) {
   return value
@@ -46,11 +60,13 @@ export function normalizeUsername(value: string) {
 
 export function validateUsername(value: string) {
   const username = normalizeUsername(value);
-  if (!username || !usernamePattern.test(username)) {
+  if (username.length < 2 || !usernamePattern.test(username)) {
     throw new Error(
       "Username must use lowercase letters, numbers, and hyphens, and be 2-40 characters.",
     );
   }
+  if (reservedUsernames.has(username))
+    throw new Error("That username is reserved. Please choose another.");
   return username;
 }
 
@@ -69,7 +85,7 @@ function cleanOptionalUrl(value: unknown) {
 
   try {
     const url = new URL(cleaned);
-    if (url.protocol !== "https:" && url.protocol !== "http:") {
+    if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) {
       throw new Error("Unsupported URL protocol.");
     }
     return url.toString();
@@ -181,6 +197,7 @@ export function externalAgentToPublicAgent(
     examplePrompts: [],
     featured: false,
     id: record.id,
+    importLabel: IMPORT_SOURCE_META[normalizeImportSource(record.import_source)].showcaseLabel,
     name: record.name,
     permissions: publicPermissions(record.permissions ?? []),
     slug: record.slug,
@@ -204,7 +221,9 @@ export async function loadDeveloperProfileMap(
 
   const { data, error } = await service
     .from("developer_profiles")
-    .select("user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at")
+    .select(
+      "user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at",
+    )
     .in("user_id", uniqueIds)
     .returns<DeveloperProfileRecord[]>();
 
@@ -240,7 +259,9 @@ export async function getPublicDeveloperByUsername(username: string): Promise<{
 
   const { data: profileRecord, error: profileError } = await service
     .from("developer_profiles")
-    .select("user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at")
+    .select(
+      "user_id, username, display_name, bio, avatar_url, website, x_handle, joined_at, updated_at",
+    )
     .eq("username", normalizedUsername)
     .maybeSingle<DeveloperProfileRecord>();
 
@@ -258,6 +279,7 @@ export async function getPublicDeveloperByUsername(username: string): Promise<{
         "creator_user_id",
         "description",
         "id",
+        "import_source",
         "name",
         "permissions",
         "slug",

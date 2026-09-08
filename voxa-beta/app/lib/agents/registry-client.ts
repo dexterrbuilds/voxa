@@ -17,10 +17,7 @@ export type RegisteredAgentStatus =
 
 export type RegisteredAgentVisibility = "private" | "unlisted" | "public";
 
-export type AgentVerificationStatus =
-  | "verification_pending"
-  | "verified"
-  | "verification_failed";
+export type AgentVerificationStatus = "verification_pending" | "verified" | "verification_failed";
 
 export type RegisteredAgentAnalytics = {
   sandboxSessionsStarted: number;
@@ -34,10 +31,7 @@ export type RegisteredAgentAnalytics = {
 // backend enforces the same limits via validation + RLS; mirroring them here is
 // purely for a friendlier UI (no self-approval, no public publishing).
 export type CreatableAgentStatus = Extract<RegisteredAgentStatus, "draft" | "pending_review">;
-export type EditableAgentVisibility = Extract<
-  RegisteredAgentVisibility,
-  "private" | "unlisted"
->;
+export type EditableAgentVisibility = Extract<RegisteredAgentVisibility, "private" | "unlisted">;
 
 export type RegisteredAgent = {
   analytics: RegisteredAgentAnalytics;
@@ -55,6 +49,8 @@ export type RegisteredAgent = {
   permissions: string[];
   tags: string[];
   metadata: Record<string, unknown>;
+  importSource: string;
+  importMetadata: Record<string, unknown>;
   verificationStatus: AgentVerificationStatus;
   verifiedAt: string | null;
   verificationNote: string | null;
@@ -91,6 +87,8 @@ export type AgentRegistrationPayload = {
   status: CreatableAgentStatus;
   visibility: EditableAgentVisibility;
   metadata: Record<string, unknown>;
+  importSource: string;
+  importMetadata: Record<string, unknown>;
 };
 
 export class AgentRegistryError extends Error {
@@ -129,9 +127,10 @@ async function getAccessToken() {
 }
 
 async function parseError(response: Response) {
-  const payload = (await response.json().catch(() => null)) as
-    | { error?: string; code?: string }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+    code?: string;
+  } | null;
 
   return new AgentRegistryError(
     payload?.error ?? "Something went wrong. Try again.",
@@ -210,6 +209,7 @@ export type SandboxAgentReply =
       agentId: string;
       agentName: string;
       ok: true;
+      durationMs?: number;
       reply: { text: string; streaming?: boolean; tools?: SandboxToolInvocation[] };
     }
   | {
@@ -222,6 +222,9 @@ export type SandboxAgentReply =
 export type SandboxMessageResult = { replies: SandboxAgentReply[] };
 
 export type SandboxMessageOptions = {
+  signal?: AbortSignal;
+  requestId?: string;
+  onReply?: (reply: SandboxAgentReply) => void;
   // Send to one specific agent in the session.
   targetAgentId?: string;
   // Send to every agent in the session.
@@ -235,10 +238,13 @@ export async function sendSandboxMessage(
 ): Promise<SandboxMessageResult> {
   const token = await getAccessToken();
   const response = await fetch("/api/agents/sandbox/message", {
+    signal: options.signal,
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      Accept: options.onReply ? "application/x-ndjson" : "application/json",
+      "X-Voxa-Request-Id": options.requestId ?? crypto.randomUUID(),
     },
     body: JSON.stringify({
       sandboxSessionId,
@@ -252,7 +258,37 @@ export async function sendSandboxMessage(
     throw await parseError(response);
   }
 
-  return (await response.json()) as SandboxMessageResult;
+  if (!response.headers.get("content-type")?.includes("application/x-ndjson")) {
+    const result = (await response.json()) as SandboxMessageResult;
+    result.replies.forEach((reply) => options.onReply?.(reply));
+    return result;
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw new AgentRegistryError("Agent connection interrupted.", 502);
+  const decoder = new TextDecoder();
+  let pending = "";
+  const replies: SandboxAgentReply[] = [];
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      pending += decoder.decode(chunk.value, { stream: !chunk.done });
+      if (pending.length > 300000) throw new Error("Agent response too large.");
+      const lines = pending.split("\n");
+      pending = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const entry = JSON.parse(line) as SandboxAgentReply;
+        replies.push(entry);
+        options.onReply?.(entry);
+      }
+      if (chunk.done) break;
+    }
+    if (pending.trim()) throw new Error("Agent connection interrupted.");
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+  return { replies };
 }
 
 // Experimental, display-only external agents for the live-room Agent Selector.
@@ -268,6 +304,8 @@ export type RoomEligibleExternalAgent = {
 
 export type RoomEligibleExternalAgentsResult = {
   enabled: boolean;
+  // Whether the private push-to-talk voice beta flag is on (server-only).
+  voiceEnabled: boolean;
   agents: RoomEligibleExternalAgent[];
 };
 
@@ -282,12 +320,16 @@ export async function listRoomEligibleExternalAgents(): Promise<RoomEligibleExte
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
-      return { enabled: false, agents: [] };
+      return { enabled: false, voiceEnabled: false, agents: [] };
     }
     const data = (await response.json()) as RoomEligibleExternalAgentsResult;
-    return { enabled: Boolean(data.enabled), agents: data.agents ?? [] };
+    return {
+      enabled: Boolean(data.enabled),
+      voiceEnabled: Boolean(data.voiceEnabled),
+      agents: data.agents ?? [],
+    };
   } catch {
-    return { enabled: false, agents: [] };
+    return { enabled: false, voiceEnabled: false, agents: [] };
   }
 }
 
@@ -380,13 +422,16 @@ export async function sendRoomTextMessage(
   roomId: string,
   agentId: string,
   message: string,
+  options: { signal?: AbortSignal; requestId?: string } = {},
 ): Promise<RoomTextReply> {
   const token = await getAccessToken();
   const response = await fetch("/api/agents/room/message", {
+    signal: options.signal,
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      "X-Voxa-Request-Id": options.requestId ?? crypto.randomUUID(),
     },
     body: JSON.stringify({ roomId, agentId, message }),
   });
@@ -396,6 +441,42 @@ export async function sendRoomTextMessage(
   }
 
   return (await response.json()) as RoomTextReply;
+}
+
+export type RoomVoiceReply = {
+  transcript: string;
+  reply: { text: string };
+  agent: { id: string; name: string };
+  audio: string | null;
+  audioContentType: string | null;
+  audioUnavailable: boolean;
+};
+
+// Private push-to-talk voice turn: upload a captured clip and receive the
+// transcript + agent text reply + (optional) TTS audio to play LOCALLY. No room
+// audio, no LiveKit, no transcript exposure.
+export async function sendRoomVoiceMessage(
+  roomId: string,
+  agentId: string,
+  audio: Blob,
+): Promise<RoomVoiceReply> {
+  const token = await getAccessToken();
+  const form = new FormData();
+  form.set("roomId", roomId);
+  form.set("agentId", agentId);
+  form.set("audio", audio, `voice-${Date.now()}.webm`);
+
+  const response = await fetch("/api/agents/room/voice", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as RoomVoiceReply;
 }
 
 export async function updateRegisteredAgent(

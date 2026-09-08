@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase, jsonError } from "@/lib/server/agents/registration";
 import {
   externalAgentsInRoomsEnabled,
@@ -15,6 +15,8 @@ import {
 import { hasPermission, resolveEffectivePermissions } from "@/lib/agents/permissions";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { recordAgentAnalytics } from "@/lib/server/agents/analytics";
+import { agentRequestId, runAgentRequest } from "@/lib/server/agents/runtime/requests";
+import { buildAgentContext } from "@/lib/server/agents/runtime/context";
 
 export const runtime = "nodejs";
 
@@ -120,57 +122,88 @@ export async function POST(request: NextRequest) {
   // memory_read_thread gates loading prior context. If not granted, send no
   // history (omit the capability, do not error). Never a room transcript.
   const canReadThread = hasPermission(permissions, "memory_read_thread");
-  const history = canReadThread
-    ? await loadExternalAgentThread(service, roomId.trim(), validation.agent.id)
-    : [];
+  const requestId = agentRequestId(request.headers.get("X-Voxa-Request-Id"));
+  try {
+    const result = await runAgentRequest(
+      `room:${auth.user.id}:${roomId.trim()}:${validation.agent.id}`,
+      requestId,
+      async () => {
+        const history = canReadThread
+          ? await loadExternalAgentThread(service, roomId.trim(), validation.agent.id)
+          : [];
 
-  // Text-only: send the message string + room/agent ids + the scoped thread history.
-  const text = message.trim();
-  const reply = await roomTextRuntime.sendMessageToAgent({
-    endpointUrl: validation.agent.endpoint_url!,
-    message: text,
-    context: {
-      roomId: roomId.trim(),
-      agentId: validation.agent.id,
-      history: history.map((turn) => ({ role: turn.role, text: turn.text })),
-    },
-  });
+        // Text-only: send the message string + room/agent ids + the scoped thread history.
+        const text = message.trim();
+        const reply = await roomTextRuntime.sendMessageToAgent({
+          endpointUrl: validation.agent.endpoint_url!,
+          message: text,
+          requestId,
+          signal: request.signal,
+          context: buildAgentContext({
+            roomId: roomId.trim(),
+            agentId: validation.agent.id,
+            history,
+            allowMemory: canReadThread,
+          }),
+        });
 
-  if (!reply.ok) {
-    // Endpoint failed: surface the error, DO NOT persist (thread stays intact).
-    return jsonError(reply.detail, 502, reply.code);
+        if (!reply.ok) {
+          // Endpoint failed: surface the error, DO NOT persist (thread stays intact).
+          return {
+            status:
+              reply.code === "agent_timeout" ? 504 : reply.code === "agent_cancelled" ? 408 : 502,
+            body: { error: reply.detail, code: reply.code, requestId },
+          };
+        }
+
+        // memory_write_thread gates persistence. If not granted, do not persist.
+        if (hasPermission(permissions, "memory_write_thread")) {
+          await recordExternalAgentExchange(service, {
+            roomId: roomId.trim(),
+            agentId: validation.agent.id,
+            userText: text,
+            replyText: reply.text,
+          });
+        }
+
+        after(() =>
+          recordAgentAnalytics(auth.supabase, {
+            agentId: validation.agent.id,
+            metric: "room_messages_sent",
+            ownerUserId: auth.user.id,
+          }),
+        );
+
+        // tools_visualize gates returning tools. Capability enforcement: tools whose
+        // name is not in the agent's registered capabilities are marked untrusted
+        // (kept for display, never trusted) rather than silently accepted.
+        const registeredCapabilities = new Set(validation.agent.capabilities ?? []);
+        const tools = hasPermission(permissions, "tools_visualize")
+          ? (reply.tools ?? []).map((tool) => ({
+              ...tool,
+              untrusted: !registeredCapabilities.has(tool.name),
+            }))
+          : [];
+
+        return {
+          status: 200,
+          body: {
+            requestId,
+            reply: { text: reply.text, streaming: false, tools },
+            agent: { id: validation.agent.id, name: validation.agent.name },
+            permissions,
+          },
+        };
+      },
+    );
+    if (!result.ok)
+      return jsonError("This agent is already responding. Try again shortly.", 409, "agent_busy");
+    return NextResponse.json(result.value.body, { status: result.value.status });
+  } catch {
+    return jsonError(
+      "Agent request could not finish. Please try again.",
+      503,
+      "agent_request_failed",
+    );
   }
-
-  await recordAgentAnalytics(auth.supabase, {
-    agentId: validation.agent.id,
-    metric: "room_messages_sent",
-    ownerUserId: auth.user.id,
-  });
-
-  // memory_write_thread gates persistence. If not granted, do not persist.
-  if (hasPermission(permissions, "memory_write_thread")) {
-    await recordExternalAgentExchange(service, {
-      roomId: roomId.trim(),
-      agentId: validation.agent.id,
-      userText: text,
-      replyText: reply.text,
-    });
-  }
-
-  // tools_visualize gates returning tools. Capability enforcement: tools whose
-  // name is not in the agent's registered capabilities are marked untrusted
-  // (kept for display, never trusted) rather than silently accepted.
-  const registeredCapabilities = new Set(validation.agent.capabilities ?? []);
-  const tools = hasPermission(permissions, "tools_visualize")
-    ? (reply.tools ?? []).map((tool) => ({
-        ...tool,
-        untrusted: !registeredCapabilities.has(tool.name),
-      }))
-    : [];
-
-  return NextResponse.json({
-    reply: { text: reply.text, streaming: reply.streaming ?? false, tools },
-    agent: { id: validation.agent.id, name: validation.agent.name },
-    permissions,
-  });
 }

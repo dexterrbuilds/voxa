@@ -76,7 +76,8 @@ const firstPartyAgents: AgentManifestEntry[] = [
   {
     id: "code-assistant",
     name: "Code Assistant",
-    description: "Reviews code, debugs implementation details, and helps reason through architecture.",
+    description:
+      "Reviews code, debugs implementation details, and helps reason through architecture.",
     availability: "coming_soon",
     category: "Engineering",
     firstParty: true,

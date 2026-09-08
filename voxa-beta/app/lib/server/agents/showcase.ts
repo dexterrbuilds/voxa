@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import { getAvailableAgents } from "@/lib/agents/manifest";
 import type { PublicAgent, PublicAgentDirectoryData } from "@/lib/agents/showcase-types";
 import { getServiceRoleClient } from "@/lib/server/supabase-service";
@@ -18,6 +18,7 @@ type PublicAgentRecord = Pick<
   | "creator_user_id"
   | "description"
   | "id"
+  | "import_source"
   | "name"
   | "permissions"
   | "slug"
@@ -57,46 +58,6 @@ function formatDate(value: string | null | undefined) {
   return date.toISOString();
 }
 
-function safeDisplayNameFromEmail(email: string | null | undefined) {
-  if (!email) {
-    return "Voxa developer";
-  }
-
-  const localPart = email.split("@")[0]?.replace(/[._-]+/g, " ").trim();
-  return localPart
-    ? localPart.replace(/\b\w/g, (character) => character.toUpperCase())
-    : "Voxa developer";
-}
-
-async function resolveCreatorDisplayNames(
-  service: SupabaseClient,
-  userIds: string[],
-): Promise<Map<string, string>> {
-  const names = new Map<string, string>();
-  const uniqueIds = [...new Set(userIds.filter(Boolean))];
-
-  await Promise.all(
-    uniqueIds.map(async (userId) => {
-      try {
-        const { data, error } = await service.auth.admin.getUserById(userId);
-        const metadata = data.user?.user_metadata ?? {};
-        const displayName =
-          typeof metadata.full_name === "string"
-            ? metadata.full_name
-            : typeof metadata.name === "string"
-              ? metadata.name
-              : safeDisplayNameFromEmail(data.user?.email);
-
-        names.set(userId, error ? "Voxa developer" : displayName);
-      } catch {
-        names.set(userId, "Voxa developer");
-      }
-    }),
-  );
-
-  return names;
-}
-
 function firstPartyAgents(): PublicAgent[] {
   return getAvailableAgents().map((agent) => ({
     avatarUrl: agent.avatar ?? null,
@@ -108,13 +69,14 @@ function firstPartyAgents(): PublicAgent[] {
     examplePrompts: firstPartyPromptExamples[agent.id] ?? [],
     featured: featuredAgentIds.includes(agent.id),
     id: agent.id,
+    importLabel: "Native Voxa Agent",
     name: agent.name,
     permissions: publicPermissions(agent.permissions ?? []),
     slug: agent.id,
     source: "first_party",
     tags: agent.tags ?? [],
     updatedAt: null,
-    verificationStatus: "verified",
+    verificationStatus: agent.availability === "available" ? "verified" : "coming_soon",
   }));
 }
 
@@ -134,6 +96,7 @@ async function loadPublicExternalAgents(): Promise<PublicAgent[]> {
         "creator_user_id",
         "description",
         "id",
+        "import_source",
         "name",
         "permissions",
         "slug",
@@ -153,10 +116,6 @@ async function loadPublicExternalAgents(): Promise<PublicAgent[]> {
     return [];
   }
 
-  const creatorNames = await resolveCreatorDisplayNames(
-    service,
-    data.map((agent) => agent.creator_user_id),
-  );
   const creatorProfiles = await loadDeveloperProfileMap(
     service,
     data.map((agent) => agent.creator_user_id),
@@ -166,7 +125,7 @@ async function loadPublicExternalAgents(): Promise<PublicAgent[]> {
     const agent = externalAgentToPublicAgent(
       record,
       creatorProfiles.get(record.creator_user_id) ?? null,
-      creatorNames.get(record.creator_user_id) ?? "Voxa developer",
+      "Voxa developer",
     );
 
     return {
@@ -187,7 +146,8 @@ function uniqueAgents(agents: PublicAgent[]) {
   return [...bySlug.values()];
 }
 
-export async function getPublicAgentDirectory(): Promise<PublicAgentDirectoryData> {
+// Request-scoped deduplication, never a persistent cache of publication/approval state.
+export const getPublicAgentDirectory = cache(async (): Promise<PublicAgentDirectoryData> => {
   const externalAgents = await loadPublicExternalAgents();
   const fallbackAgents = firstPartyAgents();
   const agents = uniqueAgents([...fallbackAgents, ...externalAgents]).sort((a, b) => {
@@ -214,7 +174,7 @@ export async function getPublicAgentDirectory(): Promise<PublicAgentDirectoryDat
     featuredDevelopers: await getFeaturedDevelopersFromAgents(externalAgents),
     publicExternalAgentsAvailable: externalAgents.length > 0,
   };
-}
+});
 
 export async function getPublicAgentBySlug(slug: string): Promise<PublicAgent | null> {
   const directory = await getPublicAgentDirectory();

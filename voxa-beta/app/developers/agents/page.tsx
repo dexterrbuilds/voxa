@@ -21,14 +21,9 @@ import {
   UserCircle,
   X,
 } from "lucide-react";
-import {
-  BetaButton,
-  BetaEyebrow,
-  BetaHeader,
-  BetaPanel,
-  BetaShell,
-} from "@/components/BetaChrome";
+import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
+import { AgentConnectionTest } from "@/components/AgentConnectionTest";
 import {
   AgentRegistryError,
   createRegisteredAgent,
@@ -46,6 +41,13 @@ import {
   FUTURE_EXTERNAL_AGENT_PERMISSIONS,
   GRANTABLE_EXTERNAL_AGENT_PERMISSIONS,
 } from "@/lib/agents/permissions";
+import {
+  DEFAULT_IMPORT_SOURCE,
+  IMPORT_SOURCE_META,
+  IMPORT_SOURCES,
+  normalizeImportSource,
+  type ImportSource,
+} from "@/lib/agents/import-sources";
 import {
   getDeveloperProfile,
   updateDeveloperProfile,
@@ -67,6 +69,9 @@ type FormState = {
   status: CreatableAgentStatus;
   visibility: EditableAgentVisibility;
   metadata: string;
+  importSource: ImportSource;
+  repositoryUrl: string;
+  docsUrl: string;
 };
 
 type ProfileFormState = Omit<EditableDeveloperProfile, "joinedAt">;
@@ -84,6 +89,9 @@ const emptyForm: FormState = {
   status: "pending_review",
   visibility: "private",
   metadata: "",
+  importSource: DEFAULT_IMPORT_SOURCE,
+  repositoryUrl: "",
+  docsUrl: "",
 };
 
 const emptyProfileForm: ProfileFormState = {
@@ -259,11 +267,9 @@ export default function DeveloperAgentsPage() {
       (totals, agent) => ({
         approvedAgents: totals.approvedAgents + (agent.status === "approved" ? 1 : 0),
         roomMessages: totals.roomMessages + (agent.analytics?.roomMessagesSent ?? 0),
-        sandboxSessions:
-          totals.sandboxSessions + (agent.analytics?.sandboxSessionsStarted ?? 0),
+        sandboxSessions: totals.sandboxSessions + (agent.analytics?.sandboxSessionsStarted ?? 0),
         totalAgents: totals.totalAgents + 1,
-        verifiedAgents:
-          totals.verifiedAgents + (agent.verificationStatus === "verified" ? 1 : 0),
+        verifiedAgents: totals.verifiedAgents + (agent.verificationStatus === "verified" ? 1 : 0),
       }),
       {
         approvedAgents: 0,
@@ -378,6 +384,13 @@ export default function DeveloperAgentsPage() {
         agent.metadata && Object.keys(agent.metadata).length > 0
           ? JSON.stringify(agent.metadata, null, 2)
           : "",
+      importSource: normalizeImportSource(agent.importSource),
+      repositoryUrl:
+        typeof agent.importMetadata?.repositoryUrl === "string"
+          ? agent.importMetadata.repositoryUrl
+          : "",
+      docsUrl:
+        typeof agent.importMetadata?.docsUrl === "string" ? agent.importMetadata.docsUrl : "",
     });
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -389,7 +402,7 @@ export default function DeveloperAgentsPage() {
       try {
         const parsed = JSON.parse(metadataText);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          setFormError("Metadata must be a JSON object, for example {\"team\":\"voxa\"}.");
+          setFormError('Metadata must be a JSON object, for example {"team":"voxa"}.');
           return null;
         }
         metadata = parsed as Record<string, unknown>;
@@ -401,6 +414,15 @@ export default function DeveloperAgentsPage() {
 
     const name = form.name.trim();
     const slug = form.slug.trim() || slugify(name);
+
+    // Import provenance (repository / docs URLs) is stored in import_metadata.
+    const importMetadata: Record<string, unknown> = {};
+    if (form.repositoryUrl.trim()) {
+      importMetadata.repositoryUrl = form.repositoryUrl.trim();
+    }
+    if (form.docsUrl.trim()) {
+      importMetadata.docsUrl = form.docsUrl.trim();
+    }
 
     return {
       name,
@@ -415,6 +437,8 @@ export default function DeveloperAgentsPage() {
       status: form.status,
       visibility: form.visibility,
       metadata,
+      importSource: form.importSource,
+      importMetadata,
     };
   };
 
@@ -521,8 +545,8 @@ export default function DeveloperAgentsPage() {
               Sign in to manage your agents
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
-              The agent registration dashboard requires a Voxa account. Sign in to submit and
-              manage your agent metadata.
+              The agent registration dashboard requires a Voxa account. Sign in to submit and manage
+              your agent metadata.
             </p>
             <div className="mt-8 flex justify-center">
               <BetaButton href="/login?next=/developers/agents">
@@ -564,9 +588,8 @@ export default function DeveloperAgentsPage() {
               Registered agents are not available in live rooms until reviewed and approved.
             </p>
             <p className="mt-1 text-[var(--muted-foreground)]">
-              External agents are registration-only today. They do not appear in the Agent Selector
-              and cannot be invited into rooms yet. Public visibility and self-approval are
-              disabled.
+              Connect your endpoint, confirm its details, then submit for review. Approved and
+              verified agents can use the sandbox. Room access also requires enabled permissions.
             </p>
           </div>
         </div>
@@ -738,7 +761,7 @@ export default function DeveloperAgentsPage() {
                   ) : (
                     <>
                       <Plus className="h-4 w-4 text-[oklch(0.72_0.2_245)]" />
-                      Register an agent
+                      Connect an agent
                     </>
                   )}
                 </h2>
@@ -762,6 +785,112 @@ export default function DeveloperAgentsPage() {
               ) : null}
 
               <form className="mt-5 space-y-4" noValidate onSubmit={handleSubmit}>
+                <div className="border-b border-[var(--glass-border)] pb-5">
+                  <Field
+                    label="Agent endpoint"
+                    hint="Paste your Voxa handshake URL to discover the agent."
+                  >
+                    <input
+                      className="beta-input w-full"
+                      type="url"
+                      value={form.endpointUrl}
+                      maxLength={600}
+                      placeholder="https://your-agent.example/voxa/handshake"
+                      onChange={(event) => updateField("endpointUrl", event.target.value)}
+                    />
+                  </Field>
+                  <AgentConnectionTest
+                    endpointUrl={form.endpointUrl}
+                    onDetected={(agent) =>
+                      setForm((previous) => ({
+                        ...previous,
+                        name: agent.name || previous.name,
+                        slug: previous.slug || slugify(agent.name),
+                        description: agent.description || previous.description,
+                        capabilities: agent.capabilities.join(", "),
+                        importSource:
+                          agent.importSource === "custom_endpoint"
+                            ? previous.importSource
+                            : agent.importSource,
+                      }))
+                    }
+                  />
+                </div>
+                {/* Import Existing Agent — source / runtime */}
+                <Field label="Source / runtime" hint={IMPORT_SOURCE_META[form.importSource].hint}>
+                  <select
+                    className="beta-input w-full"
+                    value={form.importSource}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        importSource: normalizeImportSource(event.target.value),
+                      }))
+                    }
+                  >
+                    {IMPORT_SOURCES.map((source) => (
+                      <option key={source} value={source}>
+                        {IMPORT_SOURCE_META[source].formLabel}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+                {form.importSource !== "custom_endpoint" ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] p-3 text-xs leading-relaxed text-amber-100/90">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                    <span>
+                      Importing from{" "}
+                      <span className="font-medium">
+                        {IMPORT_SOURCE_META[form.importSource].formLabel}
+                      </span>{" "}
+                      does not connect that runtime automatically. Your agent must expose a
+                      Voxa-compatible adapter endpoint (
+                      <span className="font-mono">/voxa/handshake</span>,{" "}
+                      <span className="font-mono">/voxa/message</span>). See the openclaw-adapter
+                      example. Imported runtimes are{" "}
+                      <span className="font-medium">not trusted by default</span>.
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Repository URL (optional)">
+                    <input
+                      className="beta-input w-full"
+                      value={form.repositoryUrl}
+                      maxLength={600}
+                      placeholder="https://github.com/you/agent"
+                      onChange={(event) => updateField("repositoryUrl", event.target.value)}
+                    />
+                  </Field>
+                  <Field label="Docs URL (optional)">
+                    <input
+                      className="beta-input w-full"
+                      value={form.docsUrl}
+                      maxLength={600}
+                      placeholder="https://docs.example.com/agent"
+                      onChange={(event) => updateField("docsUrl", event.target.value)}
+                    />
+                  </Field>
+                </div>
+
+                {/* Security model for imported agents */}
+                <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                  <p className="font-medium text-[var(--foreground)]">Before you import</p>
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+                    <li>
+                      Voxa never runs your agent&apos;s tools — it only sends explicit user
+                      messages.
+                    </li>
+                    <li>
+                      Imported agents are reviewed by an admin and sandboxed before any room use.
+                    </li>
+                    <li>They receive no room audio and no room transcript.</li>
+                    <li>OpenClaw and other public runtimes are not trusted by default.</li>
+                  </ul>
+                </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Name">
                     <input
@@ -799,15 +928,6 @@ export default function DeveloperAgentsPage() {
                 </Field>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Endpoint URL" hint="https endpoint the runtime will call later.">
-                    <input
-                      className="beta-input w-full"
-                      value={form.endpointUrl}
-                      maxLength={600}
-                      placeholder="https://agent.example.com/voxa"
-                      onChange={(event) => updateField("endpointUrl", event.target.value)}
-                    />
-                  </Field>
                   <Field label="Avatar URL">
                     <input
                       className="beta-input w-full"
@@ -1066,13 +1186,13 @@ export default function DeveloperAgentsPage() {
                         </button>
                       ) : (
                         <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
-                          Locked
+                          Reviewed
                         </span>
                       )}
                     </div>
 
                     {agent.description ? (
-                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[oklch(0.7_0.02_260)]">
+                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
                         {agent.description}
                       </p>
                     ) : null}
@@ -1090,7 +1210,32 @@ export default function DeveloperAgentsPage() {
                       </div>
                     ) : null}
 
-                    <div className="mt-4 border-t border-[var(--glass-border)] pt-4">
+                    <div className="mt-4 space-y-3 border-t border-[var(--glass-border)] pt-4">
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        {agent.status === "draft"
+                          ? "Complete your details, test the endpoint, then submit for review."
+                          : agent.status === "rejected" || agent.status === "disabled"
+                            ? "This agent needs reviewer attention before it can run."
+                            : agent.verificationStatus === "verification_failed"
+                              ? "The endpoint check failed. Test the connection below, then ask your reviewer to verify it again."
+                              : agent.status !== "approved"
+                                ? "Your submission is awaiting review. You can test the connection while you wait."
+                                : agent.verificationStatus !== "verified"
+                                  ? "Approved. An endpoint verification is still required before sandbox access."
+                                  : "Ready for sandbox testing. Room access remains permission-gated; connecting does not enable audio."}
+                      </p>
+                      {agent.status === "approved" && agent.verificationStatus === "verified" && (
+                        <BetaButton href="/developers/sandbox" variant="glass">
+                          Open sandbox
+                        </BetaButton>
+                      )}
+                      {agent.endpointUrl && <AgentConnectionTest endpointUrl={agent.endpointUrl} />}
+                    </div>
+
+                    <details className="mt-4 border-t border-[var(--glass-border)] pt-4">
+                      <summary className="cursor-pointer text-sm font-medium">
+                        Usage and activity
+                      </summary>
                       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[var(--foreground)]">
                         <ChartNoAxesColumnIncreasing className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
                         Usage analytics
@@ -1121,7 +1266,7 @@ export default function DeveloperAgentsPage() {
                         <Clock className="h-3.5 w-3.5" />
                         Last active: {formatDateTime(analytics?.lastActiveAt)}
                       </div>
-                    </div>
+                    </details>
 
                     {created || updated ? (
                       <p className="mt-3 text-xs text-[var(--muted-foreground)]">

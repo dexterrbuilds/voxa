@@ -156,14 +156,15 @@ export class WakeWordController {
       await this.stop();
       const text = String(error instanceof Error ? error.message : error);
       const errorName = error instanceof Error ? error.name : "UnknownError";
-      const reason: WakeWordErrorReason = /activation.?limit/i.test(`${errorName} ${text}`)
-        || /trial|expired|activation.?refused|activation.?throttled/i.test(`${errorName} ${text}`)
-        ? "activation-limit"
-        : /permission|denied|notallowed|dismiss/i.test(text)
-        ? "permission-denied"
-        : /access.?key|unauthori[sz]ed|forbidden|platform|keyword|model/i.test(text)
-          ? "config-mismatch"
-          : "init-failed";
+      const reason: WakeWordErrorReason =
+        /activation.?limit/i.test(`${errorName} ${text}`) ||
+        /trial|expired|activation.?refused|activation.?throttled/i.test(`${errorName} ${text}`)
+          ? "activation-limit"
+          : /permission|denied|notallowed|dismiss/i.test(text)
+            ? "permission-denied"
+            : /access.?key|unauthori[sz]ed|forbidden|platform|keyword|model/i.test(text)
+              ? "config-mismatch"
+              : "init-failed";
       console.warn("Wake word startup failed.", {
         error: text,
         errorName,
@@ -222,10 +223,7 @@ async function verifyModelFiles({
 }: {
   keywordPath: string;
   modelPath: string;
-}): Promise<
-  | { ok: true }
-  | { ok: false; reason: "missing-keyword-file" | "missing-model-file" }
-> {
+}): Promise<{ ok: true } | { ok: false; reason: "missing-keyword-file" | "missing-model-file" }> {
   if (!(await verifyPublicFile(modelPath))) {
     return { ok: false, reason: "missing-model-file" };
   }

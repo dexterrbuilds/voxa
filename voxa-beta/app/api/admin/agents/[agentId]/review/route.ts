@@ -20,10 +20,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 
 function isReviewAction(value: unknown): value is ReviewAction {
   return (
-    value === "approve" ||
-    value === "reject" ||
-    value === "disable" ||
-    value === "return_to_review"
+    value === "approve" || value === "reject" || value === "disable" || value === "return_to_review"
   );
 }
 
@@ -57,8 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const reviewNote =
-    typeof note === "string" && note.trim() ? note.trim().slice(0, 1000) : null;
+  const reviewNote = typeof note === "string" && note.trim() ? note.trim().slice(0, 1000) : null;
 
   // Read the current record (service-role bypasses RLS).
   const current = await admin.service

@@ -18,6 +18,12 @@ export function externalAgentsInRoomsEnabled(): boolean {
   return process.env.EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS === "true";
 }
 
+// Server-only flag for the PRIVATE push-to-talk voice beta. Default false. Voice
+// requires BOTH this flag and the rooms flag. Never expose as NEXT_PUBLIC.
+export function externalAgentVoiceEnabled(): boolean {
+  return externalAgentsInRoomsEnabled() && process.env.EXPERIMENTAL_EXTERNAL_AGENT_VOICE === "true";
+}
+
 // Compatibility participant id for external agents in `room_participants.user_id`.
 // First-party Nova still uses "nova"; external agents use `agent:<agentId>` so the
 // two are never confused and external agents are easy to detect.

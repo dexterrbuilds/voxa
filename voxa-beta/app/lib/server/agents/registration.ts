@@ -1,10 +1,8 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { sanitizeRequestedPermissions } from "@/lib/agents/permissions";
-import {
-  emptyAgentAnalytics,
-  type AgentAnalyticsSummary,
-} from "@/lib/server/agents/analytics";
+import { normalizeImportSource } from "@/lib/agents/import-sources";
+import { emptyAgentAnalytics, type AgentAnalyticsSummary } from "@/lib/server/agents/analytics";
 
 export type AgentRegistrationStatus =
   | "draft"
@@ -17,10 +15,7 @@ export type AgentVisibility = "private" | "unlisted" | "public";
 
 // Verification is an axis ORTHOGONAL to the review `status` above. An agent's
 // endpoint must pass the health check before it can be sandbox-tested.
-export type AgentVerificationStatus =
-  | "verification_pending"
-  | "verified"
-  | "verification_failed";
+export type AgentVerificationStatus = "verification_pending" | "verified" | "verification_failed";
 
 export type AgentRegistrationInput = {
   avatarUrl?: string;
@@ -28,6 +23,8 @@ export type AgentRegistrationInput = {
   creatorWalletAddress?: string;
   description?: string;
   endpointUrl?: string;
+  importSource?: string;
+  importMetadata?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   name?: string;
   permissions?: string[];
@@ -60,6 +57,10 @@ export type AgentRegistrationRecord = {
   verified_at?: string | null;
   verification_note?: string | null;
   verification_report?: Record<string, unknown> | null;
+  // Import provenance (added by supabase-agent-import-schema.sql). Optional on the
+  // type so reads still work before the migration is applied.
+  import_source?: string | null;
+  import_metadata?: Record<string, unknown> | null;
 };
 
 export type AuthenticatedSupabase = {
@@ -254,6 +255,12 @@ export function parseRegistrationBody(body: unknown, mode: "create" | "update") 
     if (has("endpointUrl")) {
       parsed.endpoint_url = endpointUrl;
     }
+    if (has("importSource")) {
+      parsed.import_source = normalizeImportSource(input.importSource);
+    }
+    if (has("importMetadata")) {
+      parsed.import_metadata = cleanMetadata(input.importMetadata);
+    }
     if (has("metadata")) {
       parsed.metadata = cleanMetadata(input.metadata);
     }
@@ -291,6 +298,8 @@ export function parseRegistrationBody(body: unknown, mode: "create" | "update") 
     creator_wallet_address: cleanOptionalString(input.creatorWalletAddress, 160),
     description,
     endpoint_url: endpointUrl,
+    import_source: normalizeImportSource(input.importSource),
+    import_metadata: cleanMetadata(input.importMetadata),
     metadata: cleanMetadata(input.metadata),
     name,
     permissions: sanitizeRequestedPermissions(cleanStringArray(input.permissions)),
@@ -315,6 +324,8 @@ export function mapAgentRecord(
     description: record.description,
     endpointUrl: record.endpoint_url,
     id: record.id,
+    importMetadata: record.import_metadata ?? {},
+    importSource: normalizeImportSource(record.import_source),
     metadata: record.metadata ?? {},
     name: record.name,
     permissions: record.permissions ?? [],

@@ -38,5 +38,7 @@ export function getNovaWakeWordModelPath(): string {
  * Defaults to "/picovoice/porcupine_params.pv".
  */
 export function getPicovoiceModelPath(): string {
-  return (process.env.NEXT_PUBLIC_PICOVOICE_MODEL_PATH ?? "").trim() || "/picovoice/porcupine_params.pv";
+  return (
+    (process.env.NEXT_PUBLIC_PICOVOICE_MODEL_PATH ?? "").trim() || "/picovoice/porcupine_params.pv"
+  );
 }

@@ -30,6 +30,8 @@ export class SandboxRuntime implements AgentRuntimeTransport {
 
   async sendMessage(input: AgentRuntimeMessageInput): Promise<AgentRuntimeReply> {
     return postVoxaMessage({
+      signal: input.signal,
+      requestId: input.requestId,
       endpointUrl: input.endpointUrl,
       message: input.message,
       // Force sandbox marking regardless of caller input.
@@ -53,6 +55,8 @@ export class SandboxRuntime implements AgentRuntimeTransport {
         agentId: target.agentId,
         agentName: target.agentName,
         reply: await this.sendMessage({
+          signal: input.signal,
+          requestId: input.requestId,
           endpointUrl: target.endpointUrl,
           message: input.message,
           context: input.context,

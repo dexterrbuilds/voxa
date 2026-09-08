@@ -1,11 +1,7 @@
 "use client";
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import {
-  getAgentById,
-  getAgentParticipantUserId,
-  NOVA_AGENT_ID,
-} from "@/lib/agents";
+import { getAgentById, getAgentParticipantUserId, NOVA_AGENT_ID } from "@/lib/agents";
 import { getSupabaseClient } from "@/lib/supabase";
 import type { Participant, Room, RoomEvent, User } from "@/lib/store";
 
@@ -238,13 +234,8 @@ async function loadRoomRows(roomId: string) {
     throw new Error("Supabase is not configured.");
   }
 
-  const roomResult = await supabase.from("rooms").select("*").eq("room_id", roomId).single();
-
-  if (roomResult.error) {
-    throw roomResult.error;
-  }
-
-  const [participantsResult, eventsResult] = await Promise.all([
+  const [roomResult, participantsResult, eventsResult] = await Promise.all([
+    supabase.from("rooms").select("*").eq("room_id", roomId).single(),
     supabase
       .from("room_participants")
       .select("*")
@@ -258,9 +249,11 @@ async function loadRoomRows(roomId: string) {
       // threads) from the human-facing event feed; they exist only as scoped,
       // server-side memory and are read through their own paths.
       .not("type", "in", "(nova_user,nova_reply,external_agent_user,external_agent_reply)")
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(50),
   ]);
+
+  if (roomResult.error) throw roomResult.error;
 
   if (participantsResult.error) {
     throw participantsResult.error;
@@ -273,7 +266,7 @@ async function loadRoomRows(roomId: string) {
   return roomFromRows(
     roomResult.data as RoomRow,
     (participantsResult.data ?? []) as RoomParticipantRow[],
-    (eventsResult.data ?? []) as RoomEventRow[],
+    (eventsResult.data ?? []).reverse() as RoomEventRow[],
   );
 }
 
@@ -456,7 +449,10 @@ async function cleanupExternalAgentRoomMemory(roomId: string) {
         );
         return null;
       }
-      console.warn(`External agent memory cleanup failed for room ${roomId}:`, result.error.message);
+      console.warn(
+        `External agent memory cleanup failed for room ${roomId}:`,
+        result.error.message,
+      );
       return null;
     }
 

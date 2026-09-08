@@ -8,6 +8,7 @@ import {
   Copy,
   FlaskConical,
   Loader2,
+  Mic,
   MessageSquare,
   RotateCcw,
   SendHorizonal,
@@ -26,20 +27,16 @@ import {
   listRoomEligibleExternalAgents,
   loadExternalAgentRoomThread,
   sendRoomTextMessage,
+  sendRoomVoiceMessage,
   type RoomEligibleExternalAgent,
   type SandboxToolInvocation,
 } from "@/lib/agents/registry-client";
-import {
-  roomPermissionBadges,
-  type ExternalAgentPermission,
-} from "@/lib/agents/permissions";
-import {
-  getRoomAgentById,
-  isAgentInRoom,
-  type Participant,
-} from "@/lib/store";
+import { captureVoiceClip, playVoiceAudio } from "@/lib/agents/voice-capture";
+import { roomPermissionBadges, type ExternalAgentPermission } from "@/lib/agents/permissions";
+import { getRoomAgentById, isAgentInRoom, type Participant } from "@/lib/store";
 
 type AgentSelectorProps = {
+  onAgentState?: (agentId: string, state: "in-room" | "thinking" | "error") => void;
   invitedAgentIds?: string[];
   invitingAgentId?: string | null;
   onInvite: (agentId: string) => void;
@@ -47,8 +44,6 @@ type AgentSelectorProps = {
   roomId?: string;
   statusLabelForAgent?: (agentId: string) => string | null;
 };
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 type RoomTextTurn = {
   id: string;
@@ -145,12 +140,16 @@ function ExternalAgentRoomCard({
   agent,
   roomId,
   inRoom,
+  voiceEnabled,
   formatCapability,
+  onAgentState,
 }: {
   agent: RoomEligibleExternalAgent;
   roomId?: string;
   inRoom: boolean;
+  voiceEnabled: boolean;
   formatCapability: (capability: string) => string;
+  onAgentState?: AgentSelectorProps["onAgentState"];
 }) {
   const [invited, setInvited] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -161,18 +160,40 @@ function ExternalAgentRoomCard({
   const [clearing, setClearing] = useState(false);
   const [retryText, setRetryText] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [voiceState, setVoiceState] = useState<"idle" | "listening" | "thinking">("idle");
 
   const mountedRef = useRef(true);
+  const requestRef = useRef<AbortController | null>(null);
+  const revision = useRef(0);
   const idRef = useRef(0);
   const newId = () => String((idRef.current += 1));
   const isInRoom = inRoom || invited;
+  useEffect(() => {
+    if (inRoom) setInvited(false);
+  }, [inRoom]);
+  useEffect(() => {
+    if (!isInRoom) {
+      requestRef.current?.abort();
+      setStatus("in_room");
+    }
+  }, [isInRoom]);
+  useEffect(() => {
+    onAgentState?.(
+      agent.id,
+      status === "thinking" ? "thinking" : status === "error" ? "error" : "in-room",
+    );
+  }, [agent.id, status, onAgentState]);
   const busy = status === "thinking" || status === "responding";
+  const voiceBusy = voiceState !== "idle";
   const permissionBadges = roomPermissionBadges(agent.permissions as ExternalAgentPermission[]);
+  const voiceEligible = voiceEnabled && agent.permissions.includes("room_voice_beta");
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      requestRef.current?.abort();
+      revision.current += 1;
     };
   }, []);
 
@@ -182,8 +203,9 @@ function ExternalAgentRoomCard({
       return;
     }
     let active = true;
+    const version = revision.current;
     void loadExternalAgentRoomThread(roomId, agent.id).then((thread) => {
-      if (active && thread.length > 0) {
+      if (active && version === revision.current && !requestRef.current && thread.length > 0) {
         setTurns(
           thread.map((turn) => ({
             id: newId(),
@@ -197,7 +219,6 @@ function ExternalAgentRoomCard({
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInRoom, roomId, agent.id]);
 
   const invite = async () => {
@@ -210,37 +231,24 @@ function ExternalAgentRoomCard({
       await inviteExternalAgentToRoom(roomId, agent.id);
       setInvited(true);
     } catch (caught) {
-      setError(caught instanceof AgentRegistryError ? caught.message : "Could not invite the agent.");
+      setError(
+        caught instanceof AgentRegistryError ? caught.message : "Could not invite the agent.",
+      );
     } finally {
       setInviting(false);
     }
   };
 
-  const patchTurn = (id: string, patch: Partial<RoomTextTurn>) => {
-    setTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, ...patch } : turn)));
-  };
-
-  // Simulated streaming reveal (UI-only; no SSE/websocket).
-  const revealReply = async (id: string, fullText: string) => {
-    setStatus("responding");
-    const tokens = fullText.match(/\S+\s*/g) ?? [fullText];
-    let acc = "";
-    for (const token of tokens) {
-      if (!mountedRef.current) return;
-      acc += token;
-      patchTurn(id, { text: acc });
-      await sleep(35);
-    }
-    if (!mountedRef.current) return;
-    patchTurn(id, { text: fullText, streaming: false });
-  };
-
   // Core send. On retry the user turn already exists, so it is not re-appended —
   // this avoids duplicate memory rows (the server persists only on success).
   const runMessage = async (text: string, isRetry: boolean) => {
-    if (!roomId) {
+    if (!roomId || requestRef.current || clearing || voiceBusy || !isInRoom) {
       return;
     }
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const version = ++revision.current;
+    const timeout = setTimeout(() => controller.abort(), 20000);
     setError(null);
     setRetryText(null);
     if (!isRetry) {
@@ -248,31 +256,45 @@ function ExternalAgentRoomCard({
     }
     setStatus("thinking");
     try {
-      const result = await sendRoomTextMessage(roomId, agent.id, text);
-      if (!mountedRef.current) return;
-      const { text: replyText, streaming, tools } = result.reply;
+      const result = await sendRoomTextMessage(roomId, agent.id, text, {
+        signal: controller.signal,
+        requestId: crypto.randomUUID(),
+      });
+      if (!mountedRef.current || version !== revision.current || controller.signal.aborted) return;
+      const { text: replyText, tools } = result.reply;
       const id = newId();
       setTurns((prev) => [
         ...prev,
         {
           id,
           role: "agent",
-          text: streaming ? "" : replyText,
+          text: replyText,
           at: Date.now(),
           tools,
-          streaming: streaming === true,
+          streaming: false,
         },
       ]);
-      if (streaming) {
-        await revealReply(id, replyText);
-      }
       if (!mountedRef.current) return;
       setStatus("in_room");
     } catch (caught) {
-      if (!mountedRef.current) return;
-      setError(caught instanceof AgentRegistryError ? caught.message : "Could not reach the agent.");
+      if (!mountedRef.current || version !== revision.current) return;
+      setError(
+        controller.signal.aborted
+          ? "Request stopped. You can try again."
+          : caught instanceof AgentRegistryError
+            ? caught.message
+            : "Could not reach the agent.",
+      );
       setRetryText(text);
       setStatus("error");
+    } finally {
+      clearTimeout(timeout);
+      if (controller.signal.aborted && mountedRef.current && version === revision.current) {
+        setError("Request stopped. You can try again.");
+        setRetryText(text);
+        setStatus("error");
+      }
+      if (requestRef.current === controller) requestRef.current = null;
     }
   };
 
@@ -286,10 +308,11 @@ function ExternalAgentRoomCard({
   };
 
   const clearThread = async () => {
-    if (!roomId || clearing) {
+    if (!roomId || clearing || requestRef.current || voiceBusy) {
       return;
     }
     setClearing(true);
+    revision.current += 1;
     setError(null);
     try {
       await clearExternalAgentRoomThread(roomId, agent.id);
@@ -297,7 +320,9 @@ function ExternalAgentRoomCard({
       setRetryText(null);
       setStatus("in_room");
     } catch (caught) {
-      setError(caught instanceof AgentRegistryError ? caught.message : "Could not clear the thread.");
+      setError(
+        caught instanceof AgentRegistryError ? caught.message : "Could not clear the thread.",
+      );
     } finally {
       setClearing(false);
     }
@@ -317,18 +342,67 @@ function ExternalAgentRoomCard({
     }
   };
 
+  // Push-to-talk: record a silence-bounded clip (its OWN mic stream), upload it,
+  // and play the agent's TTS reply LOCALLY. The transcript + reply land in the
+  // same per-agent thread. Never touches the room mic or LiveKit.
+  const talkToAgent = async () => {
+    if (!roomId || voiceBusy || busy) {
+      return;
+    }
+    setError(null);
+    setVoiceState("listening");
+    let clip: Blob;
+    try {
+      clip = await captureVoiceClip();
+    } catch {
+      if (mountedRef.current) {
+        setError("Microphone unavailable. Check permissions and try again.");
+        setVoiceState("idle");
+      }
+      return;
+    }
+    if (!mountedRef.current) {
+      return;
+    }
+    setVoiceState("thinking");
+    try {
+      const result = await sendRoomVoiceMessage(roomId, agent.id, clip);
+      if (!mountedRef.current) {
+        return;
+      }
+      setTurns((prev) => [
+        ...prev,
+        { id: newId(), role: "user", text: result.transcript, at: Date.now() },
+        { id: newId(), role: "agent", text: result.reply.text, at: Date.now() },
+      ]);
+      if (result.audio) {
+        void playVoiceAudio(result.audio, result.audioContentType);
+      }
+    } catch (caught) {
+      if (mountedRef.current) {
+        setError(
+          caught instanceof AgentRegistryError ? caught.message : "Could not reach the agent.",
+        );
+      }
+    } finally {
+      if (mountedRef.current) {
+        setVoiceState("idle");
+      }
+    }
+  };
+
   const statusMeta = roomStatusMeta[status];
   const StatusIcon = statusMeta.icon;
 
   return (
     <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.03] p-4">
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-amber-400/25 bg-amber-400/[0.08] text-sm font-semibold text-white">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] text-sm font-semibold text-[var(--foreground)]">
           {initialsFor(agent.name)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="truncate text-base font-semibold tracking-tight text-white">
+            <h3 className="min-w-0 break-words text-base font-semibold text-[var(--foreground)]">
               {agent.name}
             </h3>
             {isInRoom ? (
@@ -347,7 +421,7 @@ function ExternalAgentRoomCard({
           <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-amber-300/80">
             Text-only · Developer agent
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
+          <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
             {agent.description}
           </p>
           {agent.capabilities.length > 0 && (
@@ -362,7 +436,7 @@ function ExternalAgentRoomCard({
               ))}
             </div>
           )}
-          {permissionBadges.length > 0 && (
+          {(permissionBadges.length > 0 || voiceEligible) && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-[oklch(0.5_0.02_260)]">
                 Allowed
@@ -375,6 +449,12 @@ function ExternalAgentRoomCard({
                   {badge}
                 </span>
               ))}
+              {voiceEligible && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/[0.08] px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                  <Mic className="h-2.5 w-2.5" />
+                  Voice Beta
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -386,11 +466,15 @@ function ExternalAgentRoomCard({
           disabled={inviting || !roomId}
           onClick={() => void invite()}
         >
-          {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+          {inviting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MessageSquare className="h-4 w-4" />
+          )}
           {inviting ? "Inviting..." : "Invite (text-only)"}
         </BetaButton>
       ) : (
-        <div className="mt-4 rounded-lg border border-white/[0.06] bg-[oklch(0.12_0.016_260/0.42)] p-3">
+        <div className="mt-4 border-t border-[var(--glass-border)] pt-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[oklch(0.6_0.02_260)]">
               Text-only thread · no audio
@@ -399,7 +483,7 @@ function ExternalAgentRoomCard({
               <button
                 type="button"
                 onClick={() => void clearThread()}
-                disabled={clearing}
+                disabled={clearing || busy || voiceBusy}
                 className="inline-flex items-center gap-1 text-[10px] font-medium text-[oklch(0.6_0.02_260)] transition-colors hover:text-rose-300 disabled:opacity-50"
               >
                 <Trash2 className="h-3 w-3" />
@@ -408,7 +492,11 @@ function ExternalAgentRoomCard({
             )}
           </div>
 
-          <div className="mt-2 max-h-56 space-y-2 overflow-y-auto">
+          <div
+            role="log"
+            aria-label={`${agent.name} conversation`}
+            className="mt-2 max-h-56 space-y-2 overflow-y-auto break-words"
+          >
             {turns.length === 0 && status !== "thinking" ? (
               <p className="py-2 text-center text-[11px] text-[oklch(0.55_0.02_260)]">
                 No messages yet. Say hi to {agent.name} — replies are text-only.
@@ -423,8 +511,8 @@ function ExternalAgentRoomCard({
                 <div
                   className={`max-w-[88%] rounded-lg px-2.5 py-1.5 text-xs leading-relaxed ${
                     turn.role === "user"
-                      ? "bg-[oklch(0.72_0.2_245/0.16)] text-white"
-                      : "border border-white/[0.06] bg-[oklch(0.1_0.016_260)] text-[oklch(0.78_0.02_260)]"
+                      ? "bg-[oklch(0.72_0.2_245/0.16)] text-[var(--foreground)]"
+                      : "border border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--foreground)]"
                   }`}
                 >
                   {turn.text}
@@ -469,6 +557,13 @@ function ExternalAgentRoomCard({
               <div className="flex items-center gap-2 text-xs text-[oklch(0.6_0.02_260)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 {agent.name} is thinking...
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() => requestRef.current?.abort()}
+                >
+                  Stop
+                </button>
               </div>
             ) : null}
           </div>
@@ -496,6 +591,7 @@ function ExternalAgentRoomCard({
               value={input}
               maxLength={4000}
               placeholder={`Message ${agent.name}...`}
+              aria-label={`Message ${agent.name}`}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -507,12 +603,40 @@ function ExternalAgentRoomCard({
             <button
               type="button"
               onClick={() => send()}
+              aria-label={`Send to ${agent.name}`}
+              title={`Send to ${agent.name}`}
               disabled={busy || !input.trim()}
               className="inline-flex shrink-0 items-center justify-center rounded-md bg-[oklch(0.72_0.2_245)] px-3 text-[oklch(0.13_0.015_260)] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               <SendHorizonal className="h-4 w-4" />
             </button>
           </div>
+
+          {voiceEligible ? (
+            <button
+              type="button"
+              onClick={() => void talkToAgent()}
+              disabled={voiceBusy || busy}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-amber-400/30 px-3 py-2 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-400/10 disabled:opacity-50"
+            >
+              {voiceState === "listening" ? (
+                <>
+                  <Mic className="h-3.5 w-3.5 animate-pulse" />
+                  Listening — speak now...
+                </>
+              ) : voiceState === "thinking" ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {agent.name} is responding...
+                </>
+              ) : (
+                <>
+                  <Mic className="h-3.5 w-3.5" />
+                  Talk to {agent.name} (voice beta)
+                </>
+              )}
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -552,6 +676,7 @@ function formatCapability(capability: string) {
 }
 
 export default function AgentSelector({
+  onAgentState,
   invitedAgentIds = [],
   invitingAgentId,
   onInvite,
@@ -565,12 +690,14 @@ export default function AgentSelector({
   // selector behaves exactly as before. When the flag is on, these are the caller's
   // own approved + verified agents and can be invited in TEXT-ONLY mode.
   const [externalAgents, setExternalAgents] = useState<RoomEligibleExternalAgent[]>([]);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
 
   useEffect(() => {
     let active = true;
     void listRoomEligibleExternalAgents().then((result) => {
       if (active && result.enabled) {
         setExternalAgents(result.agents);
+        setVoiceEnabled(result.voiceEnabled);
       }
     });
     return () => {
@@ -585,9 +712,7 @@ export default function AgentSelector({
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
             Invite Agent
           </div>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">
-            Available agents
-          </h2>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Available agents</h2>
         </div>
         <Sparkles className="h-4 w-4 text-[oklch(0.72_0.2_245)]" />
       </div>
@@ -600,13 +725,14 @@ export default function AgentSelector({
             const isAvailable = agent.availability === "available";
             const roomAgent = getRoomAgentById(agent.id, participants);
             const inRoom =
-              !!roomAgent || isAgentInRoom(agent.id, participants) || invitedAgentIds.includes(agent.id);
+              !!roomAgent ||
+              isAgentInRoom(agent.id, participants) ||
+              invitedAgentIds.includes(agent.id);
             const isInviting = invitingAgentId === agent.id;
-            const statusLabel =
-              !isAvailable
-                ? "Coming soon"
-                : (inRoom ? statusLabelForAgent?.(agent.id) : null) ??
-                  (inRoom ? "In Room" : "Online");
+            const statusLabel = !isAvailable
+              ? "Coming soon"
+              : ((inRoom ? statusLabelForAgent?.(agent.id) : null) ??
+                (inRoom ? "In Room" : "Online"));
 
             return (
               <div
@@ -700,16 +826,18 @@ export default function AgentSelector({
           </div>
           <p className="mt-2 text-xs leading-relaxed text-[oklch(0.6_0.02_260)]">
             Your approved + verified agents. They can be invited into this room in{" "}
-            <span className="text-amber-300">experimental text-only</span> mode — no audio, no
-            room transcript. Only you (the owner) can message them.
+            <span className="text-amber-300">experimental text-only</span> mode — no audio, no room
+            transcript. Only you (the owner) can message them.
           </p>
 
           <div className="mt-4 space-y-3">
             {externalAgents.map((agent) => (
               <ExternalAgentRoomCard
-                key={agent.id}
+                key={`${roomId}:${agent.id}`}
+                onAgentState={onAgentState}
                 agent={agent}
                 roomId={roomId}
+                voiceEnabled={voiceEnabled}
                 inRoom={participants.some(
                   (participant) => participant.id === externalAgentParticipantId(agent.id),
                 )}

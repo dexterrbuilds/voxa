@@ -1,12 +1,6 @@
 export type AgentId = string;
 
-export type AgentStatus =
-  | "idle"
-  | "in_room"
-  | "listening"
-  | "thinking"
-  | "speaking"
-  | "error";
+export type AgentStatus = "idle" | "in_room" | "listening" | "thinking" | "speaking" | "error";
 
 export type AgentCapability =
   | "voice"
@@ -14,6 +8,9 @@ export type AgentCapability =
   | "multilingual"
   | "web_search"
   | "realtime_room_participation"
+  // Private push-to-talk voice beta (STT in / TTS out to the user only).
+  | "voice_input"
+  | "voice_output"
   | (string & {});
 
 export type AgentPermission =
@@ -77,10 +74,7 @@ export type AgentRegistrationStatus =
 
 export type AgentVisibility = "private" | "unlisted" | "public";
 
-export type AgentVerificationStatus =
-  | "verification_pending"
-  | "verified"
-  | "verification_failed";
+export type AgentVerificationStatus = "verification_pending" | "verified" | "verification_failed";
 
 export type AgentRegistrationInput = {
   name: string;

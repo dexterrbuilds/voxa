@@ -140,7 +140,7 @@ export function useRoom() {
     async (roomId: string) => {
       try {
         const nextRoom = await loadSharedRoom(roomId);
-        setCurrentRoom(nextRoom);
+        if (useRoomStore.getState().currentRoom?.id === roomId) setCurrentRoom(nextRoom);
         return nextRoom;
       } catch {
         return null;

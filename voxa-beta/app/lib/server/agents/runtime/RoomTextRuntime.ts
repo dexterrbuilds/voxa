@@ -26,6 +26,8 @@ export class RoomTextRuntime implements AgentRuntimeTransport {
 
   async sendMessage(input: AgentRuntimeMessageInput): Promise<AgentRuntimeReply> {
     return postVoxaMessage({
+      signal: input.signal,
+      requestId: input.requestId,
       endpointUrl: input.endpointUrl,
       message: input.message,
       // Force room-text marking; sandbox is explicitly false. No transcript is
@@ -46,6 +48,8 @@ export class RoomTextRuntime implements AgentRuntimeTransport {
         agentId: target.agentId,
         agentName: target.agentName,
         reply: await this.sendMessage({
+          signal: input.signal,
+          requestId: input.requestId,
           endpointUrl: target.endpointUrl,
           message: input.message,
           context: input.context,

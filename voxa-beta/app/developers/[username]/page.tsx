@@ -135,8 +135,7 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <X className="h-4 w-4" />
-                  @{profile.xHandle}
+                  <X className="h-4 w-4" />@{profile.xHandle}
                 </a>
               ) : null}
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-3 py-1.5 text-[var(--muted-foreground)]">
@@ -175,8 +174,8 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
                 Agent builder
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
-                Developer profiles connect builders to the agents they publish. Voxa does not
-                expose emails, auth ids, admin notes, or private agent metadata.
+                Developer profiles connect builders to the agents they publish. Voxa does not expose
+                emails, auth ids, admin notes, or private agent metadata.
               </p>
             </BetaPanel>
 

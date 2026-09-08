@@ -2,6 +2,19 @@
 
 Voxa is the runtime layer for conversational AI agents.
 
+## Platform Hardening
+
+The current pass improves the existing external-agent flow rather than replacing Nova:
+endpoint discovery and prefill, a framework-neutral `createVoxaAgent` adapter, independent
+sandbox reply delivery, cancellable room messages, bounded per-agent context, coalesced room
+refreshes, honest showcase availability, and server-only analytics increments.
+
+See [the hardening guide](docs/platform-hardening.md) for the audit, architecture, rollout,
+tests, and remaining boundaries. **Existing deployments must run**
+`voxa-beta/supabase-agent-analytics-server-writes.sql` and deploy the matching server code.
+No new environment variables are required; the existing server-only
+`SUPABASE_SERVICE_ROLE_KEY` is now also used for analytics writes.
+
 The current product is a focused MVP: authenticated users create private LiveKit voice
 rooms, invite Nova, and talk to her through a controlled wake/tap voice flow. Nova is
 the first first-party demonstration agent. Nova is not the product itself.
@@ -14,7 +27,7 @@ the first first-party demonstration agent. Nova is not the product itself.
 ├── voxa-beta/            # Real Next.js product app
 ├── voxa-agent/           # Disabled Python LiveKit Agent path for Nova
 ├── packages/sdk/         # Local SDK v0.1 typed agent contract
-├── examples/agents/      # Runnable sample external agents (research-agent)
+├── examples/agents/      # Runnable sample external agents (research-agent, code-assistant, openclaw-adapter)
 └── api/subdomain.js      # Vercel subdomain stub
 ```
 
@@ -217,6 +230,19 @@ marketing developer docs (`/developers/docs/registration`) link out to this dash
 Future work: review/approval tooling, endpoint verification, and a DB-backed runtime
 registry that lets approved external agents appear in the Agent Selector and join rooms.
 
+### Bring Your Own Agent / self-import
+
+Developers can import an existing agent from another runtime (**OpenClaw**, LangChain, CrewAI,
+AutoGen, other) through the same registration flow by wrapping it behind a Voxa-compatible
+adapter endpoint (`/voxa/handshake`, `/voxa/message`, optional `/voxa/voice`). Import is
+descriptive provenance only — additive `import_source` / `import_metadata` columns
+(`supabase-agent-import-schema.sql`) — and **never** bypasses review, verification, sandbox,
+permissions, or room gating. OpenClaw and other public runtimes are **not trusted by default**;
+Voxa never runs their tools, only sends explicit user messages, and gives them no room
+audio/transcript. A mock adapter lives at `examples/agents/openclaw-adapter/`. Public showcase
+pages show a friendly provenance label (e.g. "Imported from OpenClaw") without exposing endpoint
+URLs or internal metadata.
+
 ### Agent analytics dashboard
 
 `voxa-beta` adds lightweight usage visibility for developers at **`/developers/agents`**.
@@ -345,6 +371,13 @@ Phase 3 prepares external agents for testing without allowing them into producti
   in an agent's capabilities are marked untrusted. External agents are **never** dispatched to
   LiveKit, **never** publish audio, **never** receive room audio/transcripts, and **never** speak.
   Default-off keeps the selector unchanged.
+- **Private voice agent beta** (Phase 4.0, server-only flag `EXPERIMENTAL_EXTERNAL_AGENT_VOICE=false`
+  + admin-granted `room_voice_beta`): a **push-to-talk bridge** — the user records a clip, Voxa runs
+  STT → the external agent endpoint (`type:"voxa.voice"`) → TTS, and plays the reply back **only to
+  that user's browser**. It is **not** room audio: no LiveKit, no room audio stream, no transcript,
+  no auto-listen. `room_voice_beta` is admin-only (never developer-requestable); `VoiceAgentRuntime`
+  is separate from the sandbox/text runtimes; client capture is separate from Nova's `RoomVoice`.
+  Reuses Nova's STT/TTS providers without modifying Nova Path A.
 
 None of this gives external agents room audio/voice or transcripts (text-only, behind a default-off
 flag), adds billing/marketplace/onchain, or changes Nova Path A.
