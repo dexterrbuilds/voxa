@@ -21,7 +21,7 @@ export type PublicAgent = {
   examplePrompts: string[];
   featured: boolean;
   id: string;
-  // Friendly provenance label ("Native Voxa Agent" / "Imported from OpenClaw" /
+  // Friendly provenance label ("Native Synq Agent" / "Imported from OpenClaw" /
   // "Custom Endpoint"). Display only — never an endpoint URL or internal metadata.
   importLabel: string | null;
   name: string;

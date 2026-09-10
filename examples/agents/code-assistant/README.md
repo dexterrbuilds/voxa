@@ -1,6 +1,6 @@
-# Voxa Code Assistant (sample external agent)
+# Synq Code Assistant (sample external agent)
 
-A second minimal **Voxa-compatible external agent** (alongside
+A second minimal **Synq-compatible external agent** (alongside
 [`research-agent`](../research-agent)) so you can test the developer sandbox with
 **multiple agents** that report different capabilities.
 
@@ -14,7 +14,7 @@ It implements the same three endpoints, built on `@voxa/sdk`:
 
 > **Sandbox only.** Verification makes this agent eligible for the developer
 > **sandbox** after review + approval. It does **not** place the agent into a live
-> Voxa room.
+> Synq room.
 
 ## Prerequisites
 

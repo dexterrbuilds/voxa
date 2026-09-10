@@ -1,8 +1,8 @@
 // Bring Your Own Agent / self-import source model.
 //
-// An external agent can be a directly-built Voxa SDK endpoint, or an EXISTING
+// An external agent can be a directly-built Synq SDK endpoint, or an EXISTING
 // agent from another runtime (OpenClaw, LangChain, CrewAI, AutoGen, …) that is
-// wrapped behind a Voxa-compatible adapter endpoint. The import source is
+// wrapped behind a Synq-compatible adapter endpoint. The import source is
 // descriptive metadata only — it NEVER bypasses review, verification, sandbox, or
 // permission gating. Imported runtimes (especially OpenClaw) are NOT trusted by
 // default.
@@ -31,34 +31,34 @@ export type ImportSourceMeta = {
 
 export const IMPORT_SOURCE_META: Record<ImportSource, ImportSourceMeta> = {
   custom_endpoint: {
-    formLabel: "Custom endpoint (Voxa SDK)",
+    formLabel: "Custom endpoint (Synq SDK)",
     showcaseLabel: "Custom Endpoint",
-    hint: "An endpoint you built directly against the Voxa agent contract.",
+    hint: "An endpoint you built directly against the Synq agent contract.",
   },
   openclaw: {
     formLabel: "OpenClaw",
     showcaseLabel: "Imported from OpenClaw",
-    hint: "Your OpenClaw agent must expose a Voxa-compatible adapter endpoint — OpenClaw is not wired up automatically and is not trusted by default.",
+    hint: "Your OpenClaw agent must expose a Synq-compatible adapter endpoint — OpenClaw is not wired up automatically and is not trusted by default.",
   },
   langchain: {
     formLabel: "LangChain",
     showcaseLabel: "Imported from LangChain",
-    hint: "Wrap your LangChain agent behind a Voxa-compatible adapter endpoint.",
+    hint: "Wrap your LangChain agent behind a Synq-compatible adapter endpoint.",
   },
   crewai: {
     formLabel: "CrewAI",
     showcaseLabel: "Imported from CrewAI",
-    hint: "Wrap your CrewAI crew behind a Voxa-compatible adapter endpoint.",
+    hint: "Wrap your CrewAI crew behind a Synq-compatible adapter endpoint.",
   },
   autogen: {
     formLabel: "AutoGen",
     showcaseLabel: "Imported from AutoGen",
-    hint: "Wrap your AutoGen agent behind a Voxa-compatible adapter endpoint.",
+    hint: "Wrap your AutoGen agent behind a Synq-compatible adapter endpoint.",
   },
   other: {
     formLabel: "Other runtime",
     showcaseLabel: "Imported agent",
-    hint: "Any other runtime, wrapped behind a Voxa-compatible adapter endpoint.",
+    hint: "Any other runtime, wrapped behind a Synq-compatible adapter endpoint.",
   },
 };
 

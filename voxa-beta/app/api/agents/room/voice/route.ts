@@ -25,7 +25,7 @@ const RATE_WINDOW_MS = 60_000;
 
 // POST /api/agents/room/voice  (multipart: audio, roomId, agentId)
 //
-// PRIVATE push-to-talk voice beta. A user records a clip; Voxa transcribes it
+// PRIVATE push-to-talk voice beta. A user records a clip; Synq transcribes it
 // (Deepgram STT), sends ONLY the transcript text to the agent endpoint via
 // VoiceAgentRuntime (type "voxa.voice"), synthesizes the text reply (Nova TTS
 // providers), and returns the audio for LOCAL browser playback.

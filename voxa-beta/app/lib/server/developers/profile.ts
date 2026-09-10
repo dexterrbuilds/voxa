@@ -45,6 +45,7 @@ const reservedUsernames = new Set([
   "settings",
   "login",
   "voxa",
+  "synq",
 ]);
 
 export function normalizeUsername(value: string) {
@@ -119,7 +120,7 @@ export function defaultDisplayNameForUser(user: User) {
     (typeof metadata.full_name === "string" && metadata.full_name.trim()) ||
     (typeof metadata.name === "string" && metadata.name.trim()) ||
     user.email?.split("@")[0]?.replace(/[._-]+/g, " ") ||
-    "Voxa Developer";
+    "Synq Developer";
 
   return displayName.slice(0, 80);
 }
@@ -155,7 +156,7 @@ export function mapPublicDeveloperProfile(
   return {
     avatarUrl: record.avatar_url ?? null,
     bio: record.bio ?? "",
-    displayName: record.display_name || record.username || "Voxa developer",
+    displayName: record.display_name || record.username || "Synq developer",
     joinedAt: record.joined_at ?? null,
     publicAgentCount,
     username: record.username ?? "",

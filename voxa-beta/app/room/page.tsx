@@ -53,7 +53,7 @@ export default function RoomLobby() {
 
     const roomId = parseRoomId(joinValue);
     if (!/^[a-zA-Z0-9_-]{6,80}$/.test(roomId)) {
-      setJoinError("Paste a valid Voxa room link or room ID.");
+      setJoinError("Paste a valid Synq room link or room ID.");
       return;
     }
 
@@ -84,10 +84,10 @@ export default function RoomLobby() {
         <div className="mb-6">
           <div>
             <BetaEyebrow>Room Portal</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            <h1 className="beta-text-gradient mt-4 text-4xl font-semibold leading-tight tracking-normal sm:text-5xl">
               Start Room
             </h1>
-            <p className="mt-3 text-sm text-[oklch(0.65_0.02_260)]">
+            <p className="mt-3 text-sm text-[var(--muted-foreground)]">
               Signed in as {user?.email ?? "you@usevoxa.com"}
             </p>
           </div>
@@ -96,8 +96,8 @@ export default function RoomLobby() {
         <BetaPanel className="p-4 sm:p-6">
           <div className="space-y-4">
             <div className="rounded-xl border border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)] p-4 sm:p-5">
-              <p className="text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
-                Open an invite-only Voxa Room, then share the link with the people you want inside.
+              <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
+                Open an invite-only Synq Room, then share the link with the people you want inside.
               </p>
               <div className="mt-5 flex flex-col gap-3">
                 <BetaButton disabled={isCreatingRoom} onClick={() => handleCreateRoom()}>
@@ -120,7 +120,7 @@ export default function RoomLobby() {
             />
 
             <div className="rounded-xl border border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)] p-4 sm:p-5">
-              <h2 className="text-xl font-semibold tracking-tight text-white">Join Room</h2>
+              <h2 className="text-xl font-semibold tracking-normal text-white">Join Room</h2>
               <div className="mt-4 flex flex-col gap-3">
                 <input
                   className="beta-input"
@@ -128,7 +128,7 @@ export default function RoomLobby() {
                     setJoinValue(event.target.value);
                     setJoinError("");
                   }}
-                  placeholder="Paste a Voxa room link or room ID"
+                  placeholder="Paste a Synq room link or room ID"
                   value={joinValue}
                 />
                 {joinError && <p className="text-sm text-[oklch(0.78_0.14_40)]">{joinError}</p>}

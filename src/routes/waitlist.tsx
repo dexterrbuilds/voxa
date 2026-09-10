@@ -19,13 +19,13 @@ export default function WaitlistPage() {
   return (
     <>
       <Helmet>
-        <title>Waitlist — Voxa</title>
+        <title>Waitlist — Synq</title>
         <meta
           name="description"
-          content="Join the Voxa waitlist for early access to the runtime layer for real-time AI participation."
+          content="Join the Synq waitlist for early access to the runtime layer for real-time AI participation."
         />
-        <meta property="og:title" content="Waitlist — Voxa" />
-        <meta property="og:description" content="Get early access to Voxa." />
+        <meta property="og:title" content="Waitlist — Synq" />
+        <meta property="og:description" content="Get early access to Synq." />
       </Helmet>
       <SiteLayout>
         <section className="relative overflow-hidden min-h-[calc(100vh-4rem)]">
@@ -33,11 +33,11 @@ export default function WaitlistPage() {
           <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-24 sm:pt-28 grid lg:grid-cols-2 gap-16 items-start">
             <div>
               <Eyebrow>Early Access</Eyebrow>
-              <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-gradient leading-[1.05]">
+              <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-semibold tracking-normal text-gradient leading-[1.05]">
                 Join the future of conversational infrastructure.
               </h1>
               <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-xl">
-                We're rolling out Voxa to a small group of teams building serious live-AI products.
+                We're rolling out Synq to a small group of teams building serious live-AI products.
                 Tell us what you're working on.
               </p>
 
@@ -84,7 +84,7 @@ export default function WaitlistPage() {
                         className="space-y-5"
                       >
                         <div>
-                          <h2 className="text-xl font-semibold tracking-tight">
+                          <h2 className="text-xl font-semibold tracking-normal">
                             Request Early Access
                           </h2>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -139,7 +139,7 @@ export default function WaitlistPage() {
                           Request Early Access <ArrowRight className="h-4 w-4" />
                         </Button>
                         <p className="text-[11px] text-muted-foreground/70 text-center">
-                          By submitting, you agree to receive updates from Voxa.
+                          By submitting, you agree to receive updates from Synq.
                         </p>
                       </motion.form>
                     ) : (
@@ -158,7 +158,7 @@ export default function WaitlistPage() {
                         >
                           <Sparkles className="h-7 w-7" />
                         </motion.div>
-                        <h2 className="mt-6 text-2xl font-semibold tracking-tight text-gradient">
+                        <h2 className="mt-6 text-2xl font-semibold tracking-normal text-gradient">
                           You're on the list.
                         </h2>
                         <p className="mt-3 text-muted-foreground max-w-sm mx-auto">

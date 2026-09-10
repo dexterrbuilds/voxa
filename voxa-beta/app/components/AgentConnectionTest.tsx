@@ -94,8 +94,8 @@ export function AgentConnectionTest({
       {result && (
         <div className="space-y-3 border-l-2 border-emerald-500 pl-4">
           <p className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> {result.detected.name || "Agent"}{" "}
-            detected{" "}
+            <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />{" "}
+            {result.detected.name || "Agent"} detected{" "}
             <span className="text-xs text-[var(--muted-foreground)]">{result.durationMs} ms</span>
           </p>
           <p className="text-[var(--muted-foreground)]">

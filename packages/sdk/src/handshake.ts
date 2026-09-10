@@ -1,10 +1,10 @@
 import type { AgentCapability, AgentPermission } from "./types.js";
 
-// Voxa agent handshake contract.
+// Synq agent handshake contract.
 //
-// An external agent endpoint must answer a handshake probe so Voxa can verify it
+// An external agent endpoint must answer a handshake probe so Synq can verify it
 // is reachable, speaks a compatible SDK version, and reports the capabilities the
-// developer declared at registration. Voxa's endpoint health check (server-side)
+// developer declared at registration. Synq's endpoint health check (server-side)
 // POSTs `{ type: "voxa.handshake" }` and expects an `AgentHandshake` JSON body.
 //
 // This is contract-only in v0.1. Implementing the handshake does NOT make an
@@ -19,7 +19,7 @@ export type AgentHandshake = {
   protocol: typeof VOXA_AGENT_PROTOCOL;
   sdkVersion: string;
   agent: {
-    // `id` is optional in the handshake: Voxa already knows the agent id from the
+    // `id` is optional in the handshake: Synq already knows the agent id from the
     // registered record. The handshake only needs to report the live identity and
     // the capabilities the endpoint actually supports.
     id?: string;

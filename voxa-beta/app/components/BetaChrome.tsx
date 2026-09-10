@@ -1,6 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -35,14 +38,10 @@ function joinClasses(...classes: Array<string | false | null | undefined>) {
 
 export function BrandMark() {
   return (
-    <div className="flex items-center gap-2">
-      <div className="relative grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-[oklch(0.72_0.2_245)] to-[oklch(0.78_0.18_235)] shadow-[0_0_20px_-4px_oklch(0.72_0.20_245/0.7)]">
-        <div className="h-2 w-2 rounded-sm bg-[oklch(0.13_0.015_260)]" />
-      </div>
-      <span className="text-[15px] font-semibold tracking-tight text-[var(--foreground)]">
-        Voxa
-      </span>
-    </div>
+    <Link href="/" className="synq-wordmark" aria-label="Synq home">
+      <img src="/synq-mark.svg" alt="" width={30} height={30} />
+      <span>Synq</span>
+    </Link>
   );
 }
 
@@ -54,27 +53,76 @@ export function BetaShell({ children, className }: BetaShellProps) {
         className,
       )}
     >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="beta-grid-bg beta-radial-fade absolute inset-0 animate-[beta-grid-pan_24s_linear_infinite] opacity-80" />
-        <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-[oklch(0.72_0.2_245/0.18)] blur-[150px]" />
-        <div className="absolute bottom-[-20rem] right-[-10rem] h-[40rem] w-[40rem] rounded-full bg-[oklch(0.65_0.22_250/0.16)] blur-[150px]" />
-        <div className="absolute bottom-[10%] left-[-12rem] h-[30rem] w-[30rem] rounded-full bg-[oklch(0.78_0.18_220/0.09)] blur-[130px]" />
-      </div>
       <div className="relative z-10">{children}</div>
     </main>
   );
 }
 
 export function BetaHeader({ children }: { children?: ReactNode }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const inRoom = /^\/room\/.+/.test(pathname);
+  const links = [
+    { href: "/", label: "Rooms", active: pathname === "/" || pathname.startsWith("/room") },
+    { href: "/agents", label: "Agents", active: pathname.startsWith("/agents") },
+    {
+      href: "/developers/agents",
+      label: "Developers",
+      active: pathname.startsWith("/developers") && !pathname.startsWith("/developers/sandbox"),
+    },
+    ...(pathname.startsWith("/developers")
+      ? [
+          {
+            href: "/developers/sandbox",
+            label: "Sandbox",
+            active: pathname.startsWith("/developers/sandbox"),
+          },
+        ]
+      : []),
+  ];
+  const navigation = links.map((link) => (
+    <Link
+      key={link.href}
+      href={link.href}
+      aria-current={link.active ? "page" : undefined}
+      onClick={() => setOpen(false)}
+    >
+      {link.label}
+    </Link>
+  ));
   return (
-    <div className="border-b border-[var(--hairline-border)] bg-[var(--header-bg)] backdrop-blur-2xl">
-      <header className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+    <div className="synq-header">
+      <header className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
         <BrandMark />
+        {!inRoom && (
+          <nav aria-label="Main navigation" className="synq-nav hidden md:flex">
+            {navigation}
+          </nav>
+        )}
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {children}
+          {!inRoom && (
+            <button
+              type="button"
+              className="synq-icon-button md:hidden"
+              aria-label={open ? "Close navigation" : "Open navigation"}
+              aria-expanded={open}
+              onClick={() => setOpen(!open)}
+            >
+              {open ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          )}
         </div>
       </header>
+      {open && !inRoom && (
+        <nav
+          aria-label="Mobile navigation"
+          className="synq-nav flex flex-wrap border-t border-[var(--border)] px-4 py-2 md:hidden"
+        >
+          {navigation}
+        </nav>
+      )}
     </div>
   );
 }
@@ -82,13 +130,10 @@ export function BetaHeader({ children }: { children?: ReactNode }) {
 export function BetaCard({ children, className }: BetaCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={joinClasses(
-        "beta-glass rounded-xl p-6 shadow-[0_24px_80px_-48px_oklch(0.72_0.20_245/0.65)]",
-        className,
-      )}
+      transition={{ duration: 0.24 }}
+      className={joinClasses("beta-glass p-6", className)}
     >
       {children}
     </motion.div>
@@ -98,9 +143,9 @@ export function BetaCard({ children, className }: BetaCardProps) {
 export function BetaPanel({ children, className }: BetaCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.24 }}
       className={joinClasses("beta-premium-card", className)}
     >
       <div className="relative z-10">{children}</div>
@@ -109,11 +154,7 @@ export function BetaPanel({ children, className }: BetaCardProps) {
 }
 
 export function BetaEyebrow({ children }: { children: ReactNode }) {
-  return (
-    <div className="inline-flex items-center rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-      {children}
-    </div>
-  );
+  return <div className="text-xs font-semibold text-[var(--electric)]">{children}</div>;
 }
 
 export function BetaButton({

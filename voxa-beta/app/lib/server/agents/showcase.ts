@@ -62,14 +62,14 @@ function firstPartyAgents(): PublicAgent[] {
   return getAvailableAgents().map((agent) => ({
     avatarUrl: agent.avatar ?? null,
     capabilities: agent.capabilities.slice(0, 8),
-    creatorDisplayName: "Voxa",
+    creatorDisplayName: "Synq",
     creatorProfile: null,
     creatorUsername: null,
     description: agent.description,
     examplePrompts: firstPartyPromptExamples[agent.id] ?? [],
     featured: featuredAgentIds.includes(agent.id),
     id: agent.id,
-    importLabel: "Native Voxa Agent",
+    importLabel: "Native Synq Agent",
     name: agent.name,
     permissions: publicPermissions(agent.permissions ?? []),
     slug: agent.id,
@@ -125,7 +125,7 @@ async function loadPublicExternalAgents(): Promise<PublicAgent[]> {
     const agent = externalAgentToPublicAgent(
       record,
       creatorProfiles.get(record.creator_user_id) ?? null,
-      "Voxa developer",
+      "Synq developer",
     );
 
     return {

@@ -21,7 +21,7 @@ function normalizeSupabaseUrl(url: string) {
 
   if (normalizedUrl !== url.trim()) {
     console.warn(
-      "NEXT_PUBLIC_SUPABASE_URL should be the Supabase project URL, not the REST endpoint. Voxa normalized it for this session.",
+      "NEXT_PUBLIC_SUPABASE_URL should be the Supabase project URL, not the REST endpoint. Synq normalized it for this session.",
     );
   }
 
@@ -52,7 +52,7 @@ export function getSupabaseClient() {
 
   if (supabaseGlobal.client && supabaseGlobal.url !== normalizedUrl) {
     console.warn(
-      "Supabase URL changed while Voxa is running. Restart the dev server and refresh the browser to use the new project.",
+      "Supabase URL changed while Synq is running. Restart the dev server and refresh the browser to use the new project.",
     );
   }
 

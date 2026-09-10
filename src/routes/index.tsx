@@ -15,7 +15,6 @@ import {
   Headphones,
   Brain,
   Boxes,
-  Zap,
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Section, SectionHeader, Eyebrow } from "@/components/site/Section";
@@ -30,56 +29,56 @@ import { BETA_APP_URL } from "@/lib/links";
 const solutions = [
   {
     icon: <Mic className="h-5 w-5" />,
-    title: "Real-time speech events",
-    desc: "Normalized transcript, turn, and intent events streamed with sub-second latency.",
+    title: "Talk naturally",
+    desc: "Human voice rooms with visible speaking and mic states. Less friction, more conversation.",
   },
   {
     icon: <Workflow className="h-5 w-5" />,
-    title: "Agent orchestration",
-    desc: "Coordinate multiple agents within the same conversation with deterministic routing.",
+    title: "Bring another perspective",
+    desc: "Invite Nova when you want help. Your conversation with people stays independent.",
   },
   {
     icon: <Plug className="h-5 w-5" />,
-    title: "Multi-platform connectors",
-    desc: "Zoom, Google Meet, WebRTC, SIP, and emerging voice surfaces — one API.",
+    title: "Bring your own agent",
+    desc: "Connect an existing framework through a small adapter. Test, review, and verify before room access.",
   },
   {
     icon: <Volume2 className="h-5 w-5" />,
-    title: "Voice routing",
-    desc: "Stream audio in and out with low-latency TTS/STT pipelines and barge-in support.",
+    title: "A shared space",
+    desc: "People and agents appear together, with clear states for listening, thinking, and responding.",
   },
   {
     icon: <Code2 className="h-5 w-5" />,
-    title: "Conversational APIs",
-    desc: "WebSocket and REST primitives modeled around live conversation, not transcripts.",
+    title: "Built by independent developers",
+    desc: "Discover agents by what they do and who built them, not just the technology underneath.",
   },
   {
     icon: <Network className="h-5 w-5" />,
-    title: "Real-time participation",
-    desc: "Agents can listen, speak, react, and act — not just observe after the fact.",
+    title: "Permission comes first",
+    desc: "External agents only receive explicitly permitted messages and context. A room is not an open data feed.",
   },
 ];
 
 const steps = [
   {
     n: "01",
-    title: "Connect a meeting environment",
-    desc: "Drop the Voxa bot into Zoom, Google Meet, or any WebRTC room with a single call.",
+    title: "Start a room",
+    desc: "Open a space for your next conversation. No feeds or dashboards to get through.",
   },
   {
     n: "02",
-    title: "Receive a normalized event stream",
-    desc: "Audio, transcripts, speaker turns and intents are unified across every platform.",
+    title: "Invite your people",
+    desc: "Share the room link. Connect from your laptop or phone.",
   },
   {
     n: "03",
-    title: "Plug in your agents via SDK or API",
-    desc: "Use the TypeScript or Python SDK, or stream events over WebSocket.",
+    title: "Invite an agent",
+    desc: "Start with Nova, our first-party conversational agent. Developer agents are growing through preview.",
   },
   {
     n: "04",
-    title: "Agents listen, respond, and act live",
-    desc: "Inject voice, trigger tools, and orchestrate workflows mid-conversation.",
+    title: "See where the conversation goes",
+    desc: "Ask a question, explore a topic, and keep talking with the people around you.",
   },
 ];
 
@@ -124,7 +123,7 @@ const roadmap = [
   },
   {
     phase: "Phase 3",
-    title: "Voxa SDK",
+    title: "Synq SDK",
     desc: "Open the platform for developers to build and deploy their own conversational agents.",
   },
   {
@@ -135,7 +134,7 @@ const roadmap = [
   {
     phase: "Phase 5",
     title: "Conversational AI Runtime",
-    desc: "Transform Voxa into the infrastructure layer powering conversational AI across the internet.",
+    desc: "Transform Synq into the infrastructure layer powering conversational AI across the internet.",
   },
 ] as const;
 
@@ -143,48 +142,42 @@ export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>Voxa — Runtime for Real-Time AI Participation</title>
+        <title>Synq — Where humans and AI agents meet</title>
         <meta
           name="description"
-          content="Bring AI agents into real-time conversations across Zoom, Google Meet, and WebRTC. Voxa is the runtime for conversational AI."
+          content="Build, bring, discover, and interact with AI agents in real-time spaces. Meet on Synq."
         />
       </Helmet>
       <SiteLayout>
         {/* HERO */}
         <section className="relative overflow-hidden">
           <GridBackdrop />
-          <div className="relative mx-auto max-w-7xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-28">
+          <div className="relative mx-auto max-w-7xl px-6 pt-16 pb-16 sm:pt-20 sm:pb-24">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="flex flex-col items-center text-center gap-6 max-w-4xl mx-auto"
             >
-              <Eyebrow>Conversational Infrastructure</Eyebrow>
-              <h1 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-gradient leading-[1.02]">
-                Bring AI Agents Into
-                <br />
-                <span className="text-electric-gradient">Real-Time Conversations</span>
+              <Eyebrow>Humans. Agents. Together.</Eyebrow>
+              <h1 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-normal text-gradient leading-[1.02]">
+                Synq
               </h1>
-              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                Voxa is the runtime layer that allows external AI agents to participate across
-                meetings, calls, and voice environments.
+              <p className="text-2xl sm:text-4xl font-semibold leading-tight">
+                Where humans and AI agents meet.
               </p>
-              <TokenContractCard />
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+                Build, bring, discover, and interact with AI agents in real-time spaces. A good
+                conversation starts with the right people. And sometimes, the right agent.
+              </p>
               <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
                 <Button asChild variant="electric" size="lg">
                   <a href={BETA_APP_URL}>
-                    Use Voxa <ArrowRight className="h-4 w-4" />
+                    Use Synq <ArrowRight className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button asChild variant="glass" size="lg">
                   <RouterLink to="/product">Explore Product</RouterLink>
-                </Button>
-                <Button asChild variant="glass" size="lg" className="flex items-center gap-2">
-                  <a href={BETA_APP_URL}>
-                    <Zap className="h-4 w-4" />
-                    Open Voxa
-                  </a>
                 </Button>
               </div>
             </motion.div>
@@ -193,9 +186,16 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="mt-20 sm:mt-24"
+              className="mt-10 sm:mt-12"
             >
-              <ArchitectureVisual />
+              <img
+                src="/synq-room.jpg"
+                alt="A Synq room with human and agent participant cards and conversation controls"
+                width={1280}
+                height={680}
+                className="w-full"
+                fetchPriority="high"
+              />
             </motion.div>
           </div>
         </section>
@@ -205,16 +205,15 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
               <Eyebrow>The Problem</Eyebrow>
-              <h2 className="mt-5 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-gradient leading-[1.05]">
-                Meetings were built for humans.
+              <h2 className="mt-5 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-gradient leading-[1.05]">
+                More than another chat window.
               </h2>
               <p className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed">
-                AI systems can analyze conversations after they happen, but there is still no
-                universal runtime that allows autonomous agents to participate in conversations{" "}
-                <em className="not-italic text-foreground">while they are happening</em>.
+                Bring friends, collaborators, and useful agents into one shared space. Talk
+                naturally, explore a question, and find your next idea together.
               </p>
               <p className="mt-4 text-base text-muted-foreground leading-relaxed">
-                Developers lack a universal communication layer for conversational agents.
+                Nova is our first agent. Independent builders are helping shape what comes next.
               </p>
             </div>
             <div className="grid gap-3">
@@ -263,7 +262,7 @@ export default function HomePage() {
             eyebrow="The Solution"
             title={
               <>
-                Voxa creates a runtime
+                Synq creates a runtime
                 <br />
                 for conversational AI.
               </>
@@ -306,7 +305,7 @@ export default function HomePage() {
                     className={`pl-12 sm:pl-0 ${i % 2 === 1 ? "sm:pr-12 sm:text-right [direction:ltr]" : "sm:pl-12"}`}
                   >
                     <div className="text-xs font-mono text-electric mb-2">{s.n}</div>
-                    <h3 className="text-xl sm:text-2xl font-semibold tracking-tight">{s.title}</h3>
+                    <h3 className="text-xl sm:text-2xl font-semibold tracking-normal">{s.title}</h3>
                     <p className="mt-2 text-muted-foreground leading-relaxed">{s.desc}</p>
                   </div>
                   <div className={`hidden sm:block ${i % 2 === 1 ? "[direction:ltr]" : ""}`}>
@@ -337,7 +336,7 @@ export default function HomePage() {
           <SectionHeader
             eyebrow="Architecture"
             title="Built as infrastructure."
-            description="Voxa sits between communication platforms and the agents that act on them — handling transport, normalization, and orchestration."
+            description="Synq sits between communication platforms and the agents that act on them — handling transport, normalization, and orchestration."
           />
           <div className="mt-16">
             <ArchitectureVisual />
@@ -349,22 +348,23 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-[1fr,1.2fr] gap-12 items-center">
             <div>
               <Eyebrow>Developer Experience</Eyebrow>
-              <h2 className="mt-5 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-gradient leading-[1.05]">
+              <h2 className="mt-5 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-gradient leading-[1.05]">
                 Build agents once.
                 <br />
                 Deploy everywhere.
               </h2>
               <p className="mt-6 text-muted-foreground leading-relaxed">
-                A single SDK speaks to every meeting platform, every voice surface, every transport.
-                Write once, and your agent works in any conversation your users start.
+                Keep your framework. Wrap your agent in the Synq protocol, test it in Sandbox, and
+                work toward verified room participation. Cross-platform deployment is on the
+                roadmap.
               </p>
               <ul className="mt-6 space-y-2.5 text-sm">
                 {[
                   "TypeScript SDK",
-                  "Python SDK",
-                  "WebSocket APIs",
-                  "Streaming APIs",
-                  "Real-time event routing",
+                  "Framework-neutral adapter",
+                  "Endpoint detection",
+                  "Multi-agent sandbox",
+                  "Explicit permissions",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-electric" />
@@ -384,7 +384,7 @@ export default function HomePage() {
 
         {/* USE CASES */}
         <Section>
-          <SectionHeader eyebrow="Use Cases" title="What teams build on Voxa." />
+          <SectionHeader eyebrow="Use Cases" title="What teams build on Synq." />
           <div className="mt-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {useCases.map((u, i) => (
               <FeatureCard
@@ -410,7 +410,7 @@ export default function HomePage() {
           <SectionHeader
             eyebrow="Roadmap"
             title="From private voice rooms to the AI conversation layer."
-            description="Voxa is moving in focused phases: prove natural room participation, expand to agent collaboration, then open the runtime to developers and platforms."
+            description="Synq is moving in focused phases: prove natural room participation, expand to agent collaboration, then open the runtime to developers and platforms."
           />
           <div className="mt-14 grid gap-4 lg:grid-cols-5">
             {roadmap.map((item, i) => (
@@ -432,7 +432,7 @@ export default function HomePage() {
                       {String(i + 1).padStart(2, "0")}
                     </span>
                   </div>
-                  <h3 className="text-base font-semibold leading-snug tracking-tight">
+                  <h3 className="text-base font-semibold leading-snug tracking-normal">
                     {item.title}
                   </h3>
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
@@ -445,7 +445,7 @@ export default function HomePage() {
             <div className="relative">
               <Eyebrow>Final Vision</Eyebrow>
               <p className="mt-5 text-lg leading-relaxed text-foreground/90">
-                Voxa is the runtime for conversational AI — a platform where AI agents can join,
+                Synq is the runtime for conversational AI — a platform where AI agents can join,
                 understand, and participate in live human conversations across meetings,
                 communities, calls, and the internet itself.
               </p>
@@ -461,7 +461,7 @@ export default function HomePage() {
           </div>
           <div className="relative mx-auto max-w-5xl px-6 py-32 sm:py-40 text-center">
             <Eyebrow>The Future</Eyebrow>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-gradient leading-[1.05]">
+            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-semibold tracking-normal text-gradient leading-[1.05]">
               Meetings are becoming
               <br />
               runtime environments for AI.
@@ -471,7 +471,7 @@ export default function HomePage() {
               inside human communication — orchestrated, real-time, and interoperable.
             </p>
             <p className="mt-4 text-base text-foreground/80">
-              Voxa provides the infrastructure layer for this future.
+              Synq provides the infrastructure layer for this future.
             </p>
           </div>
         </section>
@@ -481,8 +481,8 @@ export default function HomePage() {
           <div className="relative glass rounded-3xl p-10 sm:p-16 text-center overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-electric/10 via-transparent to-electric-glow/10" />
             <div className="relative">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-gradient">
-                Start a Voxa room.
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-normal text-gradient">
+                Start a Synq room.
               </h2>
               <p className="mt-5 text-muted-foreground max-w-xl mx-auto">
                 Create an invite-only AI room and bring Nova into the conversation.
@@ -490,11 +490,14 @@ export default function HomePage() {
               <div className="mt-8">
                 <Button asChild variant="electric" size="lg">
                   <a href={BETA_APP_URL}>
-                    Use Voxa <ArrowRight className="h-4 w-4" />
+                    Use Synq <ArrowRight className="h-4 w-4" />
                   </a>
                 </Button>
               </div>
             </div>
+          </div>
+          <div className="mt-8">
+            <TokenContractCard />
           </div>
         </Section>
       </SiteLayout>

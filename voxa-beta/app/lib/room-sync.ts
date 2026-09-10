@@ -132,7 +132,7 @@ function roomFromRows(
   return {
     id: room.room_id,
     roomId: room.room_id,
-    name: "Voxa Room",
+    name: "Synq Room",
     createdAt: room.created_at,
     createdBy: room.created_by,
     status: room.status ?? "active",

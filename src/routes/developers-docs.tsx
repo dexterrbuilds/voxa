@@ -177,7 +177,7 @@ function DocsHero({ pageId }: { pageId: DocsPageId }) {
         <div className="grid gap-8 lg:grid-cols-[1fr,24rem] lg:items-end">
           <div>
             <Eyebrow>{meta.eyebrow}</Eyebrow>
-            <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.05] tracking-tight text-gradient sm:text-6xl">
+            <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.05] tracking-normal text-gradient sm:text-6xl">
               {meta.title}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
@@ -221,7 +221,7 @@ function Callout() {
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <h3 className="font-semibold tracking-tight">{supportCard.title}</h3>
+          <h3 className="font-semibold tracking-normal">{supportCard.title}</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {supportCard.description}
           </p>
@@ -240,21 +240,21 @@ function OverviewPage() {
   return (
     <div className="space-y-12">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">What is Voxa?</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">What is Synq?</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Voxa is the runtime layer for conversational AI. It gives humans and AI agents a shared
+          Synq is the runtime layer for conversational AI. It gives humans and AI agents a shared
           real-time room where agents can eventually join, understand, and participate in live
           conversation across the internet.
         </p>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Nova is the first demonstration agent running on Voxa. Nova proves the room, voice,
+          Nova is the first demonstration agent running on Synq. Nova proves the room, voice,
           memory, and runtime direction, but Nova is not the product. The product is the agent
           infrastructure underneath her.
         </p>
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Platform direction</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Platform direction</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {platformPillars.map((pillar) => {
             const Icon = pillar.icon;
@@ -263,7 +263,7 @@ function OverviewPage() {
                 <div className="grid h-10 w-10 place-items-center rounded-lg bg-electric/10 text-electric">
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 font-semibold tracking-tight">{pillar.title}</h3>
+                <h3 className="mt-4 font-semibold tracking-normal">{pillar.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {pillar.description}
                 </p>
@@ -274,7 +274,7 @@ function OverviewPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Current foundation</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Current foundation</h2>
         <div className="mt-5 grid gap-3">
           {[
             "Agent Runtime foundation",
@@ -303,7 +303,7 @@ function RuntimePage() {
   return (
     <div className="space-y-12">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Runtime flow</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Runtime flow</h2>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {runtimeFlow.map((step, index) => {
             const Icon = step.icon;
@@ -318,7 +318,7 @@ function RuntimePage() {
                   </div>
                   <span className="font-mono text-xs text-muted-foreground">0{index + 1}</span>
                 </div>
-                <h3 className="mt-4 font-semibold tracking-tight">{step.label}</h3>
+                <h3 className="mt-4 font-semibold tracking-normal">{step.label}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
               </div>
             );
@@ -327,7 +327,7 @@ function RuntimePage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Core concepts</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Core concepts</h2>
         <div className="mt-5 space-y-4">
           {[
             {
@@ -348,7 +348,7 @@ function RuntimePage() {
             },
           ].map((concept) => (
             <div className="rounded-xl border border-border/70 bg-card/70 p-5" key={concept.title}>
-              <h3 className="font-semibold tracking-tight">{concept.title}</h3>
+              <h3 className="font-semibold tracking-normal">{concept.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{concept.body}</p>
             </div>
           ))}
@@ -364,9 +364,9 @@ function SdkPage() {
   return (
     <div className="space-y-12">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">SDK preview</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">SDK preview</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          The local SDK package defines the shape of a Voxa agent. It is intentionally small: no API
+          The local SDK package defines the shape of a Synq agent. It is intentionally small: no API
           keys, no external networking, no marketplace, and no production publishing workflow yet.
         </p>
       </section>
@@ -374,7 +374,7 @@ function SdkPage() {
       <CodeBlock code={sdkExample} language="TypeScript" title="research-agent.ts" />
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Types developers will use</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Types developers will use</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {[
             "AgentIdentity",
@@ -394,10 +394,10 @@ function SdkPage() {
       <CodeBlock code={typeExample} language="TypeScript" title="types.ts" />
 
       <div className="rounded-xl border border-electric/20 bg-electric/10 p-5">
-        <h3 className="font-semibold tracking-tight">Developer preview scope</h3>
+        <h3 className="font-semibold tracking-normal">Developer preview scope</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           External agents are not supported yet. The SDK exists to make the contract explicit before
-          Voxa adds agent publishing, authentication, billing, permissions, and runtime dispatch.
+          Synq adds agent publishing, authentication, billing, permissions, and runtime dispatch.
         </p>
       </div>
     </div>
@@ -408,16 +408,16 @@ function RegistrationPage() {
   return (
     <div className="space-y-12">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Registration is scaffolded</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Registration is scaffolded</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Voxa now has an authenticated registration API design for developer-owned agent metadata,
+          Synq now has an authenticated registration API design for developer-owned agent metadata,
           but external agents are not enabled in production. Submitted records are a future review
           queue only; they do not appear in rooms, the Agent Selector, or the marketplace.
         </p>
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Future flow</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Future flow</h2>
         <div className="mt-5 grid gap-3">
           {registrationFlow.map((item, index) => (
             <div
@@ -436,8 +436,8 @@ function RegistrationPage() {
       <CodeBlock code={registrationExample} language="TypeScript" title="registration.ts" />
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Build &amp; test a Voxa-compatible agent
+        <h2 className="text-2xl font-semibold tracking-normal">
+          Build &amp; test a Synq-compatible agent
         </h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
           You can build an agent, verify its endpoint, and try it in the developer sandbox today.
@@ -463,7 +463,7 @@ function RegistrationPage() {
       <CodeBlock code={handshakeExample} language="TypeScript" title="voxa-agent-endpoint.ts" />
 
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-5">
-        <h3 className="font-semibold tracking-tight">Sandbox chat is live; live rooms are not</h3>
+        <h3 className="font-semibold tracking-normal">Sandbox chat is live; live rooms are not</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           The sandbox sends messages straight to your verified agent endpoint and shows the reply
           (Build → Register → Verify → Sandbox chat). You can select{" "}
@@ -474,7 +474,7 @@ function RegistrationPage() {
           <span className="font-medium text-foreground">streaming simulation</span> (set{" "}
           <span className="font-mono">streaming: true</span> — revealed progressively client-side,
           no SSE/websocket) and report a <span className="font-mono">tools</span> array, shown as a
-          read-only “Tools Used” panel (Voxa never executes tools). It is fully isolated: the
+          read-only “Tools Used” panel (Synq never executes tools). It is fully isolated: the
           session still reports <span className="font-mono">runtimeReady: false</span> because the
           sandbox never connects your agents into a production room, and this is not a public
           multi-agent room. External agents remain blocked from live rooms.
@@ -482,7 +482,7 @@ function RegistrationPage() {
       </div>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Security model</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Security model</h2>
         <div className="mt-5 grid gap-3">
           {securityModel.map((item) => (
             <div
@@ -497,11 +497,11 @@ function RegistrationPage() {
       </section>
 
       <div className="rounded-xl border border-electric/20 bg-electric/10 p-5">
-        <h3 className="font-semibold tracking-tight">Current API posture</h3>
+        <h3 className="font-semibold tracking-normal">Current API posture</h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           The scaffolded routes are authenticated and owner-scoped. Developers can submit draft or
-          pending-review metadata, but cannot self-approve agents. Only approved + verified +
-          public agents can appear in the public showcase, and public installs are not live yet.
+          pending-review metadata, but cannot self-approve agents. Only approved + verified + public
+          agents can appear in the public showcase, and public installs are not live yet.
         </p>
         <a
           className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-electric px-3.5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
@@ -534,7 +534,7 @@ function RoadmapPage() {
   return (
     <div className="space-y-12">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Current</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Current</h2>
         <div className="mt-5 grid gap-3">
           {roadmapNow.map((item) => (
             <div
@@ -549,7 +549,7 @@ function RoadmapPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight">Coming next</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Coming next</h2>
         <div className="mt-5 grid gap-3">
           {roadmapComing.map((item) => (
             <div
@@ -564,9 +564,9 @@ function RoadmapPage() {
       </section>
 
       <div className="glass rounded-2xl p-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Final vision</h2>
+        <h2 className="text-2xl font-semibold tracking-normal">Final vision</h2>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Voxa becomes the runtime for conversational AI: a platform where AI agents can join,
+          Synq becomes the runtime for conversational AI: a platform where AI agents can join,
           understand, and participate in live human conversations across meetings, communities,
           calls, and the internet itself.
         </p>
@@ -580,7 +580,7 @@ function FaqPage() {
     <div className="space-y-4">
       {faqItems.map((item) => (
         <div className="rounded-xl border border-border/70 bg-card/70 p-5" key={item.question}>
-          <h2 className="font-semibold tracking-tight">{item.question}</h2>
+          <h2 className="font-semibold tracking-normal">{item.question}</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
         </div>
       ))}
@@ -620,9 +620,9 @@ export default function DeveloperDocsPage() {
   return (
     <>
       <Helmet>
-        <title>{`${meta.eyebrow} — Voxa Developer Docs`}</title>
+        <title>{`${meta.eyebrow} — Synq Developer Docs`}</title>
         <meta name="description" content={meta.description} />
-        <meta property="og:title" content={`${meta.eyebrow} — Voxa Developer Docs`} />
+        <meta property="og:title" content={`${meta.eyebrow} — Synq Developer Docs`} />
         <meta property="og:description" content={meta.description} />
       </Helmet>
       <SiteLayout>

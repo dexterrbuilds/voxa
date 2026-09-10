@@ -6,17 +6,17 @@ import {
   type VoxaVoiceRequest,
 } from "@voxa/sdk";
 
-// Mock OpenClaw -> Voxa ADAPTER.
+// Mock OpenClaw -> Synq ADAPTER.
 //
 // This shows how an EXISTING agent from another runtime (OpenClaw, LangChain,
-// CrewAI, AutoGen, …) is "brought into" Voxa: you stand up a small adapter that
-// exposes the Voxa-compatible endpoints and, inside, forwards the request to your
-// real runtime and maps the result back to the Voxa response shape.
+// CrewAI, AutoGen, …) is "brought into" Synq: you stand up a small adapter that
+// exposes the Synq-compatible endpoints and, inside, forwards the request to your
+// real runtime and maps the result back to the Synq response shape.
 //
-//   Voxa request  ->  this adapter  ->  OpenClaw/public runtime  ->  Voxa response
+//   Synq request  ->  this adapter  ->  OpenClaw/public runtime  ->  Synq response
 //
-// SAFETY: the adapter only ever receives the single explicit user message Voxa
-// sends. Voxa does NOT run the agent's tools and the agent gets NO room audio or
+// SAFETY: the adapter only ever receives the single explicit user message Synq
+// sends. Synq does NOT run the agent's tools and the agent gets NO room audio or
 // transcript. This mock needs no real credentials — it returns canned replies so
 // you can register/verify/sandbox the import flow end to end.
 
@@ -24,7 +24,7 @@ const PORT = Number(process.env.PORT ?? 8789);
 
 const AGENT_NAME = "OpenClaw Agent (adapter)";
 const AGENT_DESCRIPTION =
-  "A sample external agent imported into Voxa via an OpenClaw-style adapter";
+  "A sample external agent imported into Synq via an OpenClaw-style adapter";
 const AGENT_CAPABILITIES = ["web_search", "automation", "summaries"];
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
@@ -53,7 +53,7 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 
 // Stand-in for "call OpenClaw / your real runtime". In a real adapter this is
 // where you would invoke the upstream agent and map its result to text. It NEVER
-// runs tools inside Voxa — the adapter owns that boundary.
+// runs tools inside Synq — the adapter owns that boundary.
 function callUpstreamRuntime(message: string): string {
   if (!message) {
     return `${AGENT_NAME} here (mock). Send a message and the adapter forwards it to the upstream runtime.`;
@@ -96,7 +96,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Optional: Voxa's voice route already posts to /voxa/message, but an adapter may
+  // Optional: Synq's voice route already posts to /voxa/message, but an adapter may
   // also implement /voxa/voice explicitly. Text is required in the reply.
   if (method === "POST" && url === "/voxa/voice") {
     const body = (await readJsonBody(req)) as Partial<VoxaVoiceRequest> | null;
@@ -109,7 +109,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Voxa OpenClaw adapter (mock) listening on http://localhost:${PORT}`);
+  console.log(`Synq OpenClaw adapter (mock) listening on http://localhost:${PORT}`);
   console.log(`  GET  /health`);
   console.log(`  POST /voxa/handshake`);
   console.log(`  POST /voxa/message`);

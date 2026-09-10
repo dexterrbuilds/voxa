@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Mock OpenClaw -> Voxa adapter. Wraps an external runtime behind a Voxa-compatible endpoint.",
+  "description": "Mock OpenClaw -> Synq adapter. Wraps an external runtime behind a Synq-compatible endpoint.",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -39,7 +39,7 @@ export default function AuthCallbackPage() {
       await useAuthStore.getState().hydrate();
 
       if (isMounted) {
-        setMessage("Opening Voxa");
+        setMessage("Opening Synq");
         router.replace(nextPath.startsWith("/") ? nextPath : "/");
       }
     }

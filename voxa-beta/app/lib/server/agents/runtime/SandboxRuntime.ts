@@ -15,7 +15,7 @@ import {
 //
 // It sends a `voxa.message` request to a verified agent's message endpoint and
 // returns the `{ text }` reply. It NEVER touches production rooms, LiveKit, or
-// Supabase room state — it is a direct, isolated HTTP call from Voxa's server to
+// Supabase room state — it is a direct, isolated HTTP call from Synq's server to
 // the developer's own endpoint. Every message is forced to `sandbox: true`.
 //
 // Shares its wire transport with RoomTextRuntime via `voxaMessageClient`. A future

@@ -23,14 +23,14 @@ export type AgentRuntimeMessageInput = {
   context?: AgentRuntimeMessageContext;
 };
 
-// Tool execution model (descriptive metadata only — Voxa never executes tools).
+// Tool execution model (descriptive metadata only — Synq never executes tools).
 export type AgentRuntimeToolStatus = "pending" | "running" | "completed" | "failed";
 
 export type AgentRuntimeTool = {
   name: string;
   status: AgentRuntimeToolStatus;
   detail?: string;
-  // Set true by Voxa when a reported tool is NOT in the agent's registered
+  // Set true by Synq when a reported tool is NOT in the agent's registered
   // capabilities (capability enforcement). Display-only signal; never trusted.
   untrusted?: boolean;
 };

@@ -51,9 +51,9 @@ const statusLabels: Record<RegisteredAgentStatus, string> = {
 
 const statusBadgeClasses: Record<RegisteredAgentStatus, string> = {
   draft: "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
-  pending_review: "border-amber-400/30 bg-amber-400/10 text-amber-300",
-  approved: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-  rejected: "border-rose-400/30 bg-rose-400/10 text-rose-300",
+  pending_review: "border-amber-400/30 bg-amber-400/10 text-[var(--warning)]",
+  approved: "border-emerald-400/30 bg-emerald-400/10 text-[var(--success)]",
+  rejected: "border-rose-400/30 bg-rose-400/10 text-[var(--error)]",
   disabled: "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
 };
 
@@ -72,17 +72,17 @@ const actionMeta: Record<ReviewAction, { label: string; icon: typeof CheckCircle
     approve: {
       label: "Approve",
       icon: CheckCircle2,
-      tone: "border-emerald-400/40 text-emerald-200 hover:bg-emerald-400/10",
+      tone: "border-emerald-400/40 text-[var(--success)] hover:bg-emerald-400/10",
     },
     reject: {
       label: "Reject",
       icon: XCircle,
-      tone: "border-rose-400/40 text-rose-200 hover:bg-rose-400/10",
+      tone: "border-rose-400/40 text-[var(--error)] hover:bg-rose-400/10",
     },
     disable: {
       label: "Disable",
       icon: Ban,
-      tone: "border-amber-400/40 text-amber-200 hover:bg-amber-400/10",
+      tone: "border-amber-400/40 text-[var(--warning)] hover:bg-amber-400/10",
     },
     return_to_review: {
       label: "Return to review",
@@ -127,8 +127,8 @@ const verificationLabels: Record<AgentVerificationStatus, string> = {
 const verificationBadgeClasses: Record<AgentVerificationStatus, string> = {
   verification_pending:
     "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
-  verified: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-  verification_failed: "border-rose-400/30 bg-rose-400/10 text-rose-300",
+  verified: "border-emerald-400/30 bg-emerald-400/10 text-[var(--success)]",
+  verification_failed: "border-rose-400/30 bg-rose-400/10 text-[var(--error)]",
 };
 
 function VerificationBadge({ status }: { status: AgentVerificationStatus }) {
@@ -148,7 +148,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
       <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
         {label}
       </span>
-      <span className="min-w-0 break-words text-[oklch(0.78_0.02_260)]">{children}</span>
+      <span className="min-w-0 break-words text-[var(--muted-foreground)]">{children}</span>
     </div>
   );
 }
@@ -180,14 +180,16 @@ function PermissionsReview({ permissions }: { permissions: string[] }) {
   return (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[10px] uppercase tracking-[0.12em] text-emerald-300/80">Granted</span>
+        <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--success)]">
+          Granted
+        </span>
         {granted.length === 0 ? (
           <span className="text-[var(--muted-foreground)]">— (defaults apply)</span>
         ) : (
           granted.map((p) => (
             <span
               key={p}
-              className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 font-mono text-[10px] text-emerald-300"
+              className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 font-mono text-[10px] text-[var(--success)]"
             >
               {EXTERNAL_AGENT_PERMISSION_META[p as keyof typeof EXTERNAL_AGENT_PERMISSION_META]
                 ?.badge ?? p}
@@ -197,11 +199,13 @@ function PermissionsReview({ permissions }: { permissions: string[] }) {
       </div>
       {blocked.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-rose-300/80">Blocked</span>
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--error)]">
+            Blocked
+          </span>
           {blocked.map((p) => (
             <span
               key={p}
-              className="rounded-full border border-rose-400/25 bg-rose-400/[0.06] px-2 py-0.5 font-mono text-[10px] text-rose-300/90 line-through"
+              className="rounded-full border border-rose-400/25 bg-rose-400/[0.06] px-2 py-0.5 font-mono text-[10px] text-[var(--error)] line-through"
             >
               {p}
             </span>
@@ -248,7 +252,7 @@ function AgentCard({
             <StatusBadge status={agent.status} />
             <VerificationBadge status={agent.verificationStatus} />
             {hasVoiceBeta ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-amber-300">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--warning)]">
                 <Mic className="h-2.5 w-2.5" />
                 Voice beta
               </span>
@@ -273,7 +277,7 @@ function AgentCard({
             type="button"
             disabled={busy}
             onClick={() => onVoiceBeta(!hasVoiceBeta)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/40 px-2.5 py-1.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-400/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/40 px-2.5 py-1.5 text-xs font-medium text-[var(--warning)] transition-colors hover:bg-amber-400/10 disabled:opacity-50"
           >
             <Mic className="h-3.5 w-3.5" />
             {hasVoiceBeta ? "Revoke voice beta" : "Grant voice beta"}
@@ -282,7 +286,7 @@ function AgentCard({
       </div>
 
       {agent.description ? (
-        <p className="mt-3 text-sm leading-relaxed text-[oklch(0.72_0.02_260)]">
+        <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
           {agent.description}
         </p>
       ) : null}
@@ -499,7 +503,7 @@ export default function AdminAgentsPage() {
       <BetaShell>
         <div className="grid min-h-screen place-items-center">
           <div className="beta-status-pill">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[oklch(0.72_0.2_245)]" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--electric)]" />
             Loading admin console
           </div>
         </div>
@@ -514,11 +518,11 @@ export default function AdminAgentsPage() {
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-3xl place-items-center px-6 py-16">
           <BetaPanel className="w-full p-8 text-center sm:p-12">
             <BetaEyebrow>Admin Console</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-tight">
+            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-normal">
               Sign in to continue
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
-              The agent review console requires an authorized Voxa admin account.
+            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[var(--muted-foreground)]">
+              The agent review console requires an authorized Synq admin account.
             </p>
             <div className="mt-8 flex justify-center">
               <BetaButton href="/login?next=/admin/agents">
@@ -538,12 +542,12 @@ export default function AdminAgentsPage() {
         <BetaHeader />
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-3xl place-items-center px-6 py-16">
           <BetaPanel className="w-full p-8 text-center sm:p-12">
-            <ShieldAlert className="mx-auto h-9 w-9 text-amber-300" />
-            <h1 className="mt-5 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+            <ShieldAlert className="mx-auto h-9 w-9 text-[var(--warning)]" />
+            <h1 className="mt-5 text-2xl font-semibold tracking-normal text-[var(--foreground)]">
               Admin access required
             </h1>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[var(--muted-foreground)]">
-              Your account is not on the admin allowlist. Ask a Voxa admin to add your email to{" "}
+              Your account is not on the admin allowlist. Ask a Synq admin to add your email to{" "}
               <span className="font-mono">ADMIN_EMAILS</span> if you need review access.
             </p>
             <div className="mt-7 flex justify-center">
@@ -568,20 +572,22 @@ export default function AdminAgentsPage() {
       <div className="mx-auto w-full max-w-5xl px-6 py-12">
         <div className="flex flex-col gap-3">
           <BetaEyebrow>Admin · Agent Review</BetaEyebrow>
-          <h1 className="beta-text-gradient flex items-center gap-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            <ShieldCheck className="h-7 w-7 text-[oklch(0.72_0.2_245)]" />
+          <h1 className="beta-text-gradient flex items-center gap-2 text-3xl font-semibold tracking-normal sm:text-4xl">
+            <ShieldCheck className="h-7 w-7 text-[var(--electric)]" />
             Agent review console
           </h1>
-          <p className="max-w-2xl text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
+          <p className="max-w-2xl text-base leading-relaxed text-[var(--muted-foreground)]">
             Review submitted agent metadata and move records through the approval lifecycle.
           </p>
         </div>
 
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-          <p className="text-sm leading-relaxed text-[oklch(0.82_0.02_260)]">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+          <p className="text-sm leading-relaxed text-[var(--foreground)]">
             Approved agents are reviewed but{" "}
-            <span className="font-medium text-amber-200">not yet available in live rooms</span>{" "}
+            <span className="font-medium text-[var(--warning)]">
+              not yet available in live rooms
+            </span>{" "}
             until the DB-backed registry is intentionally enabled. Approval here does not add an
             agent to the Agent Selector or allow it to join rooms.
           </p>
@@ -617,20 +623,20 @@ export default function AdminAgentsPage() {
         </div>
 
         {notice ? (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-emerald-200">
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-[var(--success)]">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{notice}</span>
           </div>
         ) : null}
 
         {error ? (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-[var(--error)]">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         ) : null}
 
-        <h2 className="mt-8 text-lg font-semibold tracking-tight text-[var(--foreground)]">
+        <h2 className="mt-8 text-lg font-semibold tracking-normal text-[var(--foreground)]">
           {heading}
         </h2>
 

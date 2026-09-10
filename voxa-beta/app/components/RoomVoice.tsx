@@ -594,28 +594,27 @@ function VoiceSession({
   return (
     <>
       <RoomAudioRenderer />
-      <div className="relative w-full overflow-hidden rounded-3xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.76)] p-3 shadow-[0_26px_90px_-44px_oklch(0.72_0.2_245/0.9)] backdrop-blur-2xl">
-        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_50%_0%,oklch(0.72_0.2_245/0.22),transparent_16rem)]" />
+      <div className="relative w-full overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-floating)]">
         <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <span className="beta-status-pill">
-                <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                <Radio className="h-3.5 w-3.5 text-[var(--electric)]" />
                 <span className="hidden sm:inline">{formatConnectionState(connectionState)}</span>
                 <span className="sm:hidden">Voice</span>
               </span>
               <span className="beta-status-pill">
-                <Volume2 className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+                <Volume2 className="h-3.5 w-3.5 text-[var(--electric)]" />
                 {novaLabel}
               </span>
               {wakeListening && (
                 <span className="beta-status-pill" title="Wake detection runs on your device">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
+                  <ShieldCheck className="h-3.5 w-3.5 text-[var(--electric)]" />
                   Local
                 </span>
               )}
             </div>
-            <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-[oklch(0.66_0.025_260)]">
+            <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
               {agentActionHint}
               {novaInRoom && wakeFeatureEnabled && wake.usingBuiltInFallback
                 ? " Temporary wake keyword active."
@@ -642,7 +641,7 @@ function VoiceSession({
           </BetaButton>
 
           <div className="min-w-0 text-right">
-            <div className="mb-2 text-[11px] font-medium text-[oklch(0.7_0.035_260)]">
+            <div className="mb-2 text-[11px] font-medium text-[var(--muted-foreground)]">
               {novaButtonLabel}
             </div>
             <BetaButton
@@ -654,7 +653,7 @@ function VoiceSession({
               {isMicrophoneEnabled ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               {isMicrophoneEnabled ? "Mute" : "Unmute"}
             </BetaButton>
-            <div className="mt-1 text-[10px] text-[oklch(0.58_0.02_260)]">
+            <div className="mt-1 text-[10px] text-[var(--muted-foreground)]">
               {isMicrophoneEnabled ? "Mic live" : "Mic muted"}
             </div>
           </div>
@@ -763,8 +762,8 @@ export default function RoomVoice({
 
   if (error) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
-        <span className="text-xs text-[oklch(0.78_0.18_35)]">{error}</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-floating)]">
+        <span className="text-xs text-[var(--error)]">{error}</span>
         <BetaButton
           className="min-h-9 px-3 text-xs"
           onClick={() => {
@@ -782,9 +781,9 @@ export default function RoomVoice({
 
   if (isLoading || !voiceToken) {
     return (
-      <div className="inline-flex rounded-2xl border border-white/[0.09] bg-[oklch(0.1_0.014_260/0.82)] p-3 shadow-[0_24px_80px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-2xl">
+      <div className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-floating)]">
         <span className="beta-status-pill">
-          <Radio className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+          <Radio className="h-3.5 w-3.5 text-[var(--electric)]" />
           Preparing voice
         </span>
       </div>

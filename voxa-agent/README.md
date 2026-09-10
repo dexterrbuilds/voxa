@@ -1,8 +1,8 @@
-# Voxa Agent
+# Synq Agent
 
 Nova's deployable LiveKit Agent project.
 
-This project is intentionally separate from the Voxa marketing site and the `voxa-beta` Next.js app. The web app owns product state, auth, room creation, and the Nova card. This agent project owns the server-side LiveKit programmatic participant that will eventually listen, reason, and speak inside a room.
+This project is intentionally separate from the Synq marketing site and the `voxa-beta` Next.js app. The web app owns product state, auth, room creation, and the Nova card. This agent project owns the server-side LiveKit programmatic participant that will eventually listen, reason, and speak inside a room.
 
 ## Current Scope
 
@@ -122,7 +122,7 @@ lk agent logs
 
 ## Manual Dispatch Test
 
-Once the agent is deployed and a Voxa LiveKit room exists:
+Once the agent is deployed and a Synq LiveKit room exists:
 
 ```bash
 lk dispatch create \
@@ -133,13 +133,13 @@ lk dispatch create \
 
 Nova should join the LiveKit room as participant `agent:nova`.
 
-## Planned Voxa Integration
+## Planned Synq Integration
 
-When the user clicks Invite on Nova in Voxa:
+When the user clicks Invite on Nova in Synq:
 
-1. Voxa upserts Nova into Supabase `room_participants` with `participant_type = agent`.
-2. Voxa adds the room event `Nova joined the room`.
-3. Voxa calls a server-only endpoint:
+1. Synq upserts Nova into Supabase `room_participants` with `participant_type = agent`.
+2. Synq adds the room event `Nova joined the room`.
+3. Synq calls a server-only endpoint:
 
 ```http
 POST /api/agents/nova/dispatch
@@ -159,7 +159,7 @@ The endpoint should:
 2. verify the user is in the room
 3. use `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` server-side only
 4. call LiveKit Agent Dispatch with `agent_name = "nova"`
-5. pass metadata such as Voxa room ID, requester user ID, agent ID, and Nova mode
+5. pass metadata such as Synq room ID, requester user ID, agent ID, and Nova mode
 6. return a clean success/error response
 
 Do not expose `LIVEKIT_API_SECRET` to the browser.

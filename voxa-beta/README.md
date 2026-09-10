@@ -1,4 +1,22 @@
-# Voxa App Setup
+# Synq App Setup
+
+## Synq Experience
+
+The Next.js project stays in `voxa-beta/` for deployment compatibility. Shared theme
+tokens in `app/synq-theme.css` power the marketing app too. Light is the default;
+the legacy `voxa-theme` preference persists. No auth storage or provider env keys changed.
+
+Rooms show participants first, with adjacent agent conversations and safe-area-aware
+voice controls. The human mic is independent of Nova capture. Sandbox and room threads
+share `ConversationLog`: follow replies at the bottom, or show New activity while reading
+older turns. No artificial response delays or new token-streaming claims.
+
+Developer onboarding is Connect/detect -> explicitly use or enter details -> submit.
+Existing approval and verification are still required before Sandbox; room permissions
+are still server-enforced. Optional profile, analytics, and metadata are collapsed.
+
+See [the transition handoff](../docs/synq-transition.md) for full validation and staging checks.
+Retain `X-Voxa-Request-Id`, legacy wire types, package names, routes, SQL, and env names.
 
 ## Current Hardening Pass
 
@@ -44,7 +62,7 @@ never a Supabase project. See [full validation and limits](../docs/platform-hard
 
 ## Supabase Email Authentication
 
-Voxa uses Supabase Auth. Email/password is the active sign-in path for local product testing.
+Synq uses Supabase Auth. Email/password is the active sign-in path for local product testing.
 
 Create `voxa-beta/.env.local`:
 
@@ -144,7 +162,7 @@ Provider logic lives under `app/lib/server/nova/` so Deepgram, Gemini, Edge TTS,
 
 ## Agent Runtime Foundation
 
-Voxa is moving from a single-agent Nova demo toward a general runtime for
+Synq is moving from a single-agent Nova demo toward a general runtime for
 conversational AI agents. The foundation for that runtime lives in:
 
 ```text
@@ -226,7 +244,7 @@ agent registry and dedicated agent identity fields.
 ### Developer agent registration dashboard (`/developers/agents`)
 
 `app/developers/agents/page.tsx` is the authenticated developer UI for the scaffold above.
-It requires a signed-in Voxa user (otherwise it shows a sign-in CTA and redirects to
+It requires a signed-in Synq user (otherwise it shows a sign-in CTA and redirects to
 `/login?next=/developers/agents`) and uses the browser-side client
 `app/lib/agents/registry-client.ts` to call the `/api/agents/*` routes with the user's
 Supabase bearer token.
@@ -261,17 +279,17 @@ imported runtimes are **not trusted by default**.
   `custom_endpoint`) + `import_metadata jsonb` (optional repository / docs URLs — internal).
   The source model lives in `app/lib/agents/import-sources.ts`.
 - **Dashboard:** a **Source / runtime** selector, optional repository / docs URLs, a per-source
-  adapter note, and a standing security panel: Voxa never runs your tools (only explicit user
+  adapter note, and a standing security panel: Synq never runs your tools (only explicit user
   messages are sent), imports are reviewed + sandboxed before any room use, they get no room
   audio or transcript, and OpenClaw/public runtimes are not trusted by default.
-- **Adapter contract:** an imported agent wraps its runtime behind the **same** Voxa endpoints
+- **Adapter contract:** an imported agent wraps its runtime behind the **same** Synq endpoints
   (`GET /health`, `POST /voxa/handshake`, `POST /voxa/message`, optional `POST /voxa/voice`).
-  The adapter maps `Voxa request → upstream runtime → Voxa response`. A mock lives at
+  The adapter maps `Synq request → upstream runtime → Synq response`. A mock lives at
   [`examples/agents/openclaw-adapter`](../examples/agents/openclaw-adapter) (no real OpenClaw
   credentials required).
 - **Verification: no bypass** — imports still require endpoint reachable + valid handshake +
   compatible SDK/protocol + declared capabilities + admin approval.
-- **Showcase:** public agent cards/detail show a friendly provenance label ("Native Voxa
+- **Showcase:** public agent cards/detail show a friendly provenance label ("Native Synq
   Agent", "Custom Endpoint", "Imported from OpenClaw", …). Endpoint URLs and internal metadata
   are never exposed.
 
@@ -454,7 +472,7 @@ production-room access.
 **Streaming + tool simulation (v3).** The message reply may include optional `streaming: true` and
 a `tools` array (`{ name, status, detail? }`). When `streaming` is set, the sandbox shows
 "{agent} is thinking…" then reveals the reply word-by-word — a **client-side simulation**, not SSE
-or a websocket. Reported `tools` render as a read-only **"Tools Used"** panel (✓ per tool); Voxa
+or a websocket. Reported `tools` render as a read-only **"Tools Used"** panel (✓ per tool); Synq
 never executes tools. `SandboxRuntime` parses both fields defensively and the message route passes
 them through. The runtime status model (`Not started → Ready → Thinking → Streaming → Agent replied
 → Error → Expired`) mirrors the reusable `AgentRuntimeEvent` contract
@@ -539,7 +557,7 @@ standing **Text-only** label.
 - **Simulated streaming** — if a reply sets `streaming: true`, the text is revealed
   progressively (UI-only word-by-word, no SSE/websocket).
 - **Tools Used** — if the reply reports `tools`, a compact "Tools Used" panel renders under the
-  bubble, matching the sandbox display. Voxa never executes tools.
+  bubble, matching the sandbox display. Synq never executes tools.
 - **Retry** — if an endpoint call fails, the user message stays and a **Retry** action resends the
   **same** message. Nothing is persisted on failure, and retry does not duplicate memory rows (the
   server persists only on success).

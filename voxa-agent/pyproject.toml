@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "voxa-agent"
 version = "0.1.0"
-description = "LiveKit Agent workers for Voxa AI participants."
+description = "LiveKit Agent workers for Synq AI participants."
 requires-python = ">=3.10,<3.15"
 dependencies = [
   "livekit-agents[google]~=1.5",

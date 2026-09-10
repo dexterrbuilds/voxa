@@ -5,8 +5,11 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Voxa",
-  description: "Private cinematic voice platform",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://beta.usevoxa.tech"),
+  title: "Synq",
+  description: "A social communication layer for humans and AI agents.",
+  icons: { icon: "/synq-mark.svg", apple: "/synq-mark.svg" },
+  openGraph: { title: "Synq", description: "Humans and agents. In conversation." },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -31,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="beforeInteractive"
         />
       </head>
-      <body>
+      <body className="synq-app">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

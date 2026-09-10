@@ -17,7 +17,8 @@ import {
   Wrench,
   XCircle,
 } from "lucide-react";
-import { BetaButton, BetaPanel } from "@/components/BetaChrome";
+import { BetaButton } from "@/components/BetaChrome";
+import { ConversationLog } from "@/components/ConversationLog";
 import { getAvailableAgents } from "@/lib/agents";
 import {
   AgentRegistryError,
@@ -62,7 +63,7 @@ const roomStatusMeta: Record<
 > = {
   in_room: {
     label: "In Room",
-    className: "border-amber-400/25 bg-amber-400/[0.08] text-amber-300",
+    className: "border-amber-400/25 bg-amber-400/[0.08] text-[var(--warning)]",
     icon: CheckCircle2,
   },
   thinking: {
@@ -78,7 +79,7 @@ const roomStatusMeta: Record<
   },
   error: {
     label: "Error",
-    className: "border-rose-400/30 bg-rose-400/10 text-rose-300",
+    className: "border-rose-400/30 bg-rose-400/10 text-[var(--error)]",
     icon: XCircle,
   },
 };
@@ -91,16 +92,16 @@ const roomToolIcon: Record<SandboxToolInvocation["status"], typeof Check> = {
 };
 
 const roomToolClass: Record<SandboxToolInvocation["status"], string> = {
-  pending: "text-[oklch(0.55_0.02_260)]",
+  pending: "text-[var(--muted-foreground)]",
   running: "text-sky-300",
-  completed: "text-emerald-300",
-  failed: "text-rose-300",
+  completed: "text-[var(--success)]",
+  failed: "text-[var(--error)]",
 };
 
 function RoomToolsUsed({ tools }: { tools: SandboxToolInvocation[] }) {
   return (
     <div className="mt-1 rounded-md border border-white/[0.06] bg-[oklch(0.1_0.016_260)] px-2 py-1.5">
-      <p className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[oklch(0.55_0.02_260)]">
+      <p className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
         <Wrench className="h-2.5 w-2.5" />
         Tools used
       </p>
@@ -112,9 +113,9 @@ function RoomToolsUsed({ tools }: { tools: SandboxToolInvocation[] }) {
               <Icon
                 className={`h-2.5 w-2.5 ${tool.status === "running" ? "animate-spin" : ""} ${roomToolClass[tool.status]}`}
               />
-              <span className="font-mono text-[oklch(0.72_0.02_260)]">{tool.name}</span>
+              <span className="font-mono text-[var(--muted-foreground)]">{tool.name}</span>
               {tool.untrusted ? (
-                <span className="rounded-full border border-amber-400/25 px-1 text-[8px] uppercase tracking-[0.1em] text-amber-300/80">
+                <span className="rounded-full border border-amber-400/25 px-1 text-[8px] uppercase tracking-[0.1em] text-[var(--warning)]">
                   untrusted
                 </span>
               ) : null}
@@ -395,7 +396,7 @@ function ExternalAgentRoomCard({
   const StatusIcon = statusMeta.icon;
 
   return (
-    <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.03] p-4">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] text-sm font-semibold text-[var(--foreground)]">
           {initialsFor(agent.name)}
@@ -413,12 +414,12 @@ function ExternalAgentRoomCard({
                 {statusMeta.label}
               </span>
             ) : (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-300">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--warning)]">
                 Experimental
               </span>
             )}
           </div>
-          <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-amber-300/80">
+          <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--warning)]">
             Text-only · Developer agent
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
@@ -427,10 +428,7 @@ function ExternalAgentRoomCard({
           {agent.capabilities.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {agent.capabilities.slice(0, 4).map((capability) => (
-                <span
-                  className="rounded-full border border-white/[0.06] bg-white/[0.035] px-2 py-1 text-[10px] text-[oklch(0.7_0.025_260)]"
-                  key={capability}
-                >
+                <span className="text-xs text-[var(--muted-foreground)]" key={capability}>
                   {formatCapability(capability)}
                 </span>
               ))}
@@ -438,19 +436,19 @@ function ExternalAgentRoomCard({
           )}
           {(permissionBadges.length > 0 || voiceEligible) && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-[oklch(0.5_0.02_260)]">
+              <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
                 Allowed
               </span>
               {permissionBadges.map((badge) => (
                 <span
-                  className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-2 py-0.5 text-[10px] text-emerald-300/90"
+                  className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-2 py-0.5 text-[10px] text-[var(--success)]"
                   key={badge}
                 >
                   {badge}
                 </span>
               ))}
               {voiceEligible && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/[0.08] px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/[0.08] px-2 py-0.5 text-[10px] font-medium text-[var(--warning)]">
                   <Mic className="h-2.5 w-2.5" />
                   Voice Beta
                 </span>
@@ -476,15 +474,15 @@ function ExternalAgentRoomCard({
       ) : (
         <div className="mt-4 border-t border-[var(--glass-border)] pt-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[oklch(0.6_0.02_260)]">
-              Text-only thread · no audio
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+              Conversation
             </p>
             {turns.length > 0 && (
               <button
                 type="button"
                 onClick={() => void clearThread()}
                 disabled={clearing || busy || voiceBusy}
-                className="inline-flex items-center gap-1 text-[10px] font-medium text-[oklch(0.6_0.02_260)] transition-colors hover:text-rose-300 disabled:opacity-50"
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--error)] disabled:opacity-50"
               >
                 <Trash2 className="h-3 w-3" />
                 Clear thread
@@ -492,13 +490,13 @@ function ExternalAgentRoomCard({
             )}
           </div>
 
-          <div
-            role="log"
-            aria-label={`${agent.name} conversation`}
-            className="mt-2 max-h-56 space-y-2 overflow-y-auto break-words"
+          <ConversationLog
+            label={`${agent.name} conversation`}
+            revision={turns}
+            empty={turns.length === 0}
           >
             {turns.length === 0 && status !== "thinking" ? (
-              <p className="py-2 text-center text-[11px] text-[oklch(0.55_0.02_260)]">
+              <p className="py-2 text-center text-[11px] text-[var(--muted-foreground)]">
                 No messages yet. Say hi to {agent.name} — replies are text-only.
               </p>
             ) : null}
@@ -509,15 +507,15 @@ function ExternalAgentRoomCard({
                 className={`group flex flex-col ${turn.role === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[88%] rounded-lg px-2.5 py-1.5 text-xs leading-relaxed ${
+                  className={`max-w-[92%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
                     turn.role === "user"
-                      ? "bg-[oklch(0.72_0.2_245/0.16)] text-[var(--foreground)]"
+                      ? "bg-[var(--accent)] text-[var(--foreground)]"
                       : "border border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--foreground)]"
                   }`}
                 >
                   {turn.text}
                   {turn.streaming ? (
-                    <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-[oklch(0.72_0.2_245)] align-middle" />
+                    <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-[var(--electric)] align-middle" />
                   ) : null}
                 </div>
                 {turn.role === "agent" && turn.tools && turn.tools.length > 0 ? (
@@ -526,7 +524,7 @@ function ExternalAgentRoomCard({
                   </div>
                 ) : null}
                 <div className="mt-0.5 flex items-center gap-2 px-1">
-                  <span className="font-mono text-[9px] text-[oklch(0.5_0.02_260)]">
+                  <span className="font-mono text-[9px] text-[var(--muted-foreground)]">
                     {turn.role === "user" ? "You" : agent.name}
                     {turn.at ? ` · ${formatTurnTime(turn.at)}` : ""}
                   </span>
@@ -534,7 +532,7 @@ function ExternalAgentRoomCard({
                     <button
                       type="button"
                       onClick={() => void copyReply(turn)}
-                      className="inline-flex items-center gap-0.5 text-[9px] font-medium text-[oklch(0.5_0.02_260)] opacity-0 transition-opacity hover:text-[oklch(0.72_0.2_245)] group-hover:opacity-100"
+                      className="inline-flex min-h-8 items-center gap-1 text-xs text-[var(--muted-foreground)] hover:text-[var(--electric)]"
                     >
                       {copiedId === turn.id ? (
                         <>
@@ -554,7 +552,7 @@ function ExternalAgentRoomCard({
             ))}
 
             {status === "thinking" ? (
-              <div className="flex items-center gap-2 text-xs text-[oklch(0.6_0.02_260)]">
+              <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 {agent.name} is thinking...
                 <button
@@ -566,17 +564,17 @@ function ExternalAgentRoomCard({
                 </button>
               </div>
             ) : null}
-          </div>
+          </ConversationLog>
 
           {error ? (
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-rose-400/25 bg-rose-400/[0.08] px-2.5 py-1.5">
-              <span className="text-[11px] text-rose-200">{error}</span>
+              <span className="text-[11px] text-[var(--error)]">{error}</span>
               {retryText ? (
                 <button
                   type="button"
                   onClick={() => void runMessage(retryText, true)}
                   disabled={busy}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-rose-200 transition-colors hover:text-white disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--error)] transition-colors hover:text-white disabled:opacity-50"
                 >
                   <RotateCcw className="h-3 w-3" />
                   Retry
@@ -606,7 +604,7 @@ function ExternalAgentRoomCard({
               aria-label={`Send to ${agent.name}`}
               title={`Send to ${agent.name}`}
               disabled={busy || !input.trim()}
-              className="inline-flex shrink-0 items-center justify-center rounded-md bg-[oklch(0.72_0.2_245)] px-3 text-[oklch(0.13_0.015_260)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center justify-center rounded-md bg-[var(--electric)] px-3 text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               <SendHorizonal className="h-4 w-4" />
             </button>
@@ -617,7 +615,7 @@ function ExternalAgentRoomCard({
               type="button"
               onClick={() => void talkToAgent()}
               disabled={voiceBusy || busy}
-              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-amber-400/30 px-3 py-2 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-400/10 disabled:opacity-50"
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-amber-400/30 px-3 py-2 text-xs font-medium text-[var(--warning)] transition-colors hover:bg-amber-400/10 disabled:opacity-50"
             >
               {voiceState === "listening" ? (
                 <>
@@ -640,7 +638,7 @@ function ExternalAgentRoomCard({
         </div>
       )}
 
-      {!isInRoom && error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
+      {!isInRoom && error ? <p className="mt-2 text-xs text-[var(--error)]">{error}</p> : null}
     </div>
   );
 }
@@ -706,128 +704,125 @@ export default function AgentSelector({
   }, []);
 
   return (
-    <BetaPanel className="p-4 sm:p-5">
+    <section className="border-t border-[var(--border)] py-5" aria-label="Agent conversations">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
-            Invite Agent
-          </div>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Available agents</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+            Agents in your conversation
+          </h2>
         </div>
-        <Sparkles className="h-4 w-4 text-[oklch(0.72_0.2_245)]" />
+        <Sparkles className="h-4 w-4 text-[var(--electric)]" />
       </div>
 
       {agents.length === 0 ? (
-        <p className="mt-4 text-sm text-[oklch(0.65_0.02_260)]">No agents available yet.</p>
+        <p className="mt-4 text-sm text-[var(--muted-foreground)]">No agents available yet.</p>
       ) : (
         <div className="mt-4 space-y-3">
-          {agents.map((agent) => {
-            const isAvailable = agent.availability === "available";
-            const roomAgent = getRoomAgentById(agent.id, participants);
-            const inRoom =
-              !!roomAgent ||
-              isAgentInRoom(agent.id, participants) ||
-              invitedAgentIds.includes(agent.id);
-            const isInviting = invitingAgentId === agent.id;
-            const statusLabel = !isAvailable
-              ? "Coming soon"
-              : ((inRoom ? statusLabelForAgent?.(agent.id) : null) ??
-                (inRoom ? "In Room" : "Online"));
+          {agents
+            .filter((agent) => agent.availability === "available")
+            .map((agent) => {
+              const isAvailable = agent.availability === "available";
+              const roomAgent = getRoomAgentById(agent.id, participants);
+              const inRoom =
+                !!roomAgent ||
+                isAgentInRoom(agent.id, participants) ||
+                invitedAgentIds.includes(agent.id);
+              const isInviting = invitingAgentId === agent.id;
+              const statusLabel = !isAvailable
+                ? "Coming soon"
+                : ((inRoom ? statusLabelForAgent?.(agent.id) : null) ??
+                  (inRoom ? "In Room" : "Online"));
 
-            return (
-              <div
-                className={[
-                  "rounded-xl border p-4 transition-opacity",
-                  isAvailable
-                    ? "border-white/[0.07] bg-[oklch(0.12_0.016_260/0.42)]"
-                    : "border-white/[0.045] bg-white/[0.025] opacity-70",
-                ].join(" ")}
-                key={agent.id}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={[
-                      "grid h-11 w-11 shrink-0 place-items-center rounded-xl border text-sm font-semibold text-white",
-                      isAvailable
-                        ? "border-[oklch(0.72_0.2_245/0.34)] bg-[oklch(0.72_0.2_245/0.13)]"
-                        : "border-white/[0.08] bg-white/[0.04]",
-                    ].join(" ")}
-                  >
-                    {initialsFor(agent.name)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="truncate text-base font-semibold tracking-tight text-white">
-                        {agent.name}
-                      </h3>
-                      <span
-                        className={[
-                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
-                          isAvailable
-                            ? "border-white/[0.07] bg-white/[0.04] text-[oklch(0.72_0.2_245)]"
-                            : "border-white/[0.045] bg-white/[0.025] text-[oklch(0.58_0.025_260)]",
-                        ].join(" ")}
-                      >
-                        {inRoom && <CheckCircle2 className="h-3 w-3" />}
-                        {statusLabel}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[oklch(0.72_0.2_245)]">
-                      {agent.shortLabel ?? agent.category}
-                    </div>
-                    <p className="mt-2 text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
-                      {agent.description}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {agent.capabilities.slice(0, 4).map((capability) => (
-                        <span
-                          className="rounded-full border border-white/[0.06] bg-white/[0.035] px-2 py-1 text-[10px] text-[oklch(0.7_0.025_260)]"
-                          key={capability}
-                        >
-                          {formatCapability(capability)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <BetaButton
-                  className="mt-4 min-h-11 w-full"
-                  disabled={!isAvailable || inRoom || isInviting}
-                  onClick={() => {
-                    if (isAvailable) {
-                      onInvite(agent.id);
-                    }
-                  }}
-                  variant={!isAvailable || inRoom ? "quiet" : "electric"}
+              return (
+                <div
+                  className={[
+                    "rounded-lg border border-[var(--border)] p-4 transition-opacity",
+                    isAvailable
+                      ? "bg-[var(--surface-elevated)]"
+                      : "border-white/[0.045] bg-white/[0.025] opacity-70",
+                  ].join(" ")}
+                  key={agent.id}
                 >
-                  {!isAvailable
-                    ? "Coming soon"
-                    : isInviting
-                      ? `Inviting ${agent.name}...`
-                      : inRoom
-                        ? statusLabel
-                        : `Invite ${agent.name}`}
-                  <Sparkles className="h-4 w-4" />
-                </BetaButton>
-              </div>
-            );
-          })}
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={[
+                        "grid h-11 w-11 shrink-0 place-items-center rounded-xl border text-sm font-semibold text-white",
+                        isAvailable
+                          ? "border-[var(--border)] bg-[var(--accent)]"
+                          : "border-white/[0.08] bg-white/[0.04]",
+                      ].join(" ")}
+                    >
+                      {initialsFor(agent.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="truncate text-base font-semibold tracking-normal text-white">
+                          {agent.name}
+                        </h3>
+                        <span
+                          className={[
+                            "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
+                            isAvailable
+                              ? "border-white/[0.07] bg-white/[0.04] text-[var(--electric)]"
+                              : "border-white/[0.045] bg-white/[0.025] text-[var(--muted-foreground)]",
+                          ].join(" ")}
+                        >
+                          {inRoom && <CheckCircle2 className="h-3 w-3" />}
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--electric)]">
+                        {agent.shortLabel ?? agent.category}
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                        {agent.description}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+                        {agent.capabilities.slice(0, 4).map((capability) => (
+                          <span className="text-xs text-[var(--muted-foreground)]" key={capability}>
+                            {formatCapability(capability)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <BetaButton
+                    className="mt-4 min-h-11 w-full"
+                    disabled={!isAvailable || inRoom || isInviting}
+                    onClick={() => {
+                      if (isAvailable) {
+                        onInvite(agent.id);
+                      }
+                    }}
+                    variant={!isAvailable || inRoom ? "quiet" : "electric"}
+                  >
+                    {!isAvailable
+                      ? "Coming soon"
+                      : isInviting
+                        ? `Inviting ${agent.name}...`
+                        : inRoom
+                          ? statusLabel
+                          : `Invite ${agent.name}`}
+                    <Sparkles className="h-4 w-4" />
+                  </BetaButton>
+                </div>
+              );
+            })}
         </div>
       )}
 
       {externalAgents.length > 0 && (
         <div className="mt-6 border-t border-white/[0.06] pt-5">
           <div className="flex items-center gap-2">
-            <FlaskConical className="h-3.5 w-3.5 text-amber-300" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-amber-300">
-              Experimental · Text-only developer agents
+            <FlaskConical className="h-3.5 w-3.5 text-[var(--warning)]" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--warning)]">
+              Your developer agents
             </span>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-[oklch(0.6_0.02_260)]">
-            Your approved + verified agents. They can be invited into this room in{" "}
-            <span className="text-amber-300">experimental text-only</span> mode — no audio, no room
-            transcript. Only you (the owner) can message them.
+          <p className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
+            Only you can message these agents. They receive your messages, not the room audio or
+            transcript.
           </p>
 
           <div className="mt-4 space-y-3">
@@ -847,6 +842,17 @@ export default function AgentSelector({
           </div>
         </div>
       )}
-    </BetaPanel>
+      {agents.some((agent) => agent.availability !== "available") && (
+        <details className="mt-4 text-xs text-[var(--muted-foreground)]">
+          <summary>More agents on the way</summary>
+          <p className="mt-2">
+            {agents
+              .filter((agent) => agent.availability !== "available")
+              .map((agent) => agent.name)
+              .join(" · ")}
+          </p>
+        </details>
+      )}
+    </section>
   );
 }

@@ -21,8 +21,8 @@ export const NOVA_AGENT_CAPABILITIES: AgentCapability[] = [
 export const NOVA_AGENT_IDENTITY: AgentIdentity = {
   id: NOVA_AGENT_ID,
   name: NOVA_AGENT_NAME,
-  description: "First-party Voxa conversational agent",
-  creator: "Voxa",
+  description: "First-party Synq conversational agent",
+  creator: "Synq",
   version: "0.1.0",
   capabilities: NOVA_AGENT_CAPABILITIES,
   permissions: ["room:join", "room:leave", "message:read", "message:write", "voice:speak"],

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Globe, X } from "lucide-react";
-import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
+import { BetaEyebrow, BetaHeader, BetaShell } from "@/components/BetaChrome";
 import { getPublicDeveloperByUsername } from "@/lib/server/developers/profile";
 import { AgentCard } from "../../agents/AgentDirectoryClient";
 
@@ -36,6 +36,7 @@ function formatJoinedAt(value: string | null) {
   return `Joined ${date.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   })}`;
 }
 
@@ -45,15 +46,15 @@ export async function generateMetadata({ params }: DeveloperPageProps): Promise<
 
   if (!developer) {
     return {
-      title: "Developer not found | Voxa",
+      title: "Developer not found | Synq",
     };
   }
 
   return {
-    title: `${developer.profile.displayName} | Voxa Developer`,
+    title: `${developer.profile.displayName} | Synq Developer`,
     description:
       developer.profile.bio ||
-      `${developer.profile.displayName} builds conversational AI agents on Voxa.`,
+      `${developer.profile.displayName} builds conversational AI agents on Synq.`,
   };
 }
 
@@ -71,11 +72,7 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
 
   return (
     <BetaShell>
-      <BetaHeader>
-        <BetaButton href="/agents" variant="quiet">
-          Browse agents
-        </BetaButton>
-      </BetaHeader>
+      <BetaHeader />
 
       <div className="mx-auto max-w-6xl px-6 pb-24 pt-10 sm:pt-16">
         <Link
@@ -86,7 +83,7 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
           Back to agents
         </Link>
 
-        <section className="mt-8 grid gap-8 lg:grid-cols-[1fr,22rem]">
+        <section className="mt-8">
           <div>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
               {profile.avatarUrl ? (
@@ -96,14 +93,14 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
                   src={profile.avatarUrl}
                 />
               ) : (
-                <div className="grid h-24 w-24 place-items-center rounded-3xl border border-[oklch(0.72_0.2_245/0.28)] bg-[oklch(0.72_0.2_245/0.12)] text-2xl font-semibold text-[oklch(0.72_0.2_245)]">
+                <div className="grid h-24 w-24 place-items-center rounded-3xl border border-[oklch(0.72_0.2_245/0.28)] bg-[oklch(0.72_0.2_245/0.12)] text-2xl font-semibold text-[var(--electric)]">
                   {initialsFor(profile.displayName)}
                 </div>
               )}
 
               <div className="min-w-0 flex-1">
                 <BetaEyebrow>Developer Profile</BetaEyebrow>
-                <h1 className="beta-text-gradient mt-4 text-5xl font-semibold leading-[1.03] tracking-tight sm:text-6xl">
+                <h1 className="beta-text-gradient mt-3 text-3xl font-semibold leading-tight sm:text-5xl">
                   {profile.displayName}
                 </h1>
                 <p className="mt-3 font-mono text-sm text-[var(--muted-foreground)]">
@@ -113,7 +110,7 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
             </div>
 
             <p className="mt-8 max-w-3xl text-lg leading-relaxed text-[var(--muted-foreground)]">
-              {profile.bio || "Building conversational AI agents on Voxa."}
+              {profile.bio || "Building conversational AI agents on Synq."}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3 text-sm">
@@ -146,11 +143,12 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
 
             <section className="mt-12">
               <div className="mb-5">
-                <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-                  Public agents
+                <h2 className="text-2xl font-semibold tracking-normal text-[var(--foreground)]">
+                  Agent portfolio
                 </h2>
                 <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                  Approved, verified, public agents built by this developer.
+                  {agents.length} public {agents.length === 1 ? "agent" : "agents"} built by{" "}
+                  {profile.displayName}.
                 </p>
               </div>
 
@@ -167,27 +165,6 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
               )}
             </section>
           </div>
-
-          <aside className="space-y-4">
-            <BetaPanel className="p-6">
-              <h2 className="font-semibold tracking-tight text-[var(--foreground)]">
-                Agent builder
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
-                Developer profiles connect builders to the agents they publish. Voxa does not expose
-                emails, auth ids, admin notes, or private agent metadata.
-              </p>
-            </BetaPanel>
-
-            <BetaPanel className="p-6">
-              <div className="text-3xl font-semibold tracking-tight text-[var(--foreground)]">
-                {agents.length}
-              </div>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                public {agents.length === 1 ? "agent" : "agents"}
-              </p>
-            </BetaPanel>
-          </aside>
         </section>
       </div>
     </BetaShell>

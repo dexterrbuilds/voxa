@@ -14,7 +14,7 @@ const server = http.createServer((req, res) => {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Voxa Beta</title>
+        <title>Synq Beta</title>
         <style>
           body {
             background: black;
@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
       </head>
       <body>
         <div class="container">
-          <h1>Voxa Beta</h1>
+          <h1>Synq Beta</h1>
           <p>A private cinematic voice platform where humans and AI personalities exist together inside immersive real-time conversational spaces.</p>
           <button style="background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; border: none; cursor: pointer; margin-top: 1rem;">
             Enter Room

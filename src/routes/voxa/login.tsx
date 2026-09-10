@@ -99,7 +99,7 @@ export default function VoxaLoginPage() {
             )}
 
             <p className="text-xs text-muted-foreground text-center mt-6">
-              By continuing, you agree to Voxa&apos;s Terms of Service and Privacy Policy
+              By continuing, you agree to Synq&apos;s Terms of Service and Privacy Policy
             </p>
           </motion.div>
         </motion.div>

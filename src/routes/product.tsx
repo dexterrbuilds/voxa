@@ -45,12 +45,12 @@ export default function ProductPage() {
   return (
     <>
       <Helmet>
-        <title>Product — Voxa</title>
+        <title>Product — Synq</title>
         <meta
           name="description"
-          content="Voxa abstracts conversational infrastructure: connectors, real-time event runtime, agent orchestration, and voice routing."
+          content="Synq abstracts conversational infrastructure: connectors, real-time event runtime, agent orchestration, and voice routing."
         />
-        <meta property="og:title" content="Product — Voxa" />
+        <meta property="og:title" content="Product — Synq" />
         <meta
           property="og:description"
           content="Conversational infrastructure for autonomous agents."
@@ -61,11 +61,11 @@ export default function ProductPage() {
           <GridBackdrop />
           <div className="relative mx-auto max-w-5xl px-6 pt-24 pb-16 sm:pt-32 text-center">
             <Eyebrow>Product</Eyebrow>
-            <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-tight text-gradient leading-[1.05]">
+            <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-normal text-gradient leading-[1.05]">
               The runtime for live conversational AI.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Voxa abstracts the messy parts of real-time communication so your agents can focus on
+              Synq abstracts the messy parts of real-time communication so your agents can focus on
               listening, deciding, and acting.
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function ProductPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <Eyebrow>Why this matters</Eyebrow>
-              <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-tight text-gradient">
+              <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-normal text-gradient">
                 Conversational infrastructure is the missing layer.
               </h2>
               <div className="mt-6 space-y-4 text-muted-foreground leading-relaxed">
@@ -89,7 +89,7 @@ export default function ProductPage() {
                   orchestration logic.
                 </p>
                 <p>
-                  Voxa replaces all of it with a single, opinionated runtime designed around live
+                  Synq replaces all of it with a single, opinionated runtime designed around live
                   participation.
                 </p>
               </div>
@@ -144,11 +144,11 @@ export default function ProductPage() {
           <div className="glass rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-electric/10 to-transparent" />
             <div className="relative">
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-gradient">
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-normal text-gradient">
                 Ready to build live agents?
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Get early access to the Voxa runtime and SDKs.
+                Get early access to the Synq runtime and SDKs.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
                 <Button asChild variant="electric" size="lg">

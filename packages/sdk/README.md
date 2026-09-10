@@ -1,22 +1,27 @@
-# Voxa SDK v0.1
+# Synq SDK v0.1
 
-The Voxa SDK is the typed foundation for future developer-owned conversational
+The package remains **`@voxa/sdk`** (local preview, not a new registry release).
+`SynqAgent` and `createSynqAgent` are direct aliases of `VoxaAgent` and
+`createVoxaAgent`; old imports continue to work. Wire types, endpoint paths and
+`X-Voxa-Request-Id` remain unchanged. There is no new `synq.message` protocol.
+
+The Synq SDK is the typed foundation for future developer-owned conversational
 agents.
 
 This package is intentionally small. It does not publish agents, authenticate
 developers, connect to LiveKit, bill usage, create marketplace listings, or manage
-onchain identity yet. It defines the shape an agent should expose so the Voxa Agent
+onchain identity yet. It defines the shape an agent should expose so the Synq Agent
 Runtime can eventually load first-party, third-party, OpenClaw, avatar, and external
 platform agents through the same contract.
 
-Nova is the first demonstration agent running on Voxa. Nova is not the product.
+Nova is the first demonstration agent running on Synq. Nova is not the product.
 
 ## Minimal Framework-Neutral Adapter
 
 ```ts
-import { createVoxaAgent } from "@voxa/sdk";
+import { createSynqAgent } from "@voxa/sdk";
 
-export const handle = createVoxaAgent({
+export const handle = createSynqAgent({
   identity: {
     name: "Research Agent",
     description: "Researches a question using my existing runtime.",
@@ -38,9 +43,9 @@ capped at 64 KiB, messages at 4,000 characters, replies at 32,000 characters. Pr
 exceptions return a generic error rather than credentials or stack traces.
 
 Runnable Node bridge: [fetch-adapter example](../../examples/agents/fetch-adapter/README.md).
-Paste its public `/voxa/handshake` URL into Voxa's **Test connection** flow. Detection is
+Paste its public `/voxa/handshake` URL into Synq's **Test connection** flow. Detection is
 descriptive only: review, verification, ownership and permissions still apply. A reported
-voice capability is not a voice permission. Voxa does not execute reported tools or
+voice capability is not a voice permission. Synq does not execute reported tools or
 automatically integrate any framework. Deploy your own endpoint security/abuse controls.
 
 Validate with `npm run typecheck`, `npm run build`, and
@@ -65,7 +70,7 @@ class ResearchAgent extends VoxaAgent {
     super({
       id: "research-agent",
       name: "Research Agent",
-      description: "Finds and summarizes useful context inside a Voxa room.",
+      description: "Finds and summarizes useful context inside a Synq room.",
       capabilities: ["memory", "web_search"],
     });
   }
@@ -88,7 +93,7 @@ import { defineAgentRegistration } from "@voxa/sdk";
 
 const registration = defineAgentRegistration({
   name: "Research Agent",
-  description: "Searches and summarizes live information inside Voxa rooms.",
+  description: "Searches and summarizes live information inside Synq rooms.",
   endpointUrl: "https://agent.example.com/voxa",
   capabilities: ["web_search", "memory"],
   permissions: ["room:join", "message:read", "voice:speak"],
@@ -100,16 +105,16 @@ The eventual flow is:
 
 1. Build an agent.
 2. Register its metadata.
-3. Voxa reviews and approves it.
+3. Synq reviews and approves it.
 4. The agent appears in an agent selector.
 5. Users invite it into rooms.
 
-`registerAgent()` is exported as a disabled preview stub and throws until Voxa enables
+`registerAgent()` is exported as a disabled preview stub and throws until Synq enables
 developer authentication, API keys, review tooling, and production publishing.
 
 ## Endpoint handshake (verification contract)
 
-Before an agent can be sandbox-tested, Voxa verifies its endpoint with a health check. The
+Before an agent can be sandbox-tested, Synq verifies its endpoint with a health check. The
 endpoint must answer a handshake probe (`POST` with `{ "type": "voxa.handshake" }`) with an
 `AgentHandshake` JSON body. The SDK provides the contract:
 
@@ -126,7 +131,7 @@ const handshake = createAgentHandshake({
 // → { protocol: "voxa-agent", sdkVersion: "0.1", agent: { id, name, capabilities, permissions } }
 ```
 
-Voxa's endpoint health check verifies three things: the endpoint is reachable, the handshake
+Synq's endpoint health check verifies three things: the endpoint is reachable, the handshake
 `protocol`/`sdkVersion` are compatible (`VOXA_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`), and
 the reported capabilities cover what was declared at registration. Passing verification makes an
 approved agent eligible for the **developer sandbox only** — it does not place the agent into a
@@ -134,13 +139,13 @@ production room. The external-agent runtime is not live yet.
 
 ### Message contract
 
-Voxa's sandbox sends a `voxa.message` request to your agent's `POST /voxa/message` endpoint and
+Synq's sandbox sends a `voxa.message` request to your agent's `POST /voxa/message` endpoint and
 expects a `{ text }` reply:
 
 ```ts
 import { createVoxaMessageRequest, createAgentMessageResponse, type VoxaMessageRequest } from "@voxa/sdk";
 
-// What Voxa sends:
+// What Synq sends:
 createVoxaMessageRequest("Hello", { sandbox: true });
 // -> { type: "voxa.message", message: "Hello", context: { sandbox: true } }
 
@@ -176,7 +181,7 @@ res.json(
   simulation** today — no SSE or websocket).
 - `tools: AgentToolInvocation[]` (`{ name, status, detail? }`, status one of `pending` /
   `running` / `completed` / `failed`) is **display-only metadata** rendered as a "Tools Used"
-  panel. Voxa never executes tools.
+  panel. Synq never executes tools.
 
 The developer **sandbox chat** (`/developers/sandbox`) uses this contract to send messages
 straight to your verified endpoint and display the reply — in isolation. It still does **not**
@@ -184,7 +189,7 @@ connect your agent into a production room.
 
 #### Multi-agent sandbox
 
-Your agent always implements the **same single-agent** endpoint contract above. Voxa's sandbox can
+Your agent always implements the **same single-agent** endpoint contract above. Synq's sandbox can
 drive **several** of your approved + verified agents in one session: it sends to one agent
 (targeted) or fans the same message out to all of them (broadcast) and shows each agent's reply
 independently. Nothing changes on your side — each endpoint just answers its own `voxa.message`
@@ -192,7 +197,7 @@ request. This is still sandbox-only; it is not a production multi-agent room.
 
 #### Per-agent thread history (room-text mode)
 
-In experimental text-only room mode, Voxa keeps a **room-local thread per agent** and includes the
+In experimental text-only room mode, Synq keeps a **room-local thread per agent** and includes the
 recent turns as `context.history`:
 
 ```ts

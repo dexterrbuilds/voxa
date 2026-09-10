@@ -8,45 +8,44 @@ import { FeatureCard } from "@/components/site/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { AGENTS_URL } from "@/lib/links";
 
-const sdkSnippet = `import { Relay } from "@Voxa/sdk";
+const sdkSnippet = `import { createSynqAgent } from "@voxa/sdk";
 
-const relay = new Relay({ apiKey: process.env.RELAY_KEY });
-
-const session = await relay.sessions.connect({
-  platform: "zoom",
-  meetingUrl: "https://zoom.us/j/...",
+export const handleRequest = createSynqAgent({
+  identity: {
+    name: "Research Agent",
+    capabilities: ["web_search"],
+  },
+  runtime: "custom_endpoint",
+  onMessage: async (message, context, signal) => ({
+    text: await myAgent.respond(message, { signal }),
+  }),
 });
+// Mount this Fetch handler on your server.
+// @voxa/sdk is the compatible local preview package.`;
 
-session.on("speech.transcript", async (event) => {
-  if (event.text.includes("?")) {
-    await session.speak({
-      text: await myAgent.respond(event.text),
-    });
-  }
-});`;
+const wsSnippet = `// Current framework-neutral message contract
+{
+  "type": "voxa.message",
+  "message": "What should we explore next?",
+  "context": { "sandbox": true }
+}
 
-const wsSnippet = `// Stream events directly over WebSocket
-const ws = new WebSocket("wss://api.Voxa.dev/v1/stream");
+// Agent reply
+{ "text": "Let's start with the open questions." }
 
-ws.onmessage = (msg) => {
-  const event = JSON.parse(msg.data);
-  // event.type ∈ { speech.transcript, speaker.turn,
-  //               agent.tool, audio.chunk, intent.detected }
-};
+// Legacy wire names remain supported by Synq.
+// Replies arrive independently; token streaming is planned.`;
 
-ws.send(JSON.stringify({
-  action: "agent.attach",
-  agentId: "advisor_v2",
-}));`;
+const pySnippet = `# Any language can implement the JSON contract.
+# Mount this logic in your own HTTP framework.
+async def on_message(payload):
+    if payload.get("type") != "voxa.message":
+        return {"error": "unsupported_message"}
+    text = await my_agent.respond(payload["message"])
+    return {"text": text}
 
-const pySnippet = `from Voxa import Relay
-
-relay = Relay(api_key=os.environ["RELAY_KEY"])
-
-async with relay.session(platform="meet", url=url) as s:
-    async for event in s.events():
-        if event.type == "speech.transcript":
-            await s.speak(my_agent.respond(event.text))`;
+# Expose /health and /voxa/handshake too.
+# See the adapter guide for the complete contract.`;
 
 function Code({ title, code, lang }: { title: string; code: string; lang: string }) {
   const escaped = code
@@ -82,12 +81,12 @@ export default function DevelopersPage() {
   return (
     <>
       <Helmet>
-        <title>Developers — Voxa</title>
+        <title>Developers — Synq</title>
         <meta
           name="description"
-          content="SDKs, APIs, WebSocket streams, and integration patterns for building real-time AI agents on Voxa."
+          content="SDKs, APIs, WebSocket streams, and integration patterns for building real-time AI agents on Synq."
         />
-        <meta property="og:title" content="Developers — Voxa" />
+        <meta property="og:title" content="Developers — Synq" />
         <meta
           property="og:description"
           content="Build conversational agents with TypeScript, Python, and streaming APIs."
@@ -98,7 +97,7 @@ export default function DevelopersPage() {
           <GridBackdrop />
           <div className="relative mx-auto max-w-5xl px-6 pt-24 pb-16 sm:pt-32 text-center">
             <Eyebrow>Developers</Eyebrow>
-            <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-tight text-gradient leading-[1.05]">
+            <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-normal text-gradient leading-[1.05]">
               Built for developers who ship live AI.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -135,14 +134,14 @@ export default function DevelopersPage() {
 
         <Section>
           <div className="grid lg:grid-cols-[1.2fr,1fr] gap-12 items-center">
-            <Code title="stream.ts" code={wsSnippet} lang="WebSocket" />
+            <Code title="message.json" code={wsSnippet} lang="JSON contract" />
             <div>
               <Eyebrow>WebSocket Architecture</Eyebrow>
-              <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-tight text-gradient">
+              <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-normal text-gradient">
                 Streaming first. Always.
               </h2>
               <p className="mt-5 text-muted-foreground leading-relaxed">
-                Every event in Voxa — transcripts, turns, intents, audio chunks, tool invocations —
+                Every event in Synq — transcripts, turns, intents, audio chunks, tool invocations —
                 is delivered over a single bidirectional WebSocket with replay and resume.
               </p>
               <ul className="mt-6 space-y-2.5 text-sm">
@@ -195,7 +194,7 @@ export default function DevelopersPage() {
           <div className="glass rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-electric/10 to-transparent" />
             <div className="relative">
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-gradient">
+              <h2 className="text-3xl sm:text-4xl font-semibold tracking-normal text-gradient">
                 Start building.
               </h2>
               <p className="mt-4 text-muted-foreground">

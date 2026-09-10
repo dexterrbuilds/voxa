@@ -23,6 +23,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
+import { ConversationLog } from "@/components/ConversationLog";
 import { useAuth } from "@/lib/auth";
 import {
   AgentRegistryError,
@@ -57,7 +58,7 @@ const runtimeStatusMeta: Record<
   },
   ready: {
     label: "Ready",
-    className: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+    className: "border-emerald-400/30 bg-emerald-400/10 text-[var(--success)]",
     icon: CheckCircle2,
   },
   thinking: {
@@ -72,17 +73,17 @@ const runtimeStatusMeta: Record<
   },
   replied: {
     label: "Replied",
-    className: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+    className: "border-emerald-400/30 bg-emerald-400/10 text-[var(--success)]",
     icon: CheckCircle2,
   },
   error: {
     label: "Error",
-    className: "border-rose-400/30 bg-rose-400/10 text-rose-300",
+    className: "border-rose-400/30 bg-rose-400/10 text-[var(--error)]",
     icon: AlertTriangle,
   },
   expired: {
     label: "Expired",
-    className: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+    className: "border-amber-400/30 bg-amber-400/10 text-[var(--warning)]",
     icon: TimerOff,
   },
 };
@@ -116,8 +117,8 @@ const toolStatusIcon: Record<SandboxToolInvocation["status"], typeof Check> = {
 const toolStatusClass: Record<SandboxToolInvocation["status"], string> = {
   pending: "text-[var(--muted-foreground)]",
   running: "text-sky-300",
-  completed: "text-emerald-300",
-  failed: "text-rose-300",
+  completed: "text-[var(--success)]",
+  failed: "text-[var(--error)]",
 };
 
 function ToolsUsedPanel({ tools }: { tools: SandboxToolInvocation[] }) {
@@ -135,7 +136,7 @@ function ToolsUsedPanel({ tools }: { tools: SandboxToolInvocation[] }) {
               <Icon
                 className={`h-3.5 w-3.5 ${tool.status === "running" ? "animate-spin" : ""} ${toolStatusClass[tool.status]}`}
               />
-              <span className="font-mono text-[oklch(0.78_0.02_260)]">{tool.name}</span>
+              <span className="font-mono text-[var(--muted-foreground)]">{tool.name}</span>
               <span className="text-[10px] text-[var(--muted-foreground)]">{tool.status}</span>
             </li>
           );
@@ -207,7 +208,7 @@ function AgentMetadataPanel({ agent }: { agent: RegisteredAgent }) {
           <Chips values={agent.tags} />
         </MetaRow>
       </div>
-      <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-amber-400/25 bg-amber-400/[0.06] px-2.5 py-1 text-[11px] font-medium text-amber-200">
+      <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-amber-400/25 bg-amber-400/[0.06] px-2.5 py-1 text-[11px] font-medium text-[var(--warning)]">
         <Lock className="h-3 w-3" />
         Sandbox session · Room permissions remain separate.
       </p>
@@ -252,7 +253,6 @@ function MultiAgentSandboxPanel({
   const [error, setError] = useState<string | null>(null);
   const [activeAgentId, setActiveAgentId] = useState(session.agents[0]?.id ?? "");
   const [expired, setExpired] = useState(() => Date.now() >= new Date(session.expiresAt).getTime());
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const mountedRef = useRef(true);
   const generation = useRef(0);
   const requests = useRef(new Map<string, AbortController>());
@@ -283,10 +283,6 @@ function MultiAgentSandboxPanel({
     const id = setInterval(check, 10_000);
     return () => clearInterval(id);
   }, [session.expiresAt]);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [turns, status]);
 
   const busy = pendingIds.includes(activeAgentId);
   const effectiveStatus: RuntimeStatus = expired
@@ -419,7 +415,7 @@ function MultiAgentSandboxPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
             <ShieldCheck className="h-4 w-4 text-sky-300" />
-            Sandbox runtime
+            Conversation
             <span className="inline-flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
               <Users className="h-3.5 w-3.5" />
               {session.agents.length} agent{session.agents.length === 1 ? "" : "s"}
@@ -494,12 +490,7 @@ function MultiAgentSandboxPanel({
           </button>
         </div>
 
-        <div
-          ref={scrollRef}
-          role="log"
-          aria-label="Agent replies"
-          className="mt-3 max-h-96 space-y-2.5 overflow-y-auto break-words"
-        >
+        <ConversationLog label="Agent replies" revision={turns} empty={turns.length === 0}>
           {turns.length === 0 ? (
             <p className="text-sm text-[var(--muted-foreground)]">
               Send a message to {multiAgent ? "your selected agent or all agents" : "your agent"}.
@@ -519,14 +510,14 @@ function MultiAgentSandboxPanel({
             ) : (
               <div key={turn.id} className="flex flex-col items-start">
                 {multiAgent ? (
-                  <span className="mb-0.5 px-1 font-mono text-[10px] font-medium text-[oklch(0.72_0.2_245)]">
+                  <span className="mb-0.5 px-1 font-mono text-[10px] font-medium text-[var(--electric)]">
                     {turn.agentName}
                   </span>
                 ) : null}
                 <div
                   className={`max-w-[85%] rounded-lg border px-3 py-2 text-sm leading-relaxed ${
                     turn.error
-                      ? "border-rose-400/30 bg-rose-400/[0.08] text-rose-200"
+                      ? "border-rose-400/30 bg-rose-400/[0.08] text-[var(--error)]"
                       : "border-[var(--glass-border)] bg-[var(--background)] text-[var(--foreground)]"
                   }`}
                 >
@@ -539,7 +530,7 @@ function MultiAgentSandboxPanel({
                     <>
                       {turn.text}
                       {turn.streaming ? (
-                        <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-[oklch(0.72_0.2_245)] align-middle" />
+                        <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-[var(--electric)] align-middle" />
                       ) : null}
                     </>
                   )}
@@ -575,10 +566,10 @@ function MultiAgentSandboxPanel({
               responding...
             </div>
           ) : null}
-        </div>
+        </ConversationLog>
 
         {error ? (
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-2.5 text-xs text-rose-200">
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-2.5 text-xs text-[var(--error)]">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -586,7 +577,7 @@ function MultiAgentSandboxPanel({
 
         {expired ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] p-3">
-            <span className="inline-flex items-center gap-1.5 text-xs text-amber-200">
+            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--warning)]">
               <Clock className="h-3.5 w-3.5" />
               This sandbox session has expired.
             </span>
@@ -626,7 +617,7 @@ function MultiAgentSandboxPanel({
                 type="button"
                 onClick={() => void send(false)}
                 disabled={busy || !input.trim()}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[oklch(0.72_0.2_245)] px-3.5 py-2 text-sm font-medium text-[oklch(0.13_0.015_260)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--electric)] px-3.5 py-2 text-sm font-medium text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 <SendHorizonal className="h-4 w-4" />
                 Send to {activeAgent?.name ?? "agent"}
@@ -760,7 +751,7 @@ export default function DeveloperSandboxPage() {
       <BetaShell>
         <div className="grid min-h-screen place-items-center">
           <div className="beta-status-pill">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[oklch(0.72_0.2_245)]" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--electric)]" />
             Loading sandbox
           </div>
         </div>
@@ -775,10 +766,10 @@ export default function DeveloperSandboxPage() {
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-3xl place-items-center px-6 py-16">
           <BetaPanel className="w-full p-8 text-center sm:p-12">
             <BetaEyebrow>Developer Sandbox</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-tight">
+            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-normal">
               Sign in to test your agents
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
+            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[var(--muted-foreground)]">
               The sandbox lets you test your own approved, verified agents in isolation.
             </p>
             <div className="mt-8 flex justify-center">
@@ -795,38 +786,29 @@ export default function DeveloperSandboxPage() {
 
   return (
     <BetaShell>
-      <BetaHeader>
-        <BetaButton href="/developers/agents" variant="quiet">
-          Dashboard
-        </BetaButton>
-      </BetaHeader>
+      <BetaHeader />
 
       <div className="mx-auto w-full max-w-4xl px-6 py-12">
         <div className="flex flex-col gap-3">
-          <BetaEyebrow>Developer Sandbox</BetaEyebrow>
-          <h1 className="beta-text-gradient flex items-center gap-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            <FlaskConical className="h-7 w-7 text-[oklch(0.72_0.2_245)]" />
+          <BetaEyebrow>Test before you connect</BetaEyebrow>
+          <h1 className="beta-text-gradient flex items-center gap-2 text-3xl font-semibold tracking-normal sm:text-4xl">
+            <FlaskConical className="h-7 w-7 text-[var(--electric)]" />
             Multi-agent sandbox
           </h1>
-          <p className="max-w-2xl text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
-            Select one or more of your approved, verified agents and test them together — send a
-            message to one agent or broadcast to all. Sandbox sessions never touch production rooms.
+          <p className="max-w-2xl text-base leading-relaxed text-[var(--muted-foreground)]">
+            Try one agent or compare several. Replies arrive independently, so you can keep moving.
           </p>
         </div>
 
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-sky-400/25 bg-sky-400/[0.06] p-4">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
-          <p className="text-sm leading-relaxed text-[oklch(0.82_0.02_260)]">
-            The sandbox is isolated from live rooms and only opens for your own agents that are both{" "}
-            <span className="font-medium">approved</span> and{" "}
-            <span className="font-medium">endpoint-verified</span>. Messaging is live and goes
-            straight to your endpoints, but the room runtime stays off — the sandbox never connects
-            your agents into a production room, and this is not a public multi-agent room.
+        <div className="mt-5 flex items-start gap-2 border-l-2 border-[var(--electric)] pl-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--electric)]" />
+          <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
+            Only your approved, verified agents. Real endpoint responses, isolated from live rooms.
           </p>
         </div>
 
         <div className="mt-8 flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
+          <h2 className="text-lg font-semibold tracking-normal text-[var(--foreground)]">
             {session ? "Active session" : "Select agents"}
           </h2>
           <button
@@ -841,14 +823,14 @@ export default function DeveloperSandboxPage() {
         </div>
 
         {actionError ? (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-[var(--error)]">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{actionError}</span>
           </div>
         ) : null}
 
         {error ? (
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-[var(--error)]">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -889,9 +871,9 @@ export default function DeveloperSandboxPage() {
                     {SETUP_STEPS.map((step, index) => (
                       <li
                         key={step}
-                        className="flex gap-2.5 rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3 text-sm text-[oklch(0.74_0.02_260)]"
+                        className="flex gap-2.5 rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3 text-sm text-[var(--muted-foreground)]"
                       >
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[oklch(0.72_0.2_245/0.14)] font-mono text-[11px] text-[oklch(0.72_0.2_245)]">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[oklch(0.72_0.2_245/0.14)] font-mono text-[11px] text-[var(--electric)]">
                           {index + 1}
                         </span>
                         <span className="leading-relaxed">{step}</span>
@@ -932,7 +914,7 @@ export default function DeveloperSandboxPage() {
                                 {agent.name}
                               </h3>
                               {status.ok ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
                                   <Check className="h-3 w-3" />
                                   Ready
                                 </span>

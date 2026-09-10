@@ -2,11 +2,11 @@ import type { AgentContext, AgentMessage, AgentResponse } from "./types.js";
 
 // Message handling helpers for external agent endpoints.
 //
-// Voxa POSTs a `voxa.message` request to an agent's message endpoint and expects
+// Synq POSTs a `voxa.message` request to an agent's message endpoint and expects
 // a `{ text }` JSON body back. These types/helpers let developers implement that
-// handler with the same shapes Voxa uses.
+// handler with the same shapes Synq uses.
 
-// The wire contract Voxa sends to an agent's POST /voxa/message endpoint.
+// The wire contract Synq sends to an agent's POST /voxa/message endpoint.
 export const VOXA_MESSAGE_TYPE = "voxa.message";
 
 // One prior turn in a per-agent thread. `history` carries ONLY the recent turns
@@ -36,7 +36,7 @@ export type VoxaMessageRequest = {
   context?: VoxaMessageContext;
 };
 
-// Private push-to-talk VOICE BETA contract. Voxa transcribes the user's clip
+// Private push-to-talk VOICE BETA contract. Synq transcribes the user's clip
 // (STT) and POSTs `voxa.voice` with the TRANSCRIBED TEXT to the same message
 // endpoint, then synthesizes the text reply (TTS) and plays it back to the user
 // ONLY. The agent never receives room audio, a room transcript, or a LiveKit
@@ -57,9 +57,9 @@ export type VoxaVoiceRequest = {
 };
 
 export type VoxaVoiceResponse = {
-  // `text` is REQUIRED — Voxa synthesizes it with TTS for playback.
+  // `text` is REQUIRED — Synq synthesizes it with TTS for playback.
   text: string;
-  // Optional voice preference. NOT honored yet — Voxa always uses the configured
+  // Optional voice preference. NOT honored yet — Synq always uses the configured
   // default TTS voice for now.
   // TODO: future approved per-agent voice profiles may honor this.
   voice?: {
@@ -74,7 +74,7 @@ export function createVoxaVoiceRequest(
   return { type: VOXA_VOICE_TYPE, message, context };
 }
 
-// Tool execution model (types only — Voxa does not execute tools). An agent may
+// Tool execution model (types only — Synq does not execute tools). An agent may
 // report which tools it used while producing a reply, so the sandbox can show a
 // "Tools Used" panel. This is descriptive metadata, not an execution protocol.
 export type AgentToolStatus = "pending" | "running" | "completed" | "failed";
@@ -87,7 +87,7 @@ export type AgentToolInvocation = {
 
 export type VoxaMessageResponse = {
   text: string;
-  // Optional: hint that Voxa may render the reply progressively (simulated
+  // Optional: hint that Synq may render the reply progressively (simulated
   // streaming today — no SSE/websocket). Backwards compatible: omit for a plain
   // instant reply.
   streaming?: boolean;
@@ -103,7 +103,7 @@ export function createVoxaMessageRequest(
 }
 
 // Richer internal handler shapes (used by the runtime contract / future SDK
-// server adapters). The wire request above is the minimal version Voxa sends.
+// server adapters). The wire request above is the minimal version Synq sends.
 export type AgentMessageRequest = {
   message: AgentMessage;
   context?: AgentContext;

@@ -98,19 +98,10 @@ function ParticipantCard({
         : isSpeaking
           ? "Speaking"
           : "Mic live"
-      : "In room";
+      : "Voice not connected";
 
   return (
-    <div
-      className={[
-        "relative overflow-hidden rounded-xl border p-5 text-left transition-all duration-300",
-        "bg-[oklch(0.12_0.018_260/0.72)] shadow-[0_24px_70px_-52px_oklch(0.72_0.2_245/0.75)] backdrop-blur-xl",
-        cardIsActive
-          ? "animate-[beta-pulse-glow_1.6s_ease-in-out_infinite] border-[oklch(0.72_0.2_245/0.62)]"
-          : "border-white/[0.075]",
-      ].join(" ")}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,oklch(0.72_0.2_245/0.18),transparent_12rem)]" />
+    <div className="synq-participant relative text-left" data-speaking={cardIsActive}>
       <div className="relative flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -125,22 +116,22 @@ function ParticipantCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="truncate text-base font-semibold tracking-tight text-white">
+              <span className="break-words text-base font-semibold text-[var(--foreground)]">
                 {participant.name}
               </span>
               {participant.id.startsWith("agent:") && (
-                <span className="shrink-0 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-amber-300">
+                <span className="shrink-0 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--warning)]">
                   Text-only
                 </span>
               )}
             </div>
-            <div className="mt-1 flex items-center gap-2 text-xs text-[oklch(0.65_0.02_260)]">
+            <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
               {isAgent ? (
-                <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                <Sparkles className="h-3.5 w-3.5 text-[var(--electric)]" />
               ) : isMuted ? (
                 <MicOff className="h-3.5 w-3.5" />
               ) : (
-                <Mic className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                <Mic className="h-3.5 w-3.5 text-[var(--electric)]" />
               )}
               {status}
             </div>
@@ -148,14 +139,14 @@ function ParticipantCard({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-3">
-          <span className="rounded-full border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[oklch(0.72_0.2_245)]">
+          <span className="text-xs text-[var(--muted-foreground)]">
             {isAgent ? "Agent" : "Human"}
           </span>
           <div className="flex h-8 items-end gap-1">
             {[0, 1, 2].map((bar) => (
               <span
                 className={[
-                  "block w-1 rounded-full bg-[oklch(0.72_0.2_245)] transition-all",
+                  "block w-1 rounded-full bg-[var(--electric)] transition-all",
                   cardIsActive ? "animate-[beta-breathe_0.7s_ease-in-out_infinite]" : "opacity-30",
                 ].join(" ")}
                 key={bar}
@@ -453,7 +444,7 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       <BetaShell>
         <div className="grid min-h-screen place-items-center">
           <div className="beta-status-pill">
-            <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+            <Sparkles className="h-3.5 w-3.5 text-[var(--electric)]" />
             Entering the room
           </div>
         </div>
@@ -467,10 +458,10 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
         <div className="grid min-h-screen place-items-center px-6">
           <BetaPanel className="max-w-md p-8 text-center">
             <BetaEyebrow>{roomUnavailable ? "Room ended" : "Room Link"}</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-tight">
+            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-normal">
               {roomUnavailable ? "Room is no longer available" : "Room link is invalid"}
             </h1>
-            <p className="mt-4 text-[oklch(0.65_0.02_260)]">
+            <p className="mt-4 text-[var(--muted-foreground)]">
               {roomUnavailable
                 ? "Start a new room to continue the conversation."
                 : "Create a room or use a shared invite link to continue."}
@@ -505,29 +496,27 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
       <div className="mx-auto max-w-7xl px-4 pb-[calc(13rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-[calc(12rem+env(safe-area-inset-bottom))] sm:pt-10">
         <div className="mb-5 flex flex-col gap-3 sm:mb-8">
           <div>
-            <BetaEyebrow>Voxa Room</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            <h1 className="beta-text-gradient max-w-3xl text-2xl font-semibold leading-tight sm:text-3xl">
               {room.name}
             </h1>
-            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 font-mono text-xs text-[oklch(0.65_0.02_260)]">
-              <LinkIcon className="h-3.5 w-3.5 shrink-0 text-[oklch(0.78_0.18_235)]" />
+            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 font-mono text-xs text-[var(--muted-foreground)]">
+              <LinkIcon className="h-3.5 w-3.5 shrink-0 text-[var(--electric)]" />
               <span className="truncate">{room.roomId}</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,22rem]">
-          <BetaPanel className="p-4 sm:p-6">
-            <div className="beta-orbital-stage beta-room-stage min-h-[34rem] overflow-hidden">
-              <div className="absolute inset-0 beta-room-grid opacity-90" />
-              <div className="absolute left-4 top-4 beta-status-pill sm:left-6 sm:top-6">
-                <AudioLines className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr),18rem]">
+          <section className="min-w-0" aria-label="Room conversation">
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-sm font-medium">
+                <AudioLines className="h-3.5 w-3.5 text-[var(--electric)]" />
                 {room.status === "ended" ? "Room ended" : "Conversation"}
               </div>
 
-              <div className="relative z-10 min-h-[34rem] px-3 pb-8 pt-20 sm:px-5">
+              <div className="pb-6">
                 <div className="mx-auto max-w-4xl">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {participants.map((participant) => (
                       <ParticipantCard
                         agentState={
@@ -542,16 +531,13 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
                     ))}
                   </div>
                   {participants.length <= 1 && (
-                    <p className="mx-auto mt-5 max-w-sm text-center text-sm leading-relaxed text-[oklch(0.65_0.02_260)]">
+                    <p className="mx-auto mt-5 max-w-sm text-center text-sm leading-relaxed text-[var(--muted-foreground)]">
                       Invite someone to join the conversation.
                     </p>
                   )}
                 </div>
               </div>
             </div>
-          </BetaPanel>
-
-          <aside className="space-y-4">
             <AgentSelector
               onAgentState={onAgentState}
               invitedAgentIds={room.invitedAgents}
@@ -561,27 +547,29 @@ export default function RoomPage({ params, searchParams }: RoomPageProps) {
               roomId={room.id}
               statusLabelForAgent={statusLabelForAgent}
             />
+          </section>
 
-            <BetaPanel className="p-4">
+          <aside className="space-y-4">
+            <div className="border-t border-[var(--border)] py-4">
               <InviteLink roomId={room.id} inline />
-            </BetaPanel>
+            </div>
 
-            <BetaPanel className="p-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[oklch(0.72_0.2_245)]">
+            <div className="border-t border-[var(--border)] py-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--electric)]">
                 Recent
               </div>
               <div className="mt-3 space-y-2">
                 {room.events.slice(-3).map((event) => (
-                  <div className="text-sm text-[oklch(0.65_0.02_260)]" key={event.id}>
+                  <div className="text-sm text-[var(--muted-foreground)]" key={event.id}>
                     {event.text}
                   </div>
                 ))}
               </div>
-            </BetaPanel>
+            </div>
           </aside>
         </div>
 
-        <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-50 mx-auto max-w-2xl sm:inset-x-6">
+        <div className="synq-voice-dock fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-50 mx-auto max-w-2xl sm:inset-x-6">
           <RoomVoice
             enabled={sharedRoomEnabled && room.status === "active"}
             novaInRoom={novaInRoom}

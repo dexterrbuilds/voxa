@@ -61,7 +61,7 @@ export function TokenContractCard() {
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1 text-left">
             <p className="text-[0.7rem] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              VOXA Token CA
+              Token contract
             </p>
             <div className="mt-1 overflow-x-auto">
               <code className="block whitespace-nowrap font-mono text-xs text-foreground sm:text-sm">
@@ -72,25 +72,17 @@ export function TokenContractCard() {
           <button
             type="button"
             onClick={handleCopy}
-            aria-label="Copy VOXA token contract address"
+            aria-label="Copy token contract address"
             className="glass inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-all duration-300 hover:bg-white/[0.06] hover:border-electric/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            {copied ? (
-              <Check className="h-4 w-4 text-electric" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
+            {copied ? <Check className="h-4 w-4 text-electric" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       </div>
       <p
         aria-live="polite"
         className={`mt-2 h-4 text-xs ${
-          copied
-            ? "text-electric"
-            : failed
-              ? "text-destructive"
-              : "text-transparent"
+          copied ? "text-electric" : failed ? "text-destructive" : "text-transparent"
         }`}
       >
         {copied ? "Contract address copied" : failed ? "Copy failed — select manually" : ""}

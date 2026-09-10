@@ -25,7 +25,7 @@ export function FeatureCard({
         <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-electric/20 to-electric/5 border border-electric/20 grid place-items-center text-electric mb-5 group-hover:scale-110 transition-transform duration-500">
           {icon}
         </div>
-        <h3 className="font-semibold text-base mb-2 tracking-tight">{title}</h3>
+        <h3 className="font-semibold text-base mb-2 tracking-normal">{title}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
       </div>
     </motion.div>

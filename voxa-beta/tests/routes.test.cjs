@@ -14,6 +14,47 @@ const discover = require("../app/api/agents/discover/route.ts");
 const sandbox = require("../app/api/agents/sandbox/message/route.ts");
 const room = require("../app/api/agents/room/message/route.ts");
 const invite = require("../app/api/agents/room/invite/route.ts");
+const profiles = require("../app/lib/server/developers/profile.ts");
+
+test("public profile and agent models expose identity without private account data", () => {
+  for (const brand of ["voxa", "synq", "Synq"]) {
+    assert.throws(() => profiles.validateUsername(brand));
+  }
+  const profile = profiles.mapPublicDeveloperProfile({
+    username: "builder",
+    display_name: "Builder",
+    email: "private@example.com",
+    user_id: "secret-user",
+    metadata: { secret: true },
+  });
+  const agent = profiles.externalAgentToPublicAgent(
+    {
+      id: "public-agent",
+      name: "Research",
+      slug: "research",
+      description: "Research assistant",
+      endpoint_url: "https://secret.example",
+      creator_user_id: "secret-user",
+      review_note: "private-note",
+      import_metadata: { key: "private-key" },
+      permissions: ["room_text_reply", "admin_access"],
+    },
+    profile,
+    "Synq developer",
+  );
+  const serialized = JSON.stringify({ profile, agent });
+  for (const privateValue of [
+    "private@example.com",
+    "secret-user",
+    "secret.example",
+    "private-note",
+    "private-key",
+    "admin_access",
+  ])
+    assert.equal(serialized.includes(privateValue), false);
+  assert.equal(agent.creatorUsername, "builder");
+  assert.equal(agent.creatorDisplayName, "Builder");
+});
 
 function request(path, body, headers = {}) {
   return new next.NextRequest(`http://localhost/api/agents/${path}`, {

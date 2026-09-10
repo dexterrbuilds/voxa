@@ -199,7 +199,10 @@ function AccessFormCard() {
   const [submissionResult, setSubmissionResult] = useState<SubmissionResult>("remote");
 
   const isValid = useMemo(
-    () => Boolean(form.name.trim() && form.email.trim() && form.xHandle.trim() && form.agentIdea.trim()),
+    () =>
+      Boolean(
+        form.name.trim() && form.email.trim() && form.xHandle.trim() && form.agentIdea.trim(),
+      ),
     [form],
   );
 
@@ -243,7 +246,7 @@ function AccessFormCard() {
               onSubmit={handleSubmit}
             >
               <div>
-                <h2 className="text-xl font-semibold tracking-tight">Request SDK beta access</h2>
+                <h2 className="text-xl font-semibold tracking-normal">Request SDK beta access</h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   Share what you want to build. Production submissions are saved to Supabase; local
                   previews fall back to browser storage.
@@ -320,7 +323,13 @@ function AccessFormCard() {
                 />
               </label>
 
-              <Button className="w-full" disabled={!isValid || isSubmitting} size="lg" type="submit" variant="electric">
+              <Button
+                className="w-full"
+                disabled={!isValid || isSubmitting}
+                size="lg"
+                type="submit"
+                variant="electric"
+              >
                 {isSubmitting ? "Sending..." : "Request Early Access"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -338,12 +347,12 @@ function AccessFormCard() {
               <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-electric/30 bg-electric/15 text-electric">
                 <Sparkles className="h-7 w-7" />
               </div>
-              <h2 className="mt-6 text-2xl font-semibold tracking-tight text-gradient">
+              <h2 className="mt-6 text-2xl font-semibold tracking-normal text-gradient">
                 SDK interest saved.
               </h2>
               <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
                 {submissionResult === "remote"
-                  ? "Your request was saved to the Voxa SDK beta access list."
+                  ? "Your request was saved to the Synq SDK beta access list."
                   : submissionResult === "local"
                     ? "The production endpoint was unavailable, so this request was saved in this browser as a local fallback."
                     : "The production endpoint and browser storage were unavailable, so this preview could not save the request."}
@@ -370,15 +379,15 @@ export default function DeveloperAccessPage() {
   return (
     <>
       <Helmet>
-        <title>SDK Beta Access — Voxa</title>
+        <title>SDK Beta Access — Synq</title>
         <meta
           name="description"
-          content="Request developer access to the upcoming Voxa SDK and agent runtime beta."
+          content="Request developer access to the upcoming Synq SDK and agent runtime beta."
         />
-        <meta property="og:title" content="SDK Beta Access — Voxa" />
+        <meta property="og:title" content="SDK Beta Access — Synq" />
         <meta
           property="og:description"
-          content="Build agents that participate in conversations with Voxa."
+          content="Build agents that participate in conversations with Synq."
         />
       </Helmet>
       <SiteLayout>
@@ -387,11 +396,12 @@ export default function DeveloperAccessPage() {
           <div className="relative mx-auto grid max-w-7xl gap-12 px-6 pb-16 pt-24 sm:pt-32 lg:grid-cols-[1.02fr,0.98fr] lg:items-center">
             <div>
               <Eyebrow>SDK Beta</Eyebrow>
-              <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.05] tracking-tight text-gradient sm:text-6xl">
+              <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.05] tracking-normal text-gradient sm:text-6xl">
                 Build agents that participate in conversations.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                Voxa is building the runtime layer for conversational AI. Nova is only the beginning.
+                Synq is building the runtime layer for conversational AI. Nova is only the
+                beginning.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" variant="electric">
@@ -412,7 +422,7 @@ export default function DeveloperAccessPage() {
         <section className="mx-auto max-w-7xl px-6 py-16">
           <div className="mb-8">
             <Eyebrow>What developers will get</Eyebrow>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">
+            <h2 className="mt-5 text-3xl font-semibold tracking-normal text-gradient sm:text-4xl">
               The building blocks for conversational agents.
             </h2>
           </div>
@@ -424,7 +434,7 @@ export default function DeveloperAccessPage() {
                   <div className="grid h-10 w-10 place-items-center rounded-lg bg-electric/10 text-electric">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-4 font-semibold tracking-tight">{item.title}</h3>
+                  <h3 className="mt-4 font-semibold tracking-normal">{item.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     {item.description}
                   </p>
@@ -437,7 +447,7 @@ export default function DeveloperAccessPage() {
         <section className="mx-auto grid max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[0.9fr,1.1fr]">
           <div>
             <Eyebrow>Coming soon</Eyebrow>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">
+            <h2 className="mt-5 text-3xl font-semibold tracking-normal text-gradient sm:text-4xl">
               From first-party demos to a developer agent ecosystem.
             </h2>
             <p className="mt-5 leading-relaxed text-muted-foreground">
@@ -470,12 +480,12 @@ export default function DeveloperAccessPage() {
         <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[0.85fr,1.15fr]">
           <div>
             <Eyebrow>Example</Eyebrow>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">
+            <h2 className="mt-5 text-3xl font-semibold tracking-normal text-gradient sm:text-4xl">
               A future SDK surface for agent builders.
             </h2>
             <p className="mt-5 leading-relaxed text-muted-foreground">
-              The SDK beta will expose a typed contract for identity, lifecycle hooks,
-              capabilities, messages, and responses. External registration is not live yet.
+              The SDK beta will expose a typed contract for identity, lifecycle hooks, capabilities,
+              messages, and responses. External registration is not live yet.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild variant="glass">
@@ -489,10 +499,13 @@ export default function DeveloperAccessPage() {
           <ExampleBlock />
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[0.8fr,1.2fr]" id="beta-access">
+        <section
+          className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[0.8fr,1.2fr]"
+          id="beta-access"
+        >
           <div>
             <Eyebrow>Beta Access</Eyebrow>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">
+            <h2 className="mt-5 text-3xl font-semibold tracking-normal text-gradient sm:text-4xl">
               Tell us what you want to build.
             </h2>
             <p className="mt-5 leading-relaxed text-muted-foreground">

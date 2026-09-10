@@ -64,15 +64,29 @@ try {
   }
   await page.goto(`${base}/agents`);
   await page.getByRole("heading", { name: "Explore agents" }).waitFor();
+  assert.match(await page.title(), /Synq/);
+  assert.equal(await page.getByText(/\bVoxa\b/).count(), 0);
   await screenshot("directory-mobile-light");
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page
+    .getByRole("navigation", { name: "Mobile navigation" })
+    .getByRole("link", { name: "Developers" })
+    .waitFor();
+  await page.getByRole("button", { name: "Close navigation" }).click();
   await page
     .getByRole("textbox", { name: "Search agents and developers" })
     .fill("not-a-real-agent");
   await page.getByText("No agents match that search yet.").waitFor();
   await page.goto(`${base}/agents/research-agent`);
   await page.getByText("This first-party agent is planned and is not yet available.").waitFor();
+  await screenshot("agent-detail-mobile-light");
+  await page.goto(`${base}/developers/unknown-fixture-profile`);
+  await page.getByRole("heading", { name: "This page isn't available." }).waitFor();
+  await screenshot("profile-not-found-mobile");
   await page.goto(`${base}/room/ROOM123`);
   await page.waitForURL(/\/login/);
+  await page.getByRole("textbox", { name: "Email", exact: true }).waitFor();
+  await screenshot("login-mobile-light");
 
   await page.route("**/auth/v1/**", (route) =>
     json(
@@ -211,10 +225,16 @@ try {
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(`${base}/`);
   await page.goto(`${base}/developers/agents`);
+  await screenshot("onboarding-connect-mobile");
   const endpoint = page.getByPlaceholder("https://your-agent.example/voxa/handshake");
   await endpoint.fill("https://example.com/voxa/handshake");
   await page.getByRole("button", { name: "Test connection", exact: true }).first().click();
   await page.getByText("Detected Agent detected").waitFor();
+  assert.equal(
+    await page.locator('input[value="Detected Agent"]').count(),
+    0,
+    "detection must not overwrite the form",
+  );
   await page.getByRole("button", { name: "Use detected details" }).click();
   assert.equal(await page.locator('input[value="Detected Agent"]').count(), 1);
   await screenshot("developer-mobile-light");
@@ -290,6 +310,25 @@ try {
   await page.waitForTimeout(1200);
   assert.equal(await page.getByText("Cancelled stale reply", { exact: true }).count(), 0);
   await screenshot("room-mobile-dark");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await screenshot("room-desktop-dark");
+  await page.evaluate(() => {
+    localStorage.setItem("voxa-theme", "light");
+    document.documentElement.classList.remove("dark");
+  });
+  await page.reload();
+  await page.getByText("Smoke Tester", { exact: true }).first().waitFor();
+  await page.locator(".synq-participant").filter({ hasText: "Research" }).waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await screenshot("room-desktop-light");
+  if (process.env.SMOKE_PRODUCT_SHOT) {
+    await page.screenshot({
+      path: process.env.SMOKE_PRODUCT_SHOT,
+      type: "jpeg",
+      quality: 90,
+      clip: { x: 96, y: 80, width: 1248, height: 680 },
+    });
+  }
   await page.reload();
   await page.getByText("Smoke Tester", { exact: true }).first().waitFor();
   assert.equal(errors.length, 0, errors.join("\n"));

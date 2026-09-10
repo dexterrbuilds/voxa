@@ -103,8 +103,8 @@ export default function AIPersonality({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-xl font-semibold tracking-tight text-white">{name}</h3>
-            <span className="rounded-full border border-[oklch(0.72_0.2_245/0.24)] bg-[oklch(0.72_0.2_245/0.1)] px-2.5 py-1 text-xs font-medium text-[oklch(0.78_0.18_235)]">
+            <h3 className="text-xl font-semibold tracking-normal text-white">{name}</h3>
+            <span className="rounded-full border border-[oklch(0.72_0.2_245/0.24)] bg-[oklch(0.72_0.2_245/0.1)] px-2.5 py-1 text-xs font-medium text-[var(--electric)]">
               {inRoom ? statusLabel : status === "joining" ? "Joining" : "Online"}
             </span>
           </div>

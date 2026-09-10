@@ -14,7 +14,7 @@ export type VoxaAdapterOptions = {
 };
 
 // Framework-neutral Fetch API handler: mount behind your own authentication and hosting.
-// It grants no Voxa permissions and never starts a server or executes reported tools.
+// It grants no Synq permissions and never starts a server or executes reported tools.
 export function createVoxaAgent(options: VoxaAdapterOptions) {
   const handshake: AgentHandshake = createAgentHandshake(options.identity);
   const discovery = {

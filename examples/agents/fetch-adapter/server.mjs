@@ -5,7 +5,7 @@ import { createVoxaAgent } from "../../../packages/sdk/dist/index.js";
 const handle = createVoxaAgent({
   identity: {
     name: "My Agent",
-    description: "A framework-neutral Voxa adapter.",
+    description: "A framework-neutral Synq adapter.",
     capabilities: ["text"],
   },
   runtime: "custom_endpoint",

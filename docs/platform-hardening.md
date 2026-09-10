@@ -1,8 +1,17 @@
-# Voxa Platform Hardening
+# Synq Platform Hardening
+
+The rebrand checkpoint is complete; see [Synq transition validation](synq-transition.md#validation).
+The prior hardening foundation is preserved. Current local regression coverage is eleven
+runtime/API tests plus three SDK tests, browser fixtures and the disposable analytics SQL test.
+Live-provider and deployed-RLS checks remain explicitly listed as staging work.
+
+The hardening foundation was committed before the Synq rebrand. This handoff is retained
+as the rollout record, not a second implementation. See [Synq transition](synq-transition.md)
+for the subsequent visual/copy changes and compatibility validation.
 
 ## Audit and Scope
 
-Voxa already has distinct sandbox, room-text and private voice-beta runtimes sharing
+Synq already has distinct sandbox, room-text and private voice-beta runtimes sharing
 `voxaMessageClient`. Nova Path A remains the production voice path; Path B stays off.
 The pass preserves these working boundaries and the existing BYOA/voice-beta changes
 already present in the worktree. It does not enable external agents publicly.
@@ -77,10 +86,8 @@ The highest-impact weaknesses were:
 5. Test a public HTTPS adapter endpoint, then follow the existing review and verification flow.
 
 No production SQL, environment updates, commits or deployments are performed by this pass.
-`AGENTS.md` and `CLAUDE.md` are updated locally; they are currently tracked in this checkout,
-so review staging explicitly if they should remain local. This pass does not change Git tracking.
-
-## Validation
+`AGENTS.md` and `CLAUDE.md` are now ignored local context files, removed from tracking in
+the existing history before the Synq pass. Do not re-add them.
 
 ## File Inventory
 

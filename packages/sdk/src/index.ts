@@ -46,3 +46,7 @@ export { defineAgentRegistration, registerAgent } from "./registration.js";
 export { VoxaAgent } from "./VoxaAgent.js";
 export { createVoxaAgent } from "./adapter.js";
 export type { VoxaAdapterOptions } from "./adapter.js";
+// Branding aliases only. Existing wire contracts and package imports remain compatible.
+export { VoxaAgent as SynqAgent } from "./VoxaAgent.js";
+export { createVoxaAgent as createSynqAgent } from "./adapter.js";
+export type { VoxaAdapterOptions as SynqAdapterOptions } from "./adapter.js";

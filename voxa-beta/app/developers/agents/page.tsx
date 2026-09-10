@@ -113,9 +113,9 @@ const statusLabels: Record<RegisteredAgentStatus, string> = {
 
 const statusBadgeClasses: Record<RegisteredAgentStatus, string> = {
   draft: "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
-  pending_review: "border-amber-400/30 bg-amber-400/10 text-amber-300",
-  approved: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-  rejected: "border-rose-400/30 bg-rose-400/10 text-rose-300",
+  pending_review: "border-amber-400/30 bg-amber-400/10 text-[var(--warning)]",
+  approved: "border-emerald-400/30 bg-emerald-400/10 text-[var(--success)]",
+  rejected: "border-rose-400/30 bg-rose-400/10 text-[var(--error)]",
   disabled: "border-[var(--glass-border)] bg-[var(--subtle-fill)] text-[var(--muted-foreground)]",
 };
 
@@ -192,7 +192,7 @@ function MetricCard({
         {icon}
         {label}
       </div>
-      <div className="mt-2 text-lg font-semibold tracking-tight text-[var(--foreground)]">
+      <div className="mt-2 text-lg font-semibold tracking-normal text-[var(--foreground)]">
         {value}
       </div>
     </div>
@@ -224,7 +224,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-[oklch(0.82_0.02_260)]">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">{label}</span>
       {children}
       {hint ? (
         <span className="mt-1 block text-xs leading-relaxed text-[var(--muted-foreground)]">
@@ -245,6 +245,7 @@ export default function DeveloperAgentsPage() {
   const [listError, setListError] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [formStep, setFormStep] = useState<"connect" | "review">("connect");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -360,12 +361,14 @@ export default function DeveloperAgentsPage() {
   };
 
   const resetForm = () => {
+    setFormStep("connect");
     setForm(emptyForm);
     setEditingId(null);
     setFormError(null);
   };
 
   const startEdit = (agent: RegisteredAgent) => {
+    setFormStep("review");
     setEditingId(agent.id);
     setFormError(null);
     setSuccessMessage(null);
@@ -402,7 +405,7 @@ export default function DeveloperAgentsPage() {
       try {
         const parsed = JSON.parse(metadataText);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          setFormError('Metadata must be a JSON object, for example {"team":"voxa"}.');
+          setFormError('Metadata must be a JSON object, for example {"team":"synq"}.');
           return null;
         }
         metadata = parsed as Record<string, unknown>;
@@ -526,7 +529,7 @@ export default function DeveloperAgentsPage() {
       <BetaShell>
         <div className="grid min-h-screen place-items-center">
           <div className="beta-status-pill">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[oklch(0.72_0.2_245)]" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--electric)]" />
             Loading developer dashboard
           </div>
         </div>
@@ -541,11 +544,11 @@ export default function DeveloperAgentsPage() {
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-3xl place-items-center px-6 py-16">
           <BetaPanel className="w-full p-8 text-center sm:p-12">
             <BetaEyebrow>Developer Access</BetaEyebrow>
-            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h1 className="beta-text-gradient mt-6 text-3xl font-semibold tracking-normal sm:text-4xl">
               Sign in to manage your agents
             </h1>
-            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
-              The agent registration dashboard requires a Voxa account. Sign in to submit and manage
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--muted-foreground)]">
+              The agent registration dashboard requires a Synq account. Sign in to submit and manage
               your agent metadata.
             </p>
             <div className="mt-8 flex justify-center">
@@ -562,30 +565,26 @@ export default function DeveloperAgentsPage() {
 
   return (
     <BetaShell>
-      <BetaHeader>
-        <BetaButton href="/" variant="quiet">
-          Rooms
-        </BetaButton>
-      </BetaHeader>
+      <BetaHeader />
 
       <div className="mx-auto w-full max-w-6xl px-6 py-12">
         <div className="flex flex-col gap-3">
-          <BetaEyebrow>Agent Registration</BetaEyebrow>
-          <h1 className="beta-text-gradient max-w-3xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-            Developer agent dashboard
+          <BetaEyebrow>Build on Synq</BetaEyebrow>
+          <h1 className="beta-text-gradient max-w-3xl text-3xl font-semibold leading-tight tracking-normal sm:text-4xl">
+            Your agents, connected.
           </h1>
-          <p className="max-w-2xl text-base leading-relaxed text-[oklch(0.65_0.02_260)]">
-            Submit and manage your agent registration metadata. Registrations are reviewed before
-            any agent can appear in a Voxa room.
+          <p className="max-w-2xl text-base leading-relaxed text-[var(--muted-foreground)]">
+            Bring an agent from your own stack. Connect it, confirm its identity, and prepare it for
+            conversation.
           </p>
         </div>
 
         {/* Review-required warning */}
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-          <div className="text-sm leading-relaxed text-[oklch(0.82_0.02_260)]">
-            <p className="font-medium text-amber-200">
-              Registered agents are not available in live rooms until reviewed and approved.
+        <div className="mt-6 flex items-start gap-3 border-l-2 border-[var(--electric)] pl-4">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+          <div className="text-sm leading-relaxed text-[var(--foreground)]">
+            <p className="font-medium text-[var(--foreground)]">
+              Connection testing is the first step, not an approval.
             </p>
             <p className="mt-1 text-[var(--muted-foreground)]">
               Connect your endpoint, confirm its details, then submit for review. Approved and
@@ -615,152 +614,167 @@ export default function DeveloperAgentsPage() {
           </a>
         </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <MetricCard label="Total Agents" value={metricNumber(overviewMetrics.totalAgents)} />
-          <MetricCard label="Approved" value={metricNumber(overviewMetrics.approvedAgents)} />
-          <MetricCard label="Verified" value={metricNumber(overviewMetrics.verifiedAgents)} />
-          <MetricCard
-            label="Sandbox Sessions"
-            value={metricNumber(overviewMetrics.sandboxSessions)}
-          />
-          <MetricCard label="Room Messages" value={metricNumber(overviewMetrics.roomMessages)} />
-        </div>
-
-        <BetaPanel className="mt-6 p-6 sm:p-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--foreground)]">
-                <UserCircle className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
-                Developer profile
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted-foreground)]">
-                Create the public identity that appears beside your approved agents. Voxa only
-                exposes these safe profile fields.
-              </p>
-            </div>
-            {profileUsername ? (
-              <a
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-                href={`/developers/${profileUsername}`}
-                target="_blank"
-              >
-                <Globe className="h-3.5 w-3.5" />
-                View public profile
-              </a>
-            ) : null}
+        <details className="mt-6 border-y border-[var(--border)] py-4">
+          <summary className="text-sm font-medium">
+            Activity overview · {overviewMetrics.totalAgents} agents
+          </summary>
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+            <MetricCard label="Total Agents" value={metricNumber(overviewMetrics.totalAgents)} />
+            <MetricCard label="Approved" value={metricNumber(overviewMetrics.approvedAgents)} />
+            <MetricCard label="Verified" value={metricNumber(overviewMetrics.verifiedAgents)} />
+            <MetricCard
+              label="Sandbox Sessions"
+              value={metricNumber(overviewMetrics.sandboxSessions)}
+            />
+            <MetricCard label="Room Messages" value={metricNumber(overviewMetrics.roomMessages)} />
           </div>
+        </details>
 
-          {profileError ? (
-            <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{profileError}</span>
-            </div>
-          ) : null}
-
-          {profileSuccess ? (
-            <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-emerald-200">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{profileSuccess}</span>
-            </div>
-          ) : null}
-
-          <form className="mt-5 space-y-4" noValidate onSubmit={handleProfileSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Username" hint="Your public URL: /developers/username">
-                <input
-                  className="beta-input w-full font-mono"
-                  disabled={profileLoading}
-                  maxLength={40}
-                  onChange={(event) => updateProfileField("username", event.target.value)}
-                  placeholder="your-name"
-                  value={profileForm.username}
-                />
-              </Field>
-              <Field label="Display name">
-                <input
-                  className="beta-input w-full"
-                  disabled={profileLoading}
-                  maxLength={80}
-                  onChange={(event) => updateProfileField("displayName", event.target.value)}
-                  placeholder="Ameen"
-                  value={profileForm.displayName}
-                />
-              </Field>
+        <details id="profile" className="mt-4 border-b border-[var(--border)] pb-4">
+          <summary className="text-sm font-medium">
+            Your developer profile{" "}
+            {profileUsername ? `· @${profileUsername}` : "· Add your identity"}
+          </summary>
+          <div className="pt-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-normal text-[var(--foreground)]">
+                  <UserCircle className="h-5 w-5 text-[var(--electric)]" />
+                  Developer profile
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted-foreground)]">
+                  Create the public identity that appears beside your approved agents. Synq only
+                  exposes these safe profile fields.
+                </p>
+              </div>
+              {profileUsername ? (
+                <a
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--subtle-fill)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+                  href={`/developers/${profileUsername}`}
+                  target="_blank"
+                >
+                  <Globe className="h-3.5 w-3.5" />
+                  View public profile
+                </a>
+              ) : null}
             </div>
 
-            <Field label="Bio">
-              <textarea
-                className="beta-input min-h-[76px] w-full resize-y"
-                disabled={profileLoading}
-                maxLength={500}
-                onChange={(event) => updateProfileField("bio", event.target.value)}
-                placeholder="What you build, research, or care about in conversational AI."
-                value={profileForm.bio}
-              />
-            </Field>
+            {profileError ? (
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-[var(--error)]">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{profileError}</span>
+              </div>
+            ) : null}
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Website">
-                <input
-                  className="beta-input w-full"
-                  disabled={profileLoading}
-                  maxLength={300}
-                  onChange={(event) => updateProfileField("website", event.target.value)}
-                  placeholder="https://..."
-                  value={profileForm.website}
-                />
-              </Field>
-              <Field label="X handle">
-                <input
-                  className="beta-input w-full"
-                  disabled={profileLoading}
-                  maxLength={40}
-                  onChange={(event) => updateProfileField("xHandle", event.target.value)}
-                  placeholder="@username"
-                  value={profileForm.xHandle}
-                />
-              </Field>
-              <Field label="Avatar URL">
-                <input
-                  className="beta-input w-full"
-                  disabled={profileLoading}
-                  maxLength={300}
-                  onChange={(event) => updateProfileField("avatarUrl", event.target.value)}
-                  placeholder="https://.../avatar.png"
-                  value={profileForm.avatarUrl}
-                />
-              </Field>
-            </div>
+            {profileSuccess ? (
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-[var(--success)]">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{profileSuccess}</span>
+              </div>
+            ) : null}
 
-            <div className="flex justify-end">
-              <BetaButton disabled={profileLoading || profileSaving} type="submit" variant="glass">
-                {profileSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving
-                  </>
-                ) : (
-                  "Save profile"
-                )}
-              </BetaButton>
-            </div>
-          </form>
-        </BetaPanel>
+            <form className="mt-5 space-y-4" noValidate onSubmit={handleProfileSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Username" hint="Your public URL: /developers/username">
+                  <input
+                    className="beta-input w-full font-mono"
+                    disabled={profileLoading}
+                    maxLength={40}
+                    onChange={(event) => updateProfileField("username", event.target.value)}
+                    placeholder="your-name"
+                    value={profileForm.username}
+                  />
+                </Field>
+                <Field label="Display name">
+                  <input
+                    className="beta-input w-full"
+                    disabled={profileLoading}
+                    maxLength={80}
+                    onChange={(event) => updateProfileField("displayName", event.target.value)}
+                    placeholder="Ameen"
+                    value={profileForm.displayName}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Bio">
+                <textarea
+                  className="beta-input min-h-[76px] w-full resize-y"
+                  disabled={profileLoading}
+                  maxLength={500}
+                  onChange={(event) => updateProfileField("bio", event.target.value)}
+                  placeholder="What you build, research, or care about in conversational AI."
+                  value={profileForm.bio}
+                />
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Website">
+                  <input
+                    className="beta-input w-full"
+                    disabled={profileLoading}
+                    maxLength={300}
+                    onChange={(event) => updateProfileField("website", event.target.value)}
+                    placeholder="https://..."
+                    value={profileForm.website}
+                  />
+                </Field>
+                <Field label="X handle">
+                  <input
+                    className="beta-input w-full"
+                    disabled={profileLoading}
+                    maxLength={40}
+                    onChange={(event) => updateProfileField("xHandle", event.target.value)}
+                    placeholder="@username"
+                    value={profileForm.xHandle}
+                  />
+                </Field>
+                <Field label="Avatar URL">
+                  <input
+                    className="beta-input w-full"
+                    disabled={profileLoading}
+                    maxLength={300}
+                    onChange={(event) => updateProfileField("avatarUrl", event.target.value)}
+                    placeholder="https://.../avatar.png"
+                    value={profileForm.avatarUrl}
+                  />
+                </Field>
+              </div>
+
+              <div className="flex justify-end">
+                <BetaButton
+                  disabled={profileLoading || profileSaving}
+                  type="submit"
+                  variant="glass"
+                >
+                  {profileSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving
+                    </>
+                  ) : (
+                    "Save profile"
+                  )}
+                </BetaButton>
+              </div>
+            </form>
+          </div>
+        </details>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr,0.95fr]">
           {/* Registration / edit form */}
           <div ref={formRef}>
             <BetaPanel className="p-6 sm:p-7">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--foreground)]">
+                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-normal text-[var(--foreground)]">
                   {editingId ? (
                     <>
-                      <Pencil className="h-4 w-4 text-[oklch(0.72_0.2_245)]" />
+                      <Pencil className="h-4 w-4 text-[var(--electric)]" />
                       Edit agent
                     </>
                   ) : (
                     <>
-                      <Plus className="h-4 w-4 text-[oklch(0.72_0.2_245)]" />
+                      <Plus className="h-4 w-4 text-[var(--electric)]" />
                       Connect an agent
                     </>
                   )}
@@ -784,227 +798,256 @@ export default function DeveloperAgentsPage() {
                 </p>
               ) : null}
 
-              <form className="mt-5 space-y-4" noValidate onSubmit={handleSubmit}>
-                <div className="border-b border-[var(--glass-border)] pb-5">
-                  <Field
-                    label="Agent endpoint"
-                    hint="Paste your Voxa handshake URL to discover the agent."
-                  >
-                    <input
-                      className="beta-input w-full"
-                      type="url"
-                      value={form.endpointUrl}
-                      maxLength={600}
-                      placeholder="https://your-agent.example/voxa/handshake"
-                      onChange={(event) => updateField("endpointUrl", event.target.value)}
-                    />
-                  </Field>
-                  <AgentConnectionTest
-                    endpointUrl={form.endpointUrl}
-                    onDetected={(agent) =>
-                      setForm((previous) => ({
-                        ...previous,
-                        name: agent.name || previous.name,
-                        slug: previous.slug || slugify(agent.name),
-                        description: agent.description || previous.description,
-                        capabilities: agent.capabilities.join(", "),
-                        importSource:
-                          agent.importSource === "custom_endpoint"
-                            ? previous.importSource
-                            : agent.importSource,
-                      }))
-                    }
-                  />
-                </div>
-                {/* Import Existing Agent — source / runtime */}
-                <Field label="Source / runtime" hint={IMPORT_SOURCE_META[form.importSource].hint}>
-                  <select
-                    className="beta-input w-full"
-                    value={form.importSource}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        importSource: normalizeImportSource(event.target.value),
-                      }))
-                    }
-                  >
-                    {IMPORT_SOURCES.map((source) => (
-                      <option key={source} value={source}>
-                        {IMPORT_SOURCE_META[source].formLabel}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                {form.importSource !== "custom_endpoint" ? (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] p-3 text-xs leading-relaxed text-amber-100/90">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-                    <span>
-                      Importing from{" "}
-                      <span className="font-medium">
-                        {IMPORT_SOURCE_META[form.importSource].formLabel}
-                      </span>{" "}
-                      does not connect that runtime automatically. Your agent must expose a
-                      Voxa-compatible adapter endpoint (
-                      <span className="font-mono">/voxa/handshake</span>,{" "}
-                      <span className="font-mono">/voxa/message</span>). See the openclaw-adapter
-                      example. Imported runtimes are{" "}
-                      <span className="font-medium">not trusted by default</span>.
-                    </span>
-                  </div>
-                ) : null}
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Repository URL (optional)">
-                    <input
-                      className="beta-input w-full"
-                      value={form.repositoryUrl}
-                      maxLength={600}
-                      placeholder="https://github.com/you/agent"
-                      onChange={(event) => updateField("repositoryUrl", event.target.value)}
-                    />
-                  </Field>
-                  <Field label="Docs URL (optional)">
-                    <input
-                      className="beta-input w-full"
-                      value={form.docsUrl}
-                      maxLength={600}
-                      placeholder="https://docs.example.com/agent"
-                      onChange={(event) => updateField("docsUrl", event.target.value)}
-                    />
-                  </Field>
-                </div>
-
-                {/* Security model for imported agents */}
-                <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3 text-xs leading-relaxed text-[var(--muted-foreground)]">
-                  <p className="font-medium text-[var(--foreground)]">Before you import</p>
-                  <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
-                    <li>
-                      Voxa never runs your agent&apos;s tools — it only sends explicit user
-                      messages.
-                    </li>
-                    <li>
-                      Imported agents are reviewed by an admin and sandboxed before any room use.
-                    </li>
-                    <li>They receive no room audio and no room transcript.</li>
-                    <li>OpenClaw and other public runtimes are not trusted by default.</li>
-                  </ul>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Name">
-                    <input
-                      className="beta-input w-full"
-                      value={form.name}
-                      maxLength={120}
-                      placeholder="Research Agent"
-                      onChange={(event) => updateField("name", event.target.value)}
-                      onBlur={() => {
-                        if (!form.slug.trim() && form.name.trim()) {
-                          updateField("slug", slugify(form.name));
-                        }
+              <ol className="synq-step-list" aria-label="Agent onboarding">
+                <li>
+                  <span>1</span>Connect & detect
+                </li>
+                <li>
+                  <span>2</span>Confirm details
+                </li>
+                <li>
+                  <span>3</span>Submit for review
+                </li>
+              </ol>
+              <p className="mt-3 text-xs text-[var(--muted-foreground)]">
+                After approval and verification, test in Sandbox. Room access remains
+                permission-based.
+              </p>
+              <form
+                className="mt-5 space-y-4"
+                noValidate
+                onSubmit={(event) => {
+                  if (formStep === "connect") {
+                    event.preventDefault();
+                    setFormStep("review");
+                  } else {
+                    void handleSubmit(event);
+                  }
+                }}
+              >
+                <fieldset hidden={formStep !== "connect"} className="space-y-4">
+                  <legend className="mb-4 text-sm font-medium">Where is your agent running?</legend>
+                  <div className="border-b border-[var(--glass-border)] pb-5">
+                    <Field
+                      label="Agent endpoint"
+                      hint="Paste your Synq handshake URL to discover the agent."
+                    >
+                      <input
+                        className="beta-input w-full"
+                        type="url"
+                        value={form.endpointUrl}
+                        maxLength={600}
+                        placeholder="https://your-agent.example/voxa/handshake"
+                        onChange={(event) => updateField("endpointUrl", event.target.value)}
+                      />
+                    </Field>
+                    <AgentConnectionTest
+                      endpointUrl={form.endpointUrl}
+                      onDetected={(agent) => {
+                        setForm((previous) => ({
+                          ...previous,
+                          name: agent.name || previous.name,
+                          slug: previous.slug || slugify(agent.name),
+                          description: agent.description || previous.description,
+                          capabilities: agent.capabilities.join(", "),
+                          importSource:
+                            agent.importSource === "custom_endpoint"
+                              ? previous.importSource
+                              : agent.importSource,
+                        }));
+                        setFormStep("review");
                       }}
                     />
+                  </div>
+                  {/* Import Existing Agent — source / runtime */}
+                  <Field label="Source / runtime" hint={IMPORT_SOURCE_META[form.importSource].hint}>
+                    <select
+                      className="beta-input w-full"
+                      value={form.importSource}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          importSource: normalizeImportSource(event.target.value),
+                        }))
+                      }
+                    >
+                      {IMPORT_SOURCES.map((source) => (
+                        <option key={source} value={source}>
+                          {IMPORT_SOURCE_META[source].formLabel}
+                        </option>
+                      ))}
+                    </select>
                   </Field>
-                  <Field label="Slug" hint="Lowercase letters, numbers, hyphens.">
-                    <input
-                      className="beta-input w-full font-mono"
-                      value={form.slug}
-                      maxLength={80}
-                      placeholder="research-agent"
-                      onChange={(event) => updateField("slug", event.target.value)}
+
+                  {form.importSource !== "custom_endpoint" ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] p-3 text-xs leading-relaxed text-[var(--warning)]">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                      <span>
+                        Importing from{" "}
+                        <span className="font-medium">
+                          {IMPORT_SOURCE_META[form.importSource].formLabel}
+                        </span>{" "}
+                        does not connect that runtime automatically. Your agent must expose a
+                        Synq-compatible adapter endpoint (
+                        <span className="font-mono">/voxa/handshake</span>,{" "}
+                        <span className="font-mono">/voxa/message</span>). See the openclaw-adapter
+                        example. Imported runtimes are{" "}
+                        <span className="font-medium">not trusted by default</span>.
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <details className="text-sm text-[var(--muted-foreground)]">
+                    <summary>Repository and documentation links (optional)</summary>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <Field label="Repository URL (optional)">
+                        <input
+                          className="beta-input w-full"
+                          value={form.repositoryUrl}
+                          maxLength={600}
+                          placeholder="https://github.com/you/agent"
+                          onChange={(event) => updateField("repositoryUrl", event.target.value)}
+                        />
+                      </Field>
+                      <Field label="Docs URL (optional)">
+                        <input
+                          className="beta-input w-full"
+                          value={form.docsUrl}
+                          maxLength={600}
+                          placeholder="https://docs.example.com/agent"
+                          onChange={(event) => updateField("docsUrl", event.target.value)}
+                        />
+                      </Field>
+                    </div>
+                  </details>
+
+                  {/* Security model for imported agents */}
+                  <details className="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                    <summary className="font-medium text-[var(--foreground)]">
+                      How Synq protects rooms
+                    </summary>
+                    <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+                      <li>
+                        Synq never runs your agent&apos;s tools — it only sends explicit user
+                        messages.
+                      </li>
+                      <li>
+                        Imported agents are reviewed by an admin and sandboxed before any room use.
+                      </li>
+                      <li>They receive no room audio and no room transcript.</li>
+                      <li>OpenClaw and other public runtimes are not trusted by default.</li>
+                    </ul>
+                  </details>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <BetaButton type="button" onClick={() => setFormStep("review")}>
+                      Continue with these details <ArrowRight size={16} />
+                    </BetaButton>
+                    <a
+                      className="text-sm text-[var(--electric)] underline"
+                      href={SDK_DOCS_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Adapter guide
+                    </a>
+                  </div>
+                </fieldset>
+                <fieldset hidden={formStep !== "review"} className="space-y-4">
+                  <legend className="mb-4 text-sm font-medium">Confirm your agent</legend>
+                  <button
+                    type="button"
+                    className="text-sm text-[var(--electric)] underline"
+                    onClick={() => setFormStep("connect")}
+                  >
+                    Back to connection
+                  </button>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Name">
+                      <input
+                        className="beta-input w-full"
+                        value={form.name}
+                        maxLength={120}
+                        placeholder="Research Agent"
+                        onChange={(event) => updateField("name", event.target.value)}
+                        onBlur={() => {
+                          if (!form.slug.trim() && form.name.trim()) {
+                            updateField("slug", slugify(form.name));
+                          }
+                        }}
+                      />
+                    </Field>
+                    <Field label="Slug" hint="Lowercase letters, numbers, hyphens.">
+                      <input
+                        className="beta-input w-full font-mono"
+                        value={form.slug}
+                        maxLength={80}
+                        placeholder="research-agent"
+                        onChange={(event) => updateField("slug", event.target.value)}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Description">
+                    <textarea
+                      className="beta-input min-h-[84px] w-full resize-y"
+                      value={form.description}
+                      maxLength={1000}
+                      placeholder="What your agent does inside a Synq room."
+                      onChange={(event) => updateField("description", event.target.value)}
                     />
                   </Field>
-                </div>
 
-                <Field label="Description">
-                  <textarea
-                    className="beta-input min-h-[84px] w-full resize-y"
-                    value={form.description}
-                    maxLength={1000}
-                    placeholder="What your agent does inside a Voxa room."
-                    onChange={(event) => updateField("description", event.target.value)}
-                  />
-                </Field>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Avatar URL">
+                      <input
+                        className="beta-input w-full"
+                        value={form.avatarUrl}
+                        maxLength={600}
+                        placeholder="https://.../avatar.png"
+                        onChange={(event) => updateField("avatarUrl", event.target.value)}
+                      />
+                    </Field>
+                  </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Avatar URL">
+                  <Field label="Capabilities" hint="Comma-separated, e.g. web_search, memory.">
                     <input
                       className="beta-input w-full"
-                      value={form.avatarUrl}
-                      maxLength={600}
-                      placeholder="https://.../avatar.png"
-                      onChange={(event) => updateField("avatarUrl", event.target.value)}
+                      value={form.capabilities}
+                      placeholder="web_search, memory, multilingual"
+                      onChange={(event) => updateField("capabilities", event.target.value)}
                     />
                   </Field>
-                </div>
 
-                <Field label="Capabilities" hint="Comma-separated, e.g. web_search, memory.">
-                  <input
-                    className="beta-input w-full"
-                    value={form.capabilities}
-                    placeholder="web_search, memory, multilingual"
-                    onChange={(event) => updateField("capabilities", event.target.value)}
-                  />
-                </Field>
-
-                <Field
-                  label="Permissions"
-                  hint="What this agent may do in a room. Defaults are minimal and text-only."
-                >
-                  <div className="space-y-1.5 rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3">
-                    {GRANTABLE_EXTERNAL_AGENT_PERMISSIONS.map((permission) => {
-                      const meta = EXTERNAL_AGENT_PERMISSION_META[permission];
-                      const required = permission === "room_text_reply";
-                      return (
-                        <label
-                          key={permission}
-                          className="flex cursor-pointer items-start gap-2.5 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-0.5 h-4 w-4 accent-[oklch(0.72_0.2_245)]"
-                            checked={selectedPermissions.has(permission) || required}
-                            disabled={required}
-                            onChange={() => togglePermission(permission)}
-                          />
-                          <span className="min-w-0">
-                            <span className="font-medium text-[var(--foreground)]">
-                              {meta.label}
-                            </span>
-                            {required ? (
-                              <span className="ml-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-                                required
-                              </span>
-                            ) : null}
-                            <span className="block text-xs text-[var(--muted-foreground)]">
-                              {meta.description}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                    <div className="mt-2 border-t border-[var(--glass-border)] pt-2">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
-                        Coming soon (not available)
-                      </p>
-                      {FUTURE_EXTERNAL_AGENT_PERMISSIONS.map((permission) => {
+                  <Field
+                    label="Permissions"
+                    hint="What this agent may do in a room. Defaults are minimal and text-only."
+                  >
+                    <div className="space-y-1.5 rounded-lg border border-[var(--glass-border)] bg-[var(--subtle-fill)] p-3">
+                      {GRANTABLE_EXTERNAL_AGENT_PERMISSIONS.map((permission) => {
                         const meta = EXTERNAL_AGENT_PERMISSION_META[permission];
+                        const required = permission === "room_text_reply";
                         return (
                           <label
                             key={permission}
-                            className="mt-1 flex cursor-not-allowed items-start gap-2.5 text-sm opacity-50"
+                            className="flex cursor-pointer items-start gap-2.5 text-sm"
                           >
                             <input
                               type="checkbox"
-                              className="mt-0.5 h-4 w-4"
-                              checked={false}
-                              disabled
+                              className="mt-0.5 h-4 w-4 accent-[oklch(0.72_0.2_245)]"
+                              checked={selectedPermissions.has(permission) || required}
+                              disabled={required}
+                              onChange={() => togglePermission(permission)}
                             />
                             <span className="min-w-0">
                               <span className="font-medium text-[var(--foreground)]">
                                 {meta.label}
                               </span>
+                              {required ? (
+                                <span className="ml-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+                                  required
+                                </span>
+                              ) : null}
                               <span className="block text-xs text-[var(--muted-foreground)]">
                                 {meta.description}
                               </span>
@@ -1012,87 +1055,119 @@ export default function DeveloperAgentsPage() {
                           </label>
                         );
                       })}
+                      <details className="mt-2 border-t border-[var(--glass-border)] pt-2">
+                        <summary className="text-xs font-medium text-[var(--muted-foreground)]">
+                          Coming soon (not available)
+                        </summary>
+                        {FUTURE_EXTERNAL_AGENT_PERMISSIONS.map((permission) => {
+                          const meta = EXTERNAL_AGENT_PERMISSION_META[permission];
+                          return (
+                            <label
+                              key={permission}
+                              className="mt-1 flex cursor-not-allowed items-start gap-2.5 text-sm opacity-50"
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-0.5 h-4 w-4"
+                                checked={false}
+                                disabled
+                              />
+                              <span className="min-w-0">
+                                <span className="font-medium text-[var(--foreground)]">
+                                  {meta.label}
+                                </span>
+                                <span className="block text-xs text-[var(--muted-foreground)]">
+                                  {meta.description}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </details>
                     </div>
-                  </div>
-                </Field>
-
-                <Field label="Tags" hint="Comma-separated keywords for discovery.">
-                  <input
-                    className="beta-input w-full"
-                    value={form.tags}
-                    placeholder="research, summaries"
-                    onChange={(event) => updateField("tags", event.target.value)}
-                  />
-                </Field>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Submission status">
-                    <select
-                      className="beta-input w-full"
-                      value={form.status}
-                      onChange={(event) =>
-                        updateField("status", event.target.value as CreatableAgentStatus)
-                      }
-                    >
-                      <option value="draft">Draft (save privately)</option>
-                      <option value="pending_review">Pending review (submit)</option>
-                    </select>
                   </Field>
-                  <Field label="Visibility" hint="Public publishing is not available yet.">
-                    <select
+
+                  <Field label="Tags" hint="Comma-separated keywords for discovery.">
+                    <input
                       className="beta-input w-full"
-                      value={form.visibility}
-                      onChange={(event) =>
-                        updateField("visibility", event.target.value as EditableAgentVisibility)
-                      }
-                    >
-                      <option value="private">Private</option>
-                      <option value="unlisted">Unlisted</option>
-                    </select>
+                      value={form.tags}
+                      placeholder="research, summaries"
+                      onChange={(event) => updateField("tags", event.target.value)}
+                    />
                   </Field>
-                </div>
 
-                <Field label="Metadata (optional)" hint="JSON object. Leave empty if unused.">
-                  <textarea
-                    className="beta-input min-h-[72px] w-full resize-y font-mono text-xs"
-                    value={form.metadata}
-                    placeholder='{"team":"voxa"}'
-                    onChange={(event) => updateField("metadata", event.target.value)}
-                  />
-                </Field>
-
-                {formError ? (
-                  <div className="flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{formError}</span>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Submission status">
+                      <select
+                        className="beta-input w-full"
+                        value={form.status}
+                        onChange={(event) =>
+                          updateField("status", event.target.value as CreatableAgentStatus)
+                        }
+                      >
+                        <option value="draft">Draft (save privately)</option>
+                        <option value="pending_review">Pending review (submit)</option>
+                      </select>
+                    </Field>
+                    <Field label="Visibility" hint="Public publishing is not available yet.">
+                      <select
+                        className="beta-input w-full"
+                        value={form.visibility}
+                        onChange={(event) =>
+                          updateField("visibility", event.target.value as EditableAgentVisibility)
+                        }
+                      >
+                        <option value="private">Private</option>
+                        <option value="unlisted">Unlisted</option>
+                      </select>
+                    </Field>
                   </div>
-                ) : null}
 
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <BetaButton type="submit" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving
-                      </>
-                    ) : editingId ? (
-                      <>
-                        Save changes
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        Register agent
-                        <Sparkles className="h-4 w-4" />
-                      </>
-                    )}
-                  </BetaButton>
-                  {editingId ? (
-                    <BetaButton type="button" variant="glass" onClick={resetForm}>
-                      Cancel
-                    </BetaButton>
+                  <details className="text-sm text-[var(--muted-foreground)]">
+                    <summary>Advanced metadata</summary>
+                    <Field label="Metadata (optional)" hint="JSON object. Leave empty if unused.">
+                      <textarea
+                        className="beta-input min-h-[72px] w-full resize-y font-mono text-xs"
+                        value={form.metadata}
+                        placeholder='{"team":"my-team"}'
+                        onChange={(event) => updateField("metadata", event.target.value)}
+                      />
+                    </Field>
+                  </details>
+
+                  {formError ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-[var(--error)]">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{formError}</span>
+                    </div>
                   ) : null}
-                </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <BetaButton type="submit" disabled={submitting}>
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving
+                        </>
+                      ) : editingId ? (
+                        <>
+                          Save changes
+                          <ArrowRight className="h-4 w-4" />
+                        </>
+                      ) : (
+                        <>
+                          Register agent
+                          <Sparkles className="h-4 w-4" />
+                        </>
+                      )}
+                    </BetaButton>
+                    {editingId ? (
+                      <BetaButton type="button" variant="glass" onClick={resetForm}>
+                        Cancel
+                      </BetaButton>
+                    ) : null}
+                  </div>
+                </fieldset>
               </form>
             </BetaPanel>
           </div>
@@ -1100,7 +1175,7 @@ export default function DeveloperAgentsPage() {
           {/* Agent list */}
           <div>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
+              <h2 className="text-lg font-semibold tracking-normal text-[var(--foreground)]">
                 Your agents
               </h2>
               <button
@@ -1115,14 +1190,14 @@ export default function DeveloperAgentsPage() {
             </div>
 
             {successMessage ? (
-              <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-emerald-200">
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-sm text-[var(--success)]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{successMessage}</span>
               </div>
             ) : null}
 
             {listError ? (
-              <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-rose-200">
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-400/30 bg-rose-400/[0.08] p-3 text-sm text-[var(--error)]">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{listError}</span>
               </div>
@@ -1237,7 +1312,7 @@ export default function DeveloperAgentsPage() {
                         Usage and activity
                       </summary>
                       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[var(--foreground)]">
-                        <ChartNoAxesColumnIncreasing className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                        <ChartNoAxesColumnIncreasing className="h-3.5 w-3.5 text-[var(--electric)]" />
                         Usage analytics
                       </div>
                       <div className="grid grid-cols-2 gap-2">

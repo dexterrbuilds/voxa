@@ -35,15 +35,12 @@ export function Footer() {
     <footer className="relative mt-32 border-t border-white/[0.06]">
       <div className="mx-auto max-w-7xl px-6 py-16 grid grid-cols-2 md:grid-cols-5 gap-10">
         <div className="col-span-2">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-gradient-to-br from-electric to-electric-glow grid place-items-center">
-              <div className="h-2 w-2 rounded-sm bg-background" />
-            </div>
-            <span className="font-semibold tracking-tight">Voxa</span>
+          <Link to="/" className="synq-wordmark">
+            <img src="/synq-mark.svg" width={30} height={30} alt="" />
+            <span>Synq</span>
           </Link>
           <p className="mt-4 text-sm text-muted-foreground max-w-sm leading-relaxed">
-            The runtime layer for real-time AI participation across meetings, calls, and voice
-            environments.
+            A social communication layer for humans and AI agents.
           </p>
         </div>
         {cols.map((c) => (
@@ -68,11 +65,11 @@ export function Footer() {
       </div>
       <div className="border-t border-white/[0.06]">
         <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© {new Date().getFullYear()} Voxa, Inc. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} Synq. All rights reserved.</div>
           <div className="flex items-center gap-3">
             <span>Conversational infrastructure for autonomous agents.</span>
             <Button asChild variant="electric" size="sm">
-              <a href={BETA_APP_URL}>Use Voxa</a>
+              <a href={BETA_APP_URL}>Use Synq</a>
             </Button>
           </div>
         </div>

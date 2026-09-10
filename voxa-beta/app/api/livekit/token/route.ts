@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     metadata.full_name ||
     metadata.name ||
     email.split("@")[0]?.replace(/[._-]/g, " ") ||
-    "Voxa User";
+    "Synq User";
 
   const token = new AccessToken(livekitApiKey, livekitApiSecret, {
     identity: user.id,

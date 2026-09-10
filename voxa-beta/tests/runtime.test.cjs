@@ -57,6 +57,7 @@ test("DNS validation rejects mixed/private answers and pins a public socket addr
   const input = {
     url: "https://example.com/voxa/message",
     body: {},
+    requestId: "legacy-request-123",
     signal: new AbortController().signal,
   };
   await assert.rejects(endpoint.requestAgentJson(input), /public addresses/);
@@ -71,6 +72,8 @@ test("DNS validation rejects mixed/private answers and pins a public socket addr
     destroyed = false;
   t.mock.method(https, "request", (url, options, done) => {
     assert.equal(url.hostname, "example.com");
+    assert.equal(options.headers["X-Voxa-Request-Id"], "legacy-request-123");
+    assert.equal(options.headers["X-Synq-Request-Id"], undefined);
     options.lookup("example.com", {}, (error, address) => {
       assert.equal(error, null);
       assert.equal(address, "8.8.8.8");

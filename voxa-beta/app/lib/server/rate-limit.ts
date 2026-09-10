@@ -2,7 +2,7 @@
 //
 // Process-local only (no shared store), which is enough for the sandbox message
 // endpoint on a single long-running Node host. It is NOT a distributed limiter;
-// if Voxa later runs multiple instances, swap this for a shared store. Keyed by
+// if Synq later runs multiple instances, swap this for a shared store. Keyed by
 // an arbitrary string (we use the authenticated user id).
 
 type WindowState = {

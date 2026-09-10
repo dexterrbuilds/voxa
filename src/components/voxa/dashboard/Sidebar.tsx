@@ -42,7 +42,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
               <span className="text-lg font-bold text-primary">◆</span>
             </div>
-            <span className="text-xl font-bold text-foreground">Voxa</span>
+            <span className="text-xl font-bold text-foreground">Synq</span>
           </motion.div>
           <button
             onClick={onToggle}

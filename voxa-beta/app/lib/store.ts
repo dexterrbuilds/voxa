@@ -197,7 +197,7 @@ function userFromSession(session: Session | null): User | null {
     metadata.full_name ||
     metadata.name ||
     authUser.email.split("@")[0]?.replace(/[._-]/g, " ") ||
-    "Voxa User";
+    "Synq User";
 
   return {
     id: authUser.id,
@@ -301,7 +301,7 @@ function normalizeRoom(room: Partial<Room> & { host?: string }): Room {
   return {
     id,
     roomId: room.roomId ?? id,
-    name: room.name ?? "Voxa Room",
+    name: room.name ?? "Synq Room",
     createdAt: room.createdAt ?? new Date().toISOString(),
     createdBy: room.createdBy ?? room.host ?? "voxa",
     status: room.status ?? "active",
@@ -371,7 +371,7 @@ function createRoomRecord(
   const baseRoom: Room = {
     id: roomId,
     roomId,
-    name: "Voxa Room",
+    name: "Synq Room",
     createdAt: new Date().toISOString(),
     createdBy: user.id,
     status: "active",
@@ -573,7 +573,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         const message =
           error instanceof Error
             ? error.message
-            : "Sign in completed, but Voxa could not load your session.";
+            : "Sign in completed, but Synq could not load your session.";
         set({ user: null, isAuthenticated: false, loading: false, authError: message });
         throw new Error(message);
       }
@@ -581,7 +581,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const user = userFromSession(session);
 
     if (!user) {
-      const message = "Sign in succeeded, but Voxa could not start your session. Please try again.";
+      const message = "Sign in succeeded, but Synq could not start your session. Please try again.";
       set({ user: null, isAuthenticated: false, loading: false, authError: message });
       throw new Error(message);
     }

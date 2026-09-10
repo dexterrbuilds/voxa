@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createVoxaAgent } from "../dist/index.js";
+import { createVoxaAgent, createSynqAgent, SynqAgent, VoxaAgent } from "../dist/index.js";
+
+test("Synq aliases retain the exact legacy adapter and base-class contracts", async () => {
+  assert.equal(SynqAgent, VoxaAgent);
+  assert.equal(createSynqAgent, createVoxaAgent);
+  const handler = createSynqAgent({ identity: { name: "Synq Example" }, onMessage: (message) => ({ text: message }) });
+  const response = await handler(new Request("https://example.com/voxa/handshake", { method: "POST", body: JSON.stringify({ type: "voxa.handshake" }) }));
+  assert.equal((await response.json()).protocol, "voxa-agent");
+});
 
 test("adapter handshake and message work without a framework dependency", async () => {
   const handler = createVoxaAgent({

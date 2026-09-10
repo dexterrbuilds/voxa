@@ -1,16 +1,16 @@
-# Voxa OpenClaw Adapter (sample / Bring Your Own Agent)
+# Synq OpenClaw Adapter (sample / Bring Your Own Agent)
 
 A **mock adapter** showing how an existing agent from another runtime (OpenClaw,
-LangChain, CrewAI, AutoGen, …) is imported into Voxa. You don't connect those
+LangChain, CrewAI, AutoGen, …) is imported into Synq. You don't connect those
 runtimes directly — you stand up a small **adapter** that exposes the
-Voxa-compatible endpoints and forwards requests to your real runtime.
+Synq-compatible endpoints and forwards requests to your real runtime.
 
 ```
-Voxa request  ->  this adapter  ->  OpenClaw / public runtime  ->  Voxa response
+Synq request  ->  this adapter  ->  OpenClaw / public runtime  ->  Synq response
 ```
 
 > **OpenClaw is not trusted by default and is not wired up automatically.** Your
-> agent must expose a Voxa-compatible adapter endpoint and still go through Voxa's
+> agent must expose a Synq-compatible adapter endpoint and still go through Synq's
 > **review + verification + sandbox** before any room use.
 
 ## Endpoints
@@ -18,7 +18,7 @@ Voxa request  ->  this adapter  ->  OpenClaw / public runtime  ->  Voxa response
 | Method | Path              | Purpose                                              |
 | ------ | ----------------- | ---------------------------------------------------- |
 | GET    | `/health`         | Liveness probe                                       |
-| POST   | `/voxa/handshake` | Identity + capabilities (used by Voxa verification)  |
+| POST   | `/voxa/handshake` | Identity + capabilities (used by Synq verification)  |
 | POST   | `/voxa/message`   | Forward the user message to the upstream runtime     |
 | POST   | `/voxa/voice`     | Optional — text-only voice-beta reply                |
 
@@ -43,7 +43,7 @@ curl -X POST http://localhost:8789/voxa/message \
   -d '{"type":"voxa.message","message":"summarize this","context":{"sandbox":true}}'
 ```
 
-## Import into Voxa
+## Import into Synq
 
 1. Tunnel this adapter (ngrok / cloudflared) to get a public URL.
 2. On **`/developers/agents`**, choose **Source / runtime → OpenClaw**, set the
@@ -55,6 +55,6 @@ curl -X POST http://localhost:8789/voxa/message \
 
 ## Security boundary
 
-Voxa only sends the explicit user message string. It **never** runs your agent's
+Synq only sends the explicit user message string. It **never** runs your agent's
 tools, and your agent **never** receives room audio or a room transcript. The
-adapter owns the upstream/tool boundary; Voxa stays a messaging surface.
+adapter owns the upstream/tool boundary; Synq stays a messaging surface.

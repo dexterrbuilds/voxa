@@ -30,7 +30,7 @@ export const docsNav: DocsNavItem[] = [
     id: "overview",
     label: "Overview",
     path: "/developers/docs",
-    description: "What Voxa is and where the platform is going.",
+    description: "What Synq is and where the platform is going.",
     icon: Compass,
   },
   {
@@ -51,7 +51,7 @@ export const docsNav: DocsNavItem[] = [
     id: "registration",
     label: "Registration",
     path: "/developers/docs/registration",
-    description: "How future external agents will enter Voxa safely.",
+    description: "How future external agents will enter Synq safely.",
     icon: UserPlus,
   },
   {
@@ -109,9 +109,9 @@ export const platformPillars = [
   },
 ] as const;
 
-export const sdkExample = `import { VoxaAgent } from "@voxa/sdk";
+export const sdkExample = `import { SynqAgent } from "@voxa/sdk";
 
-class ResearchAgent extends VoxaAgent {
+class ResearchAgent extends SynqAgent {
   constructor() {
     super({
       id: "research-agent",
@@ -188,7 +188,7 @@ export const faqItems = [
   {
     question: "Is Nova the product?",
     answer:
-      "No. Nova is the first demonstration agent running on Voxa. The product is the runtime layer that lets conversational agents join, understand, and participate in live human conversations.",
+      "No. Nova is the first demonstration agent running on Synq. The product is the runtime layer that lets conversational agents join, understand, and participate in live human conversations.",
   },
   {
     question: "Can I deploy my own agent today?",
@@ -198,7 +198,7 @@ export const faqItems = [
   {
     question: "Can agents join Zoom, Google Meet, or X Spaces?",
     answer:
-      "That is the platform direction, but it is not live today. Voxa is building toward cross-platform deployment after the room runtime, registry, and SDK mature.",
+      "That is the platform direction, but it is not live today. Synq is building toward cross-platform deployment after the room runtime, registry, and SDK mature.",
   },
   {
     question: "When is the SDK launching?",
@@ -220,7 +220,7 @@ app.post("/voxa/handshake", (req, res) => {
   res.json(
     createAgentHandshake({
       name: "Research Agent",
-      description: "A sample Voxa-compatible research assistant",
+      description: "A sample Synq-compatible research assistant",
       capabilities: ["web_search", "summaries", "citations"],
     }),
   );
@@ -237,19 +237,19 @@ app.post("/voxa/message", (req, res) => {
 });`;
 
 export const buildAgentSteps = [
-  "Build a Voxa-compatible agent: expose GET /health, POST /voxa/handshake, and POST /voxa/message. Use createAgentHandshake() from @voxa/sdk so the handshake matches the protocol exactly.",
+  "Build a Synq-compatible agent: expose GET /health, POST /voxa/handshake, and POST /voxa/message. Use createAgentHandshake() from @voxa/sdk so the handshake matches the protocol exactly.",
   "Run the sample agent locally: examples/agents/research-agent — npm install && npm run build && npm start (defaults to http://localhost:8787).",
   "Expose your local endpoint with a tunnel, e.g. `ngrok http 8787` or `cloudflared tunnel --url http://localhost:8787`, and copy the public URL.",
-  "Register the endpoint in Voxa at /developers/agents. Set the Endpoint URL to your tunnel's handshake path (https://<tunnel>/voxa/handshake) and declare the capabilities your endpoint reports.",
-  "Submit for review. A Voxa admin approves the agent in /admin/agents.",
+  "Register the endpoint in Synq at /developers/agents. Set the Endpoint URL to your tunnel's handshake path (https://<tunnel>/voxa/handshake) and declare the capabilities your endpoint reports.",
+  "Submit for review. A Synq admin approves the agent in /admin/agents.",
   "An admin runs endpoint verification (the handshake health check): reachable, supported SDK version, correct protocol, and declared capabilities covered by the endpoint.",
   "Once approved + verified, open /developers/sandbox, start a session, and chat with your agent — messages go to your endpoint and back, in isolation (no production room).",
 ] as const;
 
 export const registrationFlow = [
-  "Build an agent against the Voxa SDK contract.",
+  "Build an agent against the Synq SDK contract.",
   "Register metadata such as name, endpoint URL, capabilities, permissions, and tags.",
-  "Voxa reviews the agent and verifies its endpoint before sandbox access.",
+  "Synq reviews the agent and verifies its endpoint before sandbox access.",
   "Approved + verified + public agents can appear in the public Agent Showcase.",
   "Future phases will expand from public profiles into installation and broader room discovery.",
 ] as const;
@@ -274,7 +274,7 @@ export const pageMeta: Record<
     eyebrow: "Developer Docs",
     title: "Build for the conversational AI runtime.",
     description:
-      "Voxa is the infrastructure layer for live AI agents. These docs explain the platform direction, current runtime foundation, and upcoming SDK surface.",
+      "Synq is the infrastructure layer for live AI agents. These docs explain the platform direction, current runtime foundation, and upcoming SDK surface.",
   },
   runtime: {
     eyebrow: "Agent Runtime",
@@ -298,13 +298,13 @@ export const pageMeta: Record<
     eyebrow: "Roadmap",
     title: "From Nova demo to agent infrastructure.",
     description:
-      "Nova is the first agent on Voxa. The roadmap expands the platform toward developer agents, identity, permissions, marketplaces, and cross-platform deployment.",
+      "Nova is the first agent on Synq. The roadmap expands the platform toward developer agents, identity, permissions, marketplaces, and cross-platform deployment.",
   },
   faq: {
     eyebrow: "FAQ",
     title: "Answers before the SDK opens up.",
     description:
-      "A quick reference for developers evaluating Voxa’s current state and upcoming platform direction.",
+      "A quick reference for developers evaluating Synq’s current state and upcoming platform direction.",
   },
 };
 

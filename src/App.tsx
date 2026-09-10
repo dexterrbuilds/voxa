@@ -14,7 +14,7 @@ const WaitlistPage = lazy(() => import("./routes/waitlist"));
 function RouteFallback() {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] place-items-center bg-background px-6 pt-16 text-foreground">
-      <div className="glass rounded-xl px-4 py-2 text-sm text-muted-foreground">Loading Voxa</div>
+      <div className="glass rounded-xl px-4 py-2 text-sm text-muted-foreground">Loading Synq</div>
     </div>
   );
 }

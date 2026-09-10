@@ -1,6 +1,23 @@
-# Voxa
+# Synq
 
-Voxa is the runtime layer for conversational AI agents.
+**Where humans and AI agents meet.** Build, bring, discover, and interact with agents
+in real-time spaces. Synq is a social communication layer, powered by a conversational runtime.
+
+## Synq Product Transition
+
+The visible product is now Synq. Shared light/dark tokens live in
+`voxa-beta/app/synq-theme.css` and are imported by both deployments. The room is
+participant-first; the developer console separates connection testing from explicit
+confirmation, and Rooms/Sandbox share a reader-aware conversation log.
+
+Stable integration names remain intentional: `@voxa/sdk`, `VoxaAgent`,
+`createVoxaAgent`, `voxa-agent`, `voxa.handshake`, `voxa.message`, `voxa.voice`,
+`X-Voxa-Request-Id`, `/voxa/*`, existing env vars, storage keys and SQL identifiers.
+The SDK also exports identical `SynqAgent` / `createSynqAgent` aliases.
+The existing `usevoxa.tech` domains remain until a separately configured domain migration.
+See [the transition handoff](docs/synq-transition.md) for UX changes, compatibility,
+validation, local vs staging coverage, and rollout notes. No new SQL or secrets are
+required for the rebrand. AGENTS.md and CLAUDE.md remain ignored local context files.
 
 ## Platform Hardening
 
@@ -35,7 +52,7 @@ the first first-party demonstration agent. Nova is not the product itself.
 
 ### Marketing Site
 
-The root app is a Vite + React site for the public Voxa landing pages.
+The root app is a Vite + React site for the public Synq landing pages.
 
 ```bash
 bun run dev
@@ -63,7 +80,7 @@ Run `supabase/developer-access-requests.sql`, then set `SUPABASE_URL` and
 to browser `localStorage` under `voxa-sdk-beta-requests` when the API endpoint is not
 available.
 
-### Voxa Beta Product
+### Synq Beta Product
 
 `voxa-beta/` is the real app. It contains:
 
@@ -86,7 +103,7 @@ npm install
 npm run dev
 ```
 
-### Voxa Agent
+### Synq Agent
 
 `voxa-agent/` is a separate Python LiveKit Agent project for the disabled Path B
 implementation. It is the better long-term primitive for deployable agents, but it is
@@ -185,7 +202,7 @@ endpoint, status, visibility, capabilities, permissions, tags, and metadata. It 
 change `room_participants`, does not add `agent_id`, and does not change the current
 Nova compatibility behavior where Nova uses `room_participants.user_id = "nova"`.
 
-External agents remain disabled until Voxa adds approval tooling, endpoint verification,
+External agents remain disabled until Synq adds approval tooling, endpoint verification,
 permissions enforcement, rate limits, abuse protection, and a DB-backed runtime registry.
 
 ### Public Agent Showcase
@@ -233,12 +250,12 @@ registry that lets approved external agents appear in the Agent Selector and joi
 ### Bring Your Own Agent / self-import
 
 Developers can import an existing agent from another runtime (**OpenClaw**, LangChain, CrewAI,
-AutoGen, other) through the same registration flow by wrapping it behind a Voxa-compatible
+AutoGen, other) through the same registration flow by wrapping it behind a Synq-compatible
 adapter endpoint (`/voxa/handshake`, `/voxa/message`, optional `/voxa/voice`). Import is
 descriptive provenance only — additive `import_source` / `import_metadata` columns
 (`supabase-agent-import-schema.sql`) — and **never** bypasses review, verification, sandbox,
 permissions, or room gating. OpenClaw and other public runtimes are **not trusted by default**;
-Voxa never runs their tools, only sends explicit user messages, and gives them no room
+Synq never runs their tools, only sends explicit user messages, and gives them no room
 audio/transcript. A mock adapter lives at `examples/agents/openclaw-adapter/`. Public showcase
 pages show a friendly provenance label (e.g. "Imported from OpenClaw") without exposing endpoint
 URLs or internal metadata.
@@ -301,7 +318,7 @@ It creates `public.developer_profiles` with safe public fields:
 - joined date
 
 The authenticated API is `GET/PATCH /api/developers/profile`. Public profile pages and
-agent ownership links use server-side sanitized query helpers. Voxa never exposes emails,
+agent ownership links use server-side sanitized query helpers. Synq never exposes emails,
 Supabase user ids, auth metadata, endpoint URLs, internal metadata, admin notes, review
 notes, verification reports, or analytics on public profile pages.
 
@@ -347,7 +364,7 @@ Phase 3 prepares external agents for testing without allowing them into producti
   Streaming → Replied → Error → Expired`), conversation history with timestamps + reset,
   session-expiry handling, a **streaming/tool simulation** (a reply may set `streaming: true`,
   revealed word-by-word client-side — no SSE/websocket — and report `tools`, shown as a read-only
-  "Tools Used" panel; Voxa never executes tools), and **target / broadcast** routing (**Send to
+  "Tools Used" panel; Synq never executes tools), and **target / broadcast** routing (**Send to
   {agent}** or **Send to all**, with per-agent labeled replies). It never creates a production room
   or dispatches the agents (`runtimeReady: false`) and is not a public multi-agent room.
 - **Runtime registry merge seam** (`voxa-beta/app/lib/agents/registry.ts`): merges first-party
@@ -372,7 +389,7 @@ Phase 3 prepares external agents for testing without allowing them into producti
   LiveKit, **never** publish audio, **never** receive room audio/transcripts, and **never** speak.
   Default-off keeps the selector unchanged.
 - **Private voice agent beta** (Phase 4.0, server-only flag `EXPERIMENTAL_EXTERNAL_AGENT_VOICE=false`
-  + admin-granted `room_voice_beta`): a **push-to-talk bridge** — the user records a clip, Voxa runs
+  + admin-granted `room_voice_beta`): a **push-to-talk bridge** — the user records a clip, Synq runs
   STT → the external agent endpoint (`type:"voxa.voice"`) → TTS, and plays the reply back **only to
   that user's browser**. It is **not** room audio: no LiveKit, no room audio stream, no transcript,
   no auto-listen. `room_voice_beta` is admin-only (never developer-requestable); `VoiceAgentRuntime`

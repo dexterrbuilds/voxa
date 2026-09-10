@@ -1,20 +1,20 @@
-# Voxa Research Agent (sample external agent)
+# Synq Research Agent (sample external agent)
 
-A minimal, dependency-light **Voxa-compatible external agent** you can run locally
-to exercise Voxa's endpoint verification and developer sandbox flow.
+A minimal, dependency-light **Synq-compatible external agent** you can run locally
+to exercise Synq's endpoint verification and developer sandbox flow.
 
 It is built on Node's built-in `http` server plus `@voxa/sdk` and implements the
-three endpoints Voxa expects from an external agent:
+three endpoints Synq expects from an external agent:
 
 | Method | Path              | Purpose                                            |
 | ------ | ----------------- | -------------------------------------------------- |
 | GET    | `/health`         | Liveness probe                                     |
-| POST   | `/voxa/handshake` | Identity + capabilities (used by Voxa verification)|
+| POST   | `/voxa/handshake` | Identity + capabilities (used by Synq verification)|
 | POST   | `/voxa/message`   | A mock agent reply                                 |
 
-> **Sandbox only.** Passing verification makes this agent eligible for the Voxa
+> **Sandbox only.** Passing verification makes this agent eligible for the Synq
 > developer **sandbox** after review + approval. It does **not** place the agent
-> into a live Voxa room. The external-agent room runtime is not enabled yet.
+> into a live Synq room. The external-agent room runtime is not enabled yet.
 
 ## Prerequisites
 
@@ -48,14 +48,14 @@ curl -X POST http://localhost:8787/voxa/message \
 
 The message endpoint follows the `voxa.message` wire contract: `message` is a string and the
 reply is `{ text }`. This sample also opts into the optional `streaming: true` hint and a `tools`
-array, so the Voxa sandbox shows a progressive (simulated) reveal and a "Tools Used" panel. Both
+array, so the Synq sandbox shows a progressive (simulated) reveal and a "Tools Used" panel. Both
 fields are optional and backwards compatible — a plain `{ text }` reply still works.
 
-In experimental text-only room mode, Voxa also sends `context.history` (the recent per-agent thread
+In experimental text-only room mode, Synq also sends `context.history` (the recent per-agent thread
 turns for this room + agent). This sample acknowledges the follow-up by referencing the previous
 user turn. `history` is never a full room transcript — only this agent's scoped thread.
 
-The handshake returns the Voxa contract shape:
+The handshake returns the Synq contract shape:
 
 ```json
 {
@@ -63,15 +63,15 @@ The handshake returns the Voxa contract shape:
   "sdkVersion": "0.1",
   "agent": {
     "name": "Research Agent",
-    "description": "A sample Voxa-compatible research assistant",
+    "description": "A sample Synq-compatible research assistant",
     "capabilities": ["web_search", "summaries", "citations"]
   }
 }
 ```
 
-## Expose it for Voxa verification
+## Expose it for Synq verification
 
-Voxa runs verification from its servers, so your local endpoint needs a public
+Synq runs verification from its servers, so your local endpoint needs a public
 URL. Use any HTTP tunnel, for example:
 
 ```bash
@@ -83,16 +83,16 @@ cloudflared tunnel --url http://localhost:8787
 
 Copy the public base URL (e.g. `https://abc123.ngrok.app`).
 
-## Register + verify in Voxa
+## Register + verify in Synq
 
-1. Sign in to the Voxa app and open **`/developers/agents`**.
+1. Sign in to the Synq app and open **`/developers/agents`**.
 2. Register an agent. Set the **Endpoint URL** to your tunnel's handshake path:
    `https://<tunnel>/voxa/handshake`.
 3. Declare the capabilities your endpoint reports
    (`web_search, summaries, citations`). Verification fails if you declare a
    capability the endpoint does not report.
 4. Submit for review.
-5. A Voxa admin **approves** the agent and clicks **Verify endpoint** in
+5. A Synq admin **approves** the agent and clicks **Verify endpoint** in
    `/admin/agents`. Verification POSTs `{ "type": "voxa.handshake" }` to your
    endpoint and checks: reachable, supported SDK version, correct protocol, and
    that declared capabilities are covered.

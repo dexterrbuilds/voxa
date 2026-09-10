@@ -5,14 +5,14 @@ import {
   type VoxaMessageRequest,
 } from "@voxa/sdk";
 
-// Minimal Voxa-compatible external agent — a sample CODE ASSISTANT.
+// Minimal Synq-compatible external agent — a sample CODE ASSISTANT.
 //
 // A second sample (alongside research-agent) so the developer sandbox can be
 // tested with MULTIPLE agents that report different capabilities. It implements
 // the same three endpoints:
 //
 //   GET  /health          -> liveness probe
-//   POST /voxa/handshake  -> identity + capabilities (used by Voxa verification)
+//   POST /voxa/handshake  -> identity + capabilities (used by Synq verification)
 //   POST /voxa/message    -> a (mock) reply with streaming + tool metadata
 //
 // Sandbox only: passing verification makes this agent eligible for the developer
@@ -21,7 +21,7 @@ import {
 const PORT = Number(process.env.PORT ?? 8788);
 
 const AGENT_NAME = "Code Assistant";
-const AGENT_DESCRIPTION = "A sample Voxa-compatible code review and debugging assistant";
+const AGENT_DESCRIPTION = "A sample Synq-compatible code review and debugging assistant";
 const AGENT_CAPABILITIES = ["code_review", "debugging", "architecture"];
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
@@ -100,7 +100,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Voxa ${AGENT_NAME} example listening on http://localhost:${PORT}`);
+  console.log(`Synq ${AGENT_NAME} example listening on http://localhost:${PORT}`);
   console.log(`  GET  /health`);
   console.log(`  POST /voxa/handshake`);
   console.log(`  POST /voxa/message`);

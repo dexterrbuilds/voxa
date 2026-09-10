@@ -84,7 +84,7 @@ export async function recordNovaExchange(
       type: NOVA_MEMORY_REPLY_TYPE,
       message: responseText.trim(),
       // Legacy compatibility: room_events.user_id stores the agent participant id
-      // until Voxa adds a dedicated agent identity column.
+      // until Synq adds a dedicated agent identity column.
       user_id: novaParticipantUserId,
     });
   }

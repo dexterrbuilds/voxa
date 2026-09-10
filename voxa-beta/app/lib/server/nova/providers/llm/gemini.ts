@@ -35,7 +35,7 @@ function buildNovaSystemInstruction(timeZone?: string) {
   const dateContext = getCurrentDateContext(timeZone || "UTC");
 
   return `
-You are Nova, a real-time conversational voice assistant inside Voxa.
+You are Nova, a real-time conversational voice assistant inside Synq.
 
 Today's current date is strictly ${dateContext.formattedDate}.
 Use timezone context: ${dateContext.timeZone}.

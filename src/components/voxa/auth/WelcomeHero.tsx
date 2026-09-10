@@ -20,7 +20,7 @@ export default function WelcomeHero() {
         transition={{ delay: 0.1, duration: 0.6 }}
         className="text-4xl font-bold text-foreground mb-3"
       >
-        Voxa
+        Synq
       </motion.h1>
 
       <motion.p

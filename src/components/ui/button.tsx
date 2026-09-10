@@ -17,7 +17,7 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         electric:
-          "relative bg-electric text-primary-foreground font-semibold shadow-[0_0_0_1px_oklch(0.78_0.18_235/0.5),0_8px_32px_-8px_oklch(0.72_0.20_245/0.6)] hover:shadow-[0_0_0_1px_oklch(0.78_0.18_235/0.7),0_12px_48px_-8px_oklch(0.72_0.20_245/0.8)] hover:-translate-y-0.5 transition-all duration-300",
+          "relative bg-electric text-primary-foreground font-semibold hover:bg-electric-glow transition-colors duration-150",
         glass:
           "glass text-foreground hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300",
       },

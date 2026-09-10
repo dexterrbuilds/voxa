@@ -45,12 +45,12 @@ export default function InviteLink({ compact = false, inline = false, roomId }: 
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[oklch(0.72_0.2_245/0.22)] bg-[oklch(0.72_0.2_245/0.1)] shadow-[0_0_30px_-16px_oklch(0.72_0.2_245/0.9)]">
-              <LinkIcon className="h-4 w-4 text-[oklch(0.78_0.18_235)]" />
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--border)] bg-[var(--accent)]">
+              <LinkIcon className="h-4 w-4 text-[var(--electric)]" />
             </div>
             <div className="min-w-0">
               <div className="text-sm font-medium text-white">Invite link</div>
-              <div className="mt-1 truncate font-mono text-xs text-[oklch(0.65_0.02_260)]">
+              <div className="mt-1 truncate font-mono text-xs text-[var(--muted-foreground)]">
                 {inviteUrl}
               </div>
             </div>
@@ -79,19 +79,19 @@ export default function InviteLink({ compact = false, inline = false, roomId }: 
             <div className="flex items-start justify-between gap-6">
               <div>
                 <div className="beta-status-pill">
-                  <LinkIcon className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
+                  <LinkIcon className="h-3.5 w-3.5 text-[var(--electric)]" />
                   Invite people
                 </div>
-                <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white">
+                <h2 className="mt-5 text-3xl font-semibold tracking-normal text-white">
                   Invite people into this room.
                 </h2>
-                <p className="mt-3 leading-relaxed text-[oklch(0.65_0.02_260)]">
+                <p className="mt-3 leading-relaxed text-[var(--muted-foreground)]">
                   Share this link with anyone you want to bring into the conversation.
                 </p>
               </div>
               <button
                 aria-label="Close invite modal"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-[oklch(0.65_0.02_260)] transition-colors hover:text-white"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-[var(--muted-foreground)] transition-colors hover:text-white"
                 onClick={() => setIsOpen(false)}
                 type="button"
               >

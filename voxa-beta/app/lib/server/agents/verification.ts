@@ -3,7 +3,7 @@ import { requestAgentJson } from "./runtime/endpoint";
 
 // Endpoint health check service.
 //
-// Verifies that an external agent endpoint is reachable, speaks the Voxa agent
+// Verifies that an external agent endpoint is reachable, speaks the Synq agent
 // handshake protocol at a compatible SDK version, and reports capabilities that
 // match (or cover) what the developer declared at registration.
 //
@@ -145,7 +145,7 @@ export async function runAgentVerification(agent: VerifiableAgent): Promise<Veri
     ok: protocolOk && versionOk,
     detail:
       protocolOk && versionOk
-        ? `Compatible Voxa agent SDK (${handshake.sdkVersion}).`
+        ? `Compatible Synq agent SDK (${handshake.sdkVersion}).`
         : !protocolOk
           ? `Unexpected protocol "${handshake.protocol ?? "none"}" (expected "${VOXA_AGENT_PROTOCOL}").`
           : `Unsupported SDK version "${handshake.sdkVersion ?? "none"}" (supported: ${SUPPORTED_SDK_VERSIONS.join(", ")}).`,

@@ -33,7 +33,7 @@ export const GRANTABLE_EXTERNAL_AGENT_PERMISSIONS: ExternalAgentPermission[] = [
   "room_presence",
 ];
 
-// Permissions only a Voxa admin may grant. These are NOT selectable in the
+// Permissions only a Synq admin may grant. These are NOT selectable in the
 // developer dashboard and are stripped from developer-submitted payloads, but
 // they ARE effective at runtime once an admin grants them.
 export const ADMIN_GRANTABLE_EXTERNAL_AGENT_PERMISSIONS: ExternalAgentPermission[] = [
@@ -88,7 +88,7 @@ export const EXTERNAL_AGENT_PERMISSION_META: Record<ExternalAgentPermission, Per
   tools_visualize: {
     label: "Show tools used",
     badge: "Tools display",
-    description: "Report which tools it used (display only — Voxa never executes tools).",
+    description: "Report which tools it used (display only — Synq never executes tools).",
     grantable: true,
   },
   room_presence: {

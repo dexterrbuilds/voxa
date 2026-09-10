@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Minimal Voxa-compatible external agent example (handshake + message).",
+  "description": "Minimal Synq-compatible external agent example (handshake + message).",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",

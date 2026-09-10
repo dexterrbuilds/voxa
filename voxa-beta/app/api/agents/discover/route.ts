@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     !SUPPORTED_SDK_VERSIONS.includes(handshake.sdkVersion)
   ) {
     return jsonError(
-      "The endpoint needs a Voxa-compatible adapter. Use the SDK handshake helper, then test again.",
+      "The endpoint needs a Synq-compatible adapter. Use the SDK handshake helper, then test again.",
       422,
       "incompatible_agent",
     );

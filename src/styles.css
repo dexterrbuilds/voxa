@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "../voxa-beta/app/synq-theme.css";
 
 @custom-variant dark (&:is(.dark *));
 

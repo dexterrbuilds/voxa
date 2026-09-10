@@ -5,23 +5,23 @@ import {
   type VoxaMessageRequest,
 } from "@voxa/sdk";
 
-// Minimal Voxa-compatible external agent.
+// Minimal Synq-compatible external agent.
 //
-// This is a SAMPLE for local development and Voxa sandbox testing. It implements
-// the three endpoints Voxa expects from an external agent:
+// This is a SAMPLE for local development and Synq sandbox testing. It implements
+// the three endpoints Synq expects from an external agent:
 //
 //   GET  /health          -> liveness probe
-//   POST /voxa/handshake  -> identity + capabilities (used by Voxa verification)
+//   POST /voxa/handshake  -> identity + capabilities (used by Synq verification)
 //   POST /voxa/message    -> a (mock) agent reply
 //
 // Register the PUBLIC handshake URL (e.g. https://<tunnel>/voxa/handshake) as the
-// agent endpoint in Voxa. Passing verification only makes the agent eligible for
-// the developer sandbox — it does NOT place the agent into a live Voxa room yet.
+// agent endpoint in Synq. Passing verification only makes the agent eligible for
+// the developer sandbox — it does NOT place the agent into a live Synq room yet.
 
 const PORT = Number(process.env.PORT ?? 8787);
 
 const AGENT_NAME = "Research Agent";
-const AGENT_DESCRIPTION = "A sample Voxa-compatible research assistant";
+const AGENT_DESCRIPTION = "A sample Synq-compatible research assistant";
 const AGENT_CAPABILITIES = ["web_search", "summaries", "citations"];
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
@@ -58,7 +58,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Handshake: Voxa verification POSTs `{ type: "voxa.handshake" }` here.
+  // Handshake: Synq verification POSTs `{ type: "voxa.handshake" }` here.
   if (method === "POST" && url === "/voxa/handshake") {
     sendJson(
       res,
@@ -72,7 +72,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Message: mock reply. Voxa POSTs `{ type: "voxa.message", message, context }`.
+  // Message: mock reply. Synq POSTs `{ type: "voxa.message", message, context }`.
   if (method === "POST" && url === "/voxa/message") {
     const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
     // `message` is a string on the wire (see VoxaMessageRequest).
@@ -110,7 +110,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Voxa ${AGENT_NAME} example listening on http://localhost:${PORT}`);
+  console.log(`Synq ${AGENT_NAME} example listening on http://localhost:${PORT}`);
   console.log(`  GET  /health`);
   console.log(`  POST /voxa/handshake`);
   console.log(`  POST /voxa/message`);

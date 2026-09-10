@@ -1,16 +1,14 @@
 import { motion } from "framer-motion";
 
 const transcriptCode = `{
-  "type": "speech.transcript",
-  "speaker": "participant_1",
-  "text": "Should we move forward?",
-  "timestamp": 1721939281
+  "type": "voxa.message",
+  "message": "Should we move forward?",
+  "context": { "sandbox": true }
 }`;
 
 const responseCode = `{
-  "action": "speak",
-  "text": "The proposal appears viable.",
-  "agent": "advisor_v2"
+  "text": "Let's explore the next step.",
+  "tools": []
 }`;
 
 function CodeBlock({ title, code, lang }: { title: string; code: string; lang: string }) {

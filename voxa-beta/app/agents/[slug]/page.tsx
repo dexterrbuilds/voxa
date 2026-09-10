@@ -63,12 +63,12 @@ export async function generateMetadata({ params }: AgentDetailPageProps): Promis
 
   if (!agent) {
     return {
-      title: "Agent not found | Voxa",
+      title: "Agent not found | Synq",
     };
   }
 
   return {
-    title: `${agent.name} | Voxa Agents`,
+    title: `${agent.name} | Synq Agents`,
     description: agent.description,
   };
 }
@@ -85,11 +85,7 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
   return (
     <BetaShell>
-      <BetaHeader>
-        <BetaButton href="/agents" variant="quiet">
-          Browse agents
-        </BetaButton>
-      </BetaHeader>
+      <BetaHeader />
 
       <div className="mx-auto max-w-6xl px-6 pb-24 pt-10 sm:pt-16">
         <Link
@@ -110,21 +106,21 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
                   src={agent.avatarUrl}
                 />
               ) : (
-                <div className="grid h-20 w-20 place-items-center rounded-2xl border border-[oklch(0.72_0.2_245/0.28)] bg-[oklch(0.72_0.2_245/0.12)] text-xl font-semibold text-[oklch(0.72_0.2_245)]">
+                <div className="grid h-20 w-20 place-items-center rounded-2xl border border-[oklch(0.72_0.2_245/0.28)] bg-[oklch(0.72_0.2_245/0.12)] text-xl font-semibold text-[var(--electric)]">
                   {initialsFor(agent.name)}
                 </div>
               )}
 
               <div className="min-w-0 flex-1">
                 <BetaEyebrow>Developer Preview</BetaEyebrow>
-                <h1 className="beta-text-gradient mt-4 text-5xl font-semibold leading-[1.03] tracking-tight sm:text-6xl">
+                <h1 className="beta-text-gradient mt-3 text-3xl font-semibold leading-tight sm:text-5xl">
                   {agent.name}
                 </h1>
                 <p className="mt-3 text-sm text-[var(--muted-foreground)]">
                   Built by{" "}
                   {agent.creatorUsername ? (
                     <Link
-                      className="font-medium text-[var(--foreground)] transition hover:text-[oklch(0.72_0.2_245)]"
+                      className="font-medium text-[var(--foreground)] transition hover:text-[var(--electric)]"
                       href={`/developers/${agent.creatorUsername}`}
                     >
                       {agent.creatorDisplayName}
@@ -144,13 +140,13 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
             </p>
 
             <div className="mt-8 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-[var(--success)]">
                 {agent.verificationStatus === "verified" && (
                   <CheckCircle2 className="h-3.5 w-3.5" />
                 )}
                 {agent.verificationStatus === "verified" ? "Verified Agent" : "Coming soon"}
               </span>
-              <Pill>{agent.source === "first_party" ? "Built by Voxa" : "External developer"}</Pill>
+              <Pill>{agent.source === "first_party" ? "Built by Synq" : "External developer"}</Pill>
               {agent.importLabel ? <Pill>{agent.importLabel}</Pill> : null}
               <Pill>{formatDate(agent.updatedAt)}</Pill>
             </div>
@@ -158,8 +154,8 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               <BetaPanel className="p-6">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
-                  <h2 className="text-xl font-semibold tracking-tight">Capabilities</h2>
+                  <Sparkles className="h-5 w-5 text-[var(--electric)]" />
+                  <h2 className="text-xl font-semibold tracking-normal">Capabilities</h2>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {agent.capabilities.map((capability) => (
@@ -170,8 +166,8 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
               <BetaPanel className="p-6">
                 <div className="flex items-center gap-2">
-                  <LockKeyhole className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
-                  <h2 className="text-xl font-semibold tracking-tight">Approved permissions</h2>
+                  <LockKeyhole className="h-5 w-5 text-[var(--electric)]" />
+                  <h2 className="text-xl font-semibold tracking-normal">Approved permissions</h2>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {agent.permissions.length > 0 ? (
@@ -190,8 +186,8 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
             <div className="mt-6 grid gap-6 md:grid-cols-2">
               <BetaPanel className="p-6">
                 <div className="flex items-center gap-2">
-                  <Code2 className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
-                  <h2 className="text-xl font-semibold tracking-tight">Example prompts</h2>
+                  <Code2 className="h-5 w-5 text-[var(--electric)]" />
+                  <h2 className="text-xl font-semibold tracking-normal">Example prompts</h2>
                 </div>
                 <div className="mt-5 space-y-3">
                   {agent.examplePrompts.length > 0 ? (
@@ -213,8 +209,8 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
               <BetaPanel className="p-6">
                 <div className="flex items-center gap-2">
-                  <BadgeCheck className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
-                  <h2 className="text-xl font-semibold tracking-tight">Tags</h2>
+                  <BadgeCheck className="h-5 w-5 text-[var(--electric)]" />
+                  <h2 className="text-xl font-semibold tracking-normal">Tags</h2>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {agent.tags.length > 0 ? (
@@ -230,32 +226,43 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
           <aside className="space-y-4">
             <BetaPanel className="p-6">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-emerald-400" />
-                <h2 className="font-semibold tracking-tight">Verification</h2>
+                <ShieldCheck className="h-5 w-5 text-[var(--success)]" />
+                <h2 className="font-semibold tracking-normal">Verification</h2>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
                 {agent.verificationStatus === "coming_soon"
                   ? "This first-party agent is planned and is not yet available."
                   : agent.source === "first_party"
-                    ? "Built and maintained by Voxa. Public profiles do not grant room access."
+                    ? "Built and maintained by Synq. Public profiles do not grant room access."
                     : "This agent is approved, verified, and public. Endpoint details and internal review data stay private."}
               </p>
             </BetaPanel>
 
             <BetaPanel className="p-6">
               <div className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-[oklch(0.72_0.2_245)]" />
-                <h2 className="font-semibold tracking-tight">Developer Preview</h2>
+                <CalendarClock className="h-5 w-5 text-[var(--electric)]" />
+                <h2 className="font-semibold tracking-normal">Developer Preview</h2>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
-                Public profiles are for discovery. Installs, public room invites, payments,
-                rankings, and monetization are not live yet.
+                Explore the agent here. To test your own agent, connect it and complete review and
+                verification first.
               </p>
               <div className="mt-5">
                 <BetaButton className="w-full" href="/developers/agents" variant="glass">
                   Register your agent
                 </BetaButton>
               </div>
+              {agent.creatorUsername && (
+                <div className="mt-3">
+                  <BetaButton
+                    className="w-full"
+                    href={`/developers/${agent.creatorUsername}`}
+                    variant="quiet"
+                  >
+                    View developer
+                  </BetaButton>
+                </div>
+              )}
             </BetaPanel>
           </aside>
         </section>

@@ -74,7 +74,7 @@ export function ArchitectureVisual() {
         ))}
       </div>
 
-      {/* Center: Voxa */}
+      {/* Center: Synq */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         whileInView={{ opacity: 1, scale: 1 }}
@@ -91,7 +91,7 @@ export function ArchitectureVisual() {
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Runtime
               </div>
-              <div className="font-semibold text-sm">Voxa</div>
+              <div className="font-semibold text-sm">Synq</div>
             </div>
           </div>
         </div>

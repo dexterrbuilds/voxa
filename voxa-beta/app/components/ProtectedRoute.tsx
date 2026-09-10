@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     return (
       <BetaShell>
         <div className="grid min-h-screen place-items-center">
-          <div className="beta-status-pill">Opening Voxa</div>
+          <div className="beta-status-pill">Opening Synq</div>
         </div>
       </BetaShell>
     );

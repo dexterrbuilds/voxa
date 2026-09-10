@@ -199,7 +199,7 @@ export type SandboxToolInvocation = {
   name: string;
   status: SandboxToolStatus;
   detail?: string;
-  // Set by Voxa when a reported tool is not in the agent's registered
+  // Set by Synq when a reported tool is not in the agent's registered
   // capabilities (capability enforcement). Display-only; never trusted.
   untrusted?: boolean;
 };

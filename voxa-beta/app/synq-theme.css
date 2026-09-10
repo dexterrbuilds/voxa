@@ -1,0 +1,129 @@
+/* Shared by both deployments. Legacy token names remain compatible. */
+:root:root {
+  --background: #f7f9f8;
+  --foreground: #192824;
+  --surface: #eef3f1;
+  --surface-elevated: #ffffff;
+  --muted-foreground: #566a63;
+  --border: #d4dfda;
+  --electric: #087765;
+  --electric-glow: #159482;
+  --accent: #e1f2ec;
+  --success: #13754a;
+  --warning: #8a580c;
+  --error: #b23a42;
+  --focus: #148875;
+  --on-accent: #ffffff;
+  --radius: 0.5rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --shadow-surface: 0 2px 8px #142c2110;
+  --shadow-floating: 0 8px 32px #142c2126;
+  --motion-fast: 160ms;
+  --motion-enter: 240ms;
+  --header-bg: #f7f9f8ee;
+  --hairline-border: var(--border);
+  --glass-border: var(--border);
+  --subtle-fill: var(--surface);
+  --page-gradient: var(--background);
+  --glass-bg: var(--surface-elevated);
+  --premium-card-bg: var(--surface-elevated);
+  --stage-bg: var(--surface);
+  --input-bg: var(--surface-elevated);
+  --input-focus-bg: var(--surface-elevated);
+  --text-gradient-start: var(--foreground);
+  --text-gradient-end: var(--foreground);
+  --primary: var(--electric);
+  --primary-foreground: var(--on-accent);
+  --card: var(--surface-elevated);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+  --ring: var(--focus);
+}
+
+:root.dark {
+  --background: #101614;
+  --foreground: #ecf3ef;
+  --surface: #1a2420;
+  --surface-elevated: #202d27;
+  --muted-foreground: #a3b6ac;
+  --border: #34463c;
+  --electric: #74dfbd;
+  --electric-glow: #9aebd1;
+  --accent: #203f33;
+  --success: #8bdbaa;
+  --warning: #f0c778;
+  --error: #ff9da4;
+  --focus: #74dfbd;
+  --on-accent: #10261e;
+  --header-bg: #101614ee;
+  --shadow-surface: 0 2px 8px #00000020;
+  --shadow-floating: 0 8px 32px #00000050;
+}
+
+.synq-app { letter-spacing: 0; }
+.synq-app :where(h1,h2,h3,p,button,a) { overflow-wrap: anywhere; }
+.synq-app :where(button,a,input,textarea,select,summary):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.synq-app :where(button,summary) { cursor: pointer; }
+.synq-app button:disabled { cursor: not-allowed; }
+.synq-app :where(input,textarea,select) { font-size: 1rem; }
+.synq-app .beta-premium-card, .synq-app .beta-glass, .synq-app .glass {
+  border-radius: var(--radius);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-surface);
+  backdrop-filter: none;
+}
+.synq-app .beta-premium-card::before, .synq-app .beta-noise::after { display: none; }
+.synq-app .beta-electric-gradient, .synq-app .text-electric-gradient {
+  background: none; color: var(--electric); -webkit-text-fill-color: currentColor;
+}
+.synq-app .beta-button-electric {
+  background: var(--electric); color: var(--on-accent); box-shadow: none;
+  border-radius: var(--radius); transition: background var(--motion-fast), transform var(--motion-fast);
+}
+.synq-app .beta-button-electric:hover { background: var(--electric-glow); transform: translateY(-1px); box-shadow: none; }
+.synq-app .beta-button-glass { box-shadow: none; backdrop-filter: none; }
+.synq-app .beta-status-pill { border: 0; border-radius: var(--radius); backdrop-filter: none; }
+.synq-app .beta-input::placeholder { color: var(--muted-foreground); opacity: 0.8; }
+.synq-app .beta-input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px var(--accent); }
+.synq-wordmark { display: inline-flex; align-items: center; gap: 0.6rem; font-size: 1.25rem; font-weight: 750; color: var(--foreground); }
+.synq-wordmark img { width: 30px; height: 30px; }
+.synq-header { position: relative; z-index: 60; border-bottom: 1px solid var(--border); background: var(--header-bg); }
+.synq-nav { align-items: center; gap: var(--space-1); }
+.synq-nav a { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0.6rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; color: var(--muted-foreground); }
+.synq-nav a:hover, .synq-nav a[aria-current="page"] { background: var(--surface); color: var(--foreground); }
+.synq-nav a[aria-current="page"] { box-shadow: inset 0 -2px var(--electric); }
+.synq-icon-button { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); color: var(--foreground); }
+.synq-icon-button:hover { background: var(--surface); }
+.synq-section { padding-block: var(--space-6); }
+.synq-participant { min-height: 164px; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-elevated); transition: border-color var(--motion-fast), box-shadow var(--motion-fast); }
+.synq-participant[data-speaking="true"] { border-color: var(--electric); box-shadow: 0 0 0 2px var(--accent); }
+.synq-agent-card { display: block; padding: var(--space-6); background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius); transition: border-color var(--motion-fast), box-shadow var(--motion-fast); }
+.synq-agent-card:hover { border-color: var(--electric); box-shadow: var(--shadow-surface); }
+.synq-step-list { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-block: var(--space-4); border-bottom: 1px solid var(--border); font-size: 0.8125rem; color: var(--muted-foreground); }
+.synq-step-list li { display: flex; align-items: center; gap: var(--space-2); }
+.synq-step-list span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--electric); font-weight: 600; }
+.synq-app .synq-voice-dock { filter: drop-shadow(0 8px 16px #00000020); }
+.synq-app .text-amber-300, .synq-app .text-amber-400 { color: var(--warning); }
+.synq-app .text-emerald-400 { color: var(--success); }
+.synq-app .text-red-300, .synq-app .text-red-400 { color: var(--error); }
+@media (max-width: 639px) {
+  .synq-participant { min-height: 140px; }
+  .synq-agent-card { padding: var(--space-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .synq-app *, .synq-app *::before, .synq-app *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

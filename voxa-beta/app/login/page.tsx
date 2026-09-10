@@ -2,15 +2,8 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LockKeyhole, Mail, Shield, Sparkles } from "lucide-react";
-import {
-  BetaButton,
-  BetaEyebrow,
-  BetaHeader,
-  BetaPanel,
-  BetaShell,
-  BetaStat,
-} from "@/components/BetaChrome";
+import { ArrowRight, Mail } from "lucide-react";
+import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import { getDefaultAgent } from "@/lib/agents";
 import { useAuth } from "@/lib/auth";
 
@@ -201,49 +194,31 @@ export default function Login() {
   return (
     <BetaShell>
       <BetaHeader />
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[0.92fr,1.08fr]">
+      <div className="mx-auto grid max-w-5xl items-start gap-8 px-5 py-8 sm:py-16 lg:grid-cols-2 lg:gap-16">
         <div>
-          <BetaEyebrow>Voxa Rooms</BetaEyebrow>
-          <h1 className="beta-text-gradient mt-6 max-w-2xl text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl">
-            Enter your AI conversation room.
+          <BetaEyebrow>Humans. Agents. Together.</BetaEyebrow>
+          <h1 className="beta-text-gradient mt-4 text-3xl font-semibold leading-tight sm:text-5xl">
+            Find your people.
+            <br />
+            Meet your next idea.
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-[oklch(0.65_0.02_260)]">
-            Start a cinematic room where people and AI agents can meet, collaborate, and move the
-            conversation forward.
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted-foreground)]">
+            A shared space for conversations that go somewhere.
           </p>
-          <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
-            <BetaStat label="Access" value="Secure" />
-            <BetaStat label="Rooms" value="Invite-only" />
-            <BetaStat label="Agent" value={defaultAgentName} />
-          </div>
         </div>
 
         <BetaPanel className="p-6 sm:p-8">
-          <div className="beta-orbital-stage grid place-items-center">
-            <div className="beta-conversation-core">
-              <Shield className="h-10 w-10 text-[oklch(0.1_0.02_260)]" />
-            </div>
-            <div className="absolute left-8 top-8 beta-status-pill">
-              <Sparkles className="h-3.5 w-3.5 text-[oklch(0.72_0.2_245)]" />
-              {defaultAgentName} online
-            </div>
-            <div className="absolute bottom-8 right-8 beta-status-pill">
-              <LockKeyhole className="h-3.5 w-3.5 text-[oklch(0.78_0.18_235)]" />
-              Secure entry
-            </div>
-          </div>
-
-          <div className="mt-7">
+          <div>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                <h2 className="text-2xl font-semibold tracking-normal text-white">
                   {isCheckEmail
                     ? "Check your email"
                     : mode === "login"
-                      ? "Welcome to Voxa"
-                      : "Create your Voxa account"}
+                      ? "Welcome to Synq"
+                      : "Create your Synq account"}
                 </h2>
-                <p className="mt-3 leading-relaxed text-[oklch(0.65_0.02_260)]">
+                <p className="mt-3 leading-relaxed text-[var(--muted-foreground)]">
                   {isCheckEmail
                     ? `We sent a verification link to ${displayedVerificationEmail || "your email"}. Please verify your email before logging in.`
                     : mode === "login"
@@ -256,8 +231,8 @@ export default function Login() {
                   <button
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       mode === "login"
-                        ? "bg-white text-[oklch(0.13_0.015_260)]"
-                        : "text-[oklch(0.7_0.025_260)] hover:text-white"
+                        ? "bg-[var(--electric)] text-[var(--on-accent)]"
+                        : "text-[var(--muted-foreground)] hover:text-white"
                     }`}
                     onClick={() => switchMode("login")}
                     type="button"
@@ -267,8 +242,8 @@ export default function Login() {
                   <button
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       mode === "signup"
-                        ? "bg-white text-[oklch(0.13_0.015_260)]"
-                        : "text-[oklch(0.7_0.025_260)] hover:text-white"
+                        ? "bg-[var(--electric)] text-[var(--on-accent)]"
+                        : "text-[var(--muted-foreground)] hover:text-white"
                     }`}
                     onClick={() => switchMode("signup")}
                     type="button"
@@ -302,7 +277,7 @@ export default function Login() {
             ) : (
               <form className="mt-7 space-y-4" noValidate onSubmit={handleEmailAuth}>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[oklch(0.82_0.02_260)]">
+                  <span className="mb-2 block text-sm font-medium text-[var(--foreground)]">
                     Email
                   </span>
                   <input
@@ -318,7 +293,7 @@ export default function Login() {
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[oklch(0.82_0.02_260)]">
+                  <span className="mb-2 block text-sm font-medium text-[var(--foreground)]">
                     Password
                   </span>
                   <input
@@ -334,7 +309,7 @@ export default function Login() {
 
                 {mode === "signup" && (
                   <label className="block">
-                    <span className="mb-2 block text-sm font-medium text-[oklch(0.82_0.02_260)]">
+                    <span className="mb-2 block text-sm font-medium text-[var(--foreground)]">
                       Confirm password
                     </span>
                     <input
@@ -364,7 +339,7 @@ export default function Login() {
               <>
                 <div className="my-6 flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/[0.08]" />
-                  <span className="text-xs uppercase tracking-[0.18em] text-[oklch(0.58_0.02_260)]">
+                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                     or
                   </span>
                   <div className="h-px flex-1 bg-white/[0.08]" />
