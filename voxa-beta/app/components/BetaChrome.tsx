@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "./ThemeToggle";
+import { platformEnabled } from "@/lib/product-features";
 
 type BetaShellProps = {
   children: ReactNode;
@@ -80,7 +81,9 @@ export function BetaHeader({ children }: { children?: ReactNode }) {
         ]
       : []),
   ];
-  const navigation = links.map((link) => (
+  const navigation = (
+    platformEnabled ? links : [{ href: "/nova", label: "Nova", active: pathname === "/nova" }]
+  ).map((link) => (
     <Link
       key={link.href}
       href={link.href}

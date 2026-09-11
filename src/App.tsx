@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import RootLayout from "./routes/__root";
 import { SubdomainProvider } from "./contexts/SubdomainContext";
 
@@ -10,6 +10,8 @@ const DeveloperAccessPage = lazy(() => import("./routes/developers-access"));
 const DeveloperDocsPage = lazy(() => import("./routes/developers-docs"));
 const UseCasesPage = lazy(() => import("./routes/use-cases"));
 const WaitlistPage = lazy(() => import("./routes/waitlist"));
+const NovaLaunchPage = lazy(() => import("./routes/nova-launch"));
+const platformEnabled = import.meta.env.VITE_SYNQ_PLATFORM_ENABLED === "true";
 
 function RouteFallback() {
   return (
@@ -24,18 +26,25 @@ export default function App() {
     <BrowserRouter>
       <SubdomainProvider>
         <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route element={<RootLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="product" element={<ProductPage />} />
-              <Route path="developers" element={<DevelopersPage />} />
-              <Route path="developers/access" element={<DeveloperAccessPage />} />
-              <Route path="developers/docs/*" element={<DeveloperDocsPage />} />
-              <Route path="use-cases" element={<UseCasesPage />} />
-              <Route path="waitlist" element={<WaitlistPage />} />
-              <Route path="*" element={<RootLayout />} />
-            </Route>
-          </Routes>
+          {!platformEnabled ? (
+            <Routes>
+              <Route path="/" element={<NovaLaunchPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          ) : (
+            <Routes>
+              <Route element={<RootLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="product" element={<ProductPage />} />
+                <Route path="developers" element={<DevelopersPage />} />
+                <Route path="developers/access" element={<DeveloperAccessPage />} />
+                <Route path="developers/docs/*" element={<DeveloperDocsPage />} />
+                <Route path="use-cases" element={<UseCasesPage />} />
+                <Route path="waitlist" element={<WaitlistPage />} />
+                <Route path="*" element={<RootLayout />} />
+              </Route>
+            </Routes>
+          )}
         </Suspense>
       </SubdomainProvider>
     </BrowserRouter>

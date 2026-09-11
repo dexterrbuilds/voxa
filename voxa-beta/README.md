@@ -1,5 +1,38 @@
 # Synq App Setup
 
+## Nova Launch (Default)
+
+The public product now opens `/nova`: saved private conversations, streamed text,
+silence-bounded voice input, local reply playback, read-only address context, and approved
+**simulations only**. Existing room voice/LiveKit, external runtime, SDK and permissions are
+preserved. The platform sections below describe dormant functionality.
+
+**Deployment requires `supabase-nova-launch.sql`.** Run this additive/idempotent file in
+Supabase SQL Editor before deploying the beta. Configure existing Supabase URL/anon key,
+server-only service-role key and the existing Gemini/Deepgram/TTS credentials. Never run
+`tests/nova-launch.sql` on Supabase; that fixture creates a disposable fake auth schema.
+
+`NEXT_PUBLIC_SYNQ_PLATFORM_ENABLED` defaults to false. `/`, `/room/*`, `/rooms/*`,
+`/agents/*` and `/developers/*` redirect to `/nova`; API routes and admin authorization are
+unchanged. Rebuild with the flag true to restore those pages. Also set marketing's
+`VITE_SYNQ_PLATFORM_ENABLED=true` to restore its old navigation. There is no per-user gate
+bypass; use a separate internal/staging deployment when restoring platform mode privately.
+
+`NOVA_MODEL_PROVIDER=gemini` selects the server implementation of the neutral model
+interface. Unknown providers fail closed. No user-facing model selector exists.
+
+See [Nova launch guide](../docs/nova-launch.md) for action security, persistence, provider
+and adapter boundaries, manual tests and staging requirements.
+
+```sh
+npm run lint
+npx tsc --noEmit
+npm run build
+node --require ./tests/register.cjs --test tests/runtime.test.cjs tests/routes.test.cjs tests/nova-launch.test.cjs tests/nova-launch-routes.test.cjs
+# With Playwright available and a local production server on port 3100:
+node tests/nova-launch-smoke.mjs
+```
+
 ## Synq Experience
 
 The Next.js project stays in `voxa-beta/` for deployment compatibility. Shared theme

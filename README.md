@@ -1,7 +1,25 @@
 # Synq
 
-**Where humans and AI agents meet.** Build, bring, discover, and interact with agents
-in real-time spaces. Synq is a social communication layer, powered by a conversational runtime.
+**Nova, by Synq. What do you want to do on-chain?** The launch experience is a private
+conversation with Nova: text, voice, saved history and explicitly approved simulations.
+No live trades, transfers, wallet balances or positions are connected in this release.
+Synq's broader communication/agent platform remains intact underneath, dormant by default.
+
+## Nova Launch Mode
+
+Signed-in users land at `/nova`. Apply the additive
+[`supabase-nova-launch.sql`](voxa-beta/supabase-nova-launch.sql) before deployment.
+It stores owner-scoped conversations, messages and immutable simulation plans; authenticated
+browser access is SELECT-only and API writes require the existing server-only service key.
+Approval is a dedicated UI request bound to an expiring plan hash and one-time token, never
+an interpretation of conversation text. There is no signing or chain submission path.
+
+See [Nova launch architecture and deployment](docs/nova-launch.md) for security, tests,
+simulation limitations and restoration of dormant features. New optional configuration:
+`NEXT_PUBLIC_SYNQ_PLATFORM_ENABLED=false` (beta), `VITE_SYNQ_PLATFORM_ENABLED=false`
+(marketing), `NOVA_MODEL_PROVIDER=gemini` (server). These defaults require no new secrets.
+Set both platform flags to `true` and rebuild to restore the prior product surfaces.
+Existing review, verification and external-agent permission flags remain unchanged.
 
 ## Synq Product Transition
 
@@ -32,9 +50,11 @@ tests, and remaining boundaries. **Existing deployments must run**
 No new environment variables are required; the existing server-only
 `SUPABASE_SERVICE_ROLE_KEY` is now also used for analytics writes.
 
-The current product is a focused MVP: authenticated users create private LiveKit voice
+The preserved platform experience lets authenticated users create private LiveKit voice
 rooms, invite Nova, and talk to her through a controlled wake/tap voice flow. Nova is
-the first first-party demonstration agent. Nova is not the product itself.
+the first first-party demonstration agent of the platform and the primary launch interface.
+The remaining sections describe this preserved platform; public navigation to it is dormant
+unless platform mode is enabled.
 
 ## Repo Map
 

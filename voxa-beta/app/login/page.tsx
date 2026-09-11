@@ -1,5 +1,7 @@
 "use client";
 
+import { platformEnabled } from "@/lib/product-features";
+
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Mail } from "lucide-react";
@@ -196,14 +198,27 @@ export default function Login() {
       <BetaHeader />
       <div className="mx-auto grid max-w-5xl items-start gap-8 px-5 py-8 sm:py-16 lg:grid-cols-2 lg:gap-16">
         <div>
-          <BetaEyebrow>Humans. Agents. Together.</BetaEyebrow>
+          <BetaEyebrow>
+            {platformEnabled ? "Humans. Agents. Together." : "Nova, by Synq"}
+          </BetaEyebrow>
           <h1 className="beta-text-gradient mt-4 text-3xl font-semibold leading-tight sm:text-5xl">
-            Find your people.
-            <br />
-            Meet your next idea.
+            {platformEnabled ? (
+              <>
+                Find your people.
+                <br />
+                Meet your next idea.
+              </>
+            ) : (
+              <>
+                A conversation.
+                <br />A clearer next move.
+              </>
+            )}
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted-foreground)]">
-            A shared space for conversations that go somewhere.
+            {platformEnabled
+              ? "A shared space for conversations that go somewhere."
+              : "Understand on-chain ideas and explore safe simulations with Nova."}
           </p>
         </div>
 
@@ -222,8 +237,12 @@ export default function Login() {
                   {isCheckEmail
                     ? `We sent a verification link to ${displayedVerificationEmail || "your email"}. Please verify your email before logging in.`
                     : mode === "login"
-                      ? `Sign in to start a room, invite people, and bring ${defaultAgentName} into the conversation.`
-                      : `Create an account to open rooms, share invites, and collaborate with ${defaultAgentName}.`}
+                      ? platformEnabled
+                        ? `Sign in to start a room, invite people, and bring ${defaultAgentName} into the conversation.`
+                        : "Sign in to talk to Nova and return to your conversations."
+                      : platformEnabled
+                        ? `Create an account to open rooms, share invites, and collaborate with ${defaultAgentName}.`
+                        : "Create an account to explore on-chain ideas with Nova. Actions are simulations."}
                 </p>
               </div>
               {!isCheckEmail && (
