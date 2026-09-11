@@ -1,22 +1,30 @@
 /* Launch-only materials. Dormant platform colors and contracts remain untouched. */
 .glacier-world {
-  --canvas: #edf4fb;
-  --text-primary: #182d46;
-  --text-secondary: #516782;
-  --brand: #1764af;
-  --brand-strong: #104d8c;
-  --brand-subtle: #dcecfb;
-  --glow: #89d8ff40;
-  --glass-border: #ffffffd9;
-  --glass-highlight: #ffffffec;
+  --canvas: #e1f1ff;
+  --text-primary: #102d50;
+  --text-secondary: #3d5d7c;
+  --brand: #075bbb;
+  --brand-strong: #034798;
+  --brand-subtle: #c8e8ff;
+  --glow: #36baff35;
+  --glass-border: #ffffffbb;
+  --glass-highlight: #ffffff;
   --glass-line: #7294b33d;
-  --glass-surface: #ffffffa6;
-  --glass-elevated: #f9fcfff0;
-  --glass-control: #e4eef9a6;
-  --glass-subtle: #ffffff52;
-  --glass-shadow: 0 18px 50px -26px #234a7352, 0 3px 10px #234a730a;
-  --glass-inset: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 #769bbb1a;
-  --glass-blur: 18px;
+  --glass-surface: #f4fbff52;
+  --glass-elevated: #eef8ffab;
+  --glass-control: #e7f6ff59;
+  --glass-subtle: #ffffff29;
+  --glass-opaque: #edf7ff;
+  --glass-reflection: linear-gradient(118deg, #ffffff8c, #ffffff12 26%, #ffffff00 54%, #c1eaff38 78%, #ffffff73);
+  --glass-edge: linear-gradient(135deg, #ffffff 0%, #ffffff45 30%, #79b5e352 48%, #ffffffde 72%, #91b8d845 100%);
+  --glass-shadow: 0 22px 48px -22px #1556a150, 0 8px 20px -12px #153e773b;
+  --glass-inset: inset 0 1px 0 var(--glass-highlight), inset 1px 0 0 #ffffff66, inset 0 -1px 0 #5899cc30;
+  --glass-input: #a3cae826;
+  --glass-input-shadow: inset 0 2px 5px #22548416, 0 1px 0 #ffffffb3;
+  --glass-action: linear-gradient(170deg, #ffffff26, #ffffff00 48%, #00276b36);
+  --glass-action-color: #075bbb;
+  --glass-action-edge: #a4dbff;
+  --glass-blur: 16px;
   --radius-control: 12px;
   --radius-floating: 24px;
   --motion-glass: 220ms;
@@ -53,55 +61,82 @@
   --ring: var(--focus);
   color: var(--text-primary);
   background-color: var(--canvas);
+  /* Broad static light planes give the glass an environment without animated blobs. */
   background-image:
-    linear-gradient(122deg, #ffffff99, #ffffff00 38%, #c4e2ff55 62%, #ffffff88),
-    linear-gradient(28deg, #c9e5fb44, #ffffff00 48%, #ffffff99 49%, #ffffff00 72%);
+    linear-gradient(116deg, transparent 30%, #ffffffa6 42%, #ffffffed 43%, #ffffff00 51%),
+    linear-gradient(24deg, #398fea33, transparent 30%, #ffffff70 48%, #82dcff61 68%, transparent 82%),
+    linear-gradient(152deg, #f6fdff 4%, #dceeff 32%, #8cc9f85c 54%, #eafaff 72%, #b7d9fa);
+  background-size: 100% 100%;
 }
 .dark .glacier-world {
-  --canvas: #101b2b;
-  --text-primary: #eaf3ff;
-  --text-secondary: #a8bdd5;
-  --brand: #9bd6ff;
-  --brand-strong: #c5e8ff;
-  --brand-subtle: #233f5e;
-  --glow: #4fb9ff24;
-  --glass-border: #cce8ff2b;
-  --glass-highlight: #d5eeff30;
+  --canvas: #07172c;
+  --text-primary: #eff8ff;
+  --text-secondary: #b4cfe7;
+  --brand: #9bdeff;
+  --brand-strong: #d0f1ff;
+  --brand-subtle: #164569;
+  --glow: #54cfff30;
+  --glass-border: #b9e7ff3d;
+  --glass-highlight: #d9f6ff85;
   --glass-line: #96bde336;
-  --glass-surface: #213750ad;
-  --glass-elevated: #1d3047f2;
-  --glass-control: #304b6873;
-  --glass-subtle: #2b456133;
-  --glass-shadow: 0 24px 60px -24px #00000088, 0 4px 12px #00000022;
-  --glass-inset: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 #00000030;
+  --glass-surface: #102e494f;
+  --glass-elevated: #112e48bf;
+  --glass-control: #77caff14;
+  --glass-subtle: #8bd6ff0c;
+  --glass-opaque: #112b44;
+  --glass-reflection: linear-gradient(118deg, #c2f0ff26, #a9eaff05 28%, #ffffff00 54%, #1ab4ff14 78%, #a6eaff29);
+  --glass-edge: linear-gradient(135deg, #d1f3ffa6, #9ad8ff0c 32%, #7caeff29 50%, #b4eeff7d 73%, #24558b40);
+  --glass-shadow: 0 28px 56px -20px #000c20b0, 0 8px 20px -8px #00091780;
+  --glass-inset: inset 0 1px 0 var(--glass-highlight), inset 1px 0 0 #a6eaff1f, inset 0 -1px 0 #030e2240;
+  --glass-input: #041b314d;
+  --glass-input-shadow: inset 0 2px 5px #000e294a, 0 1px 0 #bdefff29;
+  --glass-action: linear-gradient(170deg, #ffffff45, #ffffff00 45%, #1479b033);
+  --glass-action-color: #9bdeff;
+  --glass-action-edge: #ddf7ff;
   --on-accent: #102c46;
   --success: #8ddbb3;
   --warning: #f0ca86;
   --danger: #ffabb5;
   --focus: #9bd6ff;
   background-image:
-    linear-gradient(122deg, #213e6033, #101b2b00 38%, #285b8530 62%, #101b2b00),
-    linear-gradient(28deg, #14375244, #101b2b00 48%, #35598022 49%, #101b2b00 72%);
+    linear-gradient(116deg, transparent 30%, #3582bb22 42%, #8bddff33 43%, #06192e00 51%),
+    linear-gradient(24deg, #16499a38, transparent 30%, #0b1a2e60 48%, #159ddb29 68%, transparent 82%),
+    linear-gradient(152deg, #0c2340 4%, #071427 32%, #0d3860 54%, #0a243c 72%, #08182e);
 }
 .glacier-world .glass-surface,
+.glacier-world .glass-regular,
 .glacier-world .glass-elevated {
-  border: 1px solid var(--glass-border);
-  background: var(--glass-surface);
+  border: 1px solid transparent;
+  background: var(--glass-reflection), var(--glass-surface);
+  background-clip: padding-box;
   box-shadow: var(--glass-inset), var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  isolation: isolate;
+}
+.glacier-world .glass-surface,
+.glacier-world .glass-regular {
+  position: relative;
 }
 .glacier-world .glass-elevated {
-  background: var(--glass-elevated);
+  background: var(--glass-reflection), var(--glass-elevated);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+  backdrop-filter: blur(20px) saturate(155%);
+  box-shadow: var(--glass-inset), var(--glass-shadow), 0 34px 60px -36px #041b4670;
 }
+.glacier-world .glass-thin,
 .glacier-world .glass-control {
-  background: var(--glass-control);
+  background: var(--glass-reflection), var(--glass-control);
   border: 1px solid var(--glass-line);
   box-shadow: var(--glass-inset);
 }
 .glacier-world .glass-subtle {
-  background: var(--glass-subtle);
+  background: var(--glass-reflection), var(--glass-subtle);
   border: 1px solid var(--glass-line);
+}
+.glacier-world .glass-focused {
+  box-shadow: var(--glass-inset), var(--glass-shadow), 0 0 0 2px var(--glow);
 }
 .glacier-world :is(button, a, input):focus-visible {
   outline: 2px solid var(--focus);
@@ -122,7 +157,7 @@
 .nova-presence {
   width: 92px;
   height: 92px;
-  filter: drop-shadow(0 10px 18px #458cca30);
+  filter: drop-shadow(0 1px 0 #effcffc9) drop-shadow(0 8px 14px #189fea38);
 }
 .nova-presence-small {
   width: 24px;
@@ -157,34 +192,104 @@
 }
 .synq-app .glacier-auth .glacier-auth-panel {
   border-radius: var(--radius-floating);
-  border: 1px solid var(--glass-border);
-  background: var(--glass-surface);
+  border: 1px solid transparent;
+  background: var(--glass-reflection), var(--glass-surface);
+  background-clip: padding-box;
   box-shadow: var(--glass-inset), var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  isolation: isolate;
+  overflow: visible;
+}
+/* A masked rim catches light directionally; the inner bevel stays off the text. */
+.glacier-world :is(.glass-surface, .glass-regular, .glass-elevated)::before,
+.synq-app .glacier-auth .glacier-auth-panel::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--glass-edge);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.glacier-world :is(.glass-surface, .glass-regular, .glass-elevated)::after,
+.synq-app .glacier-auth .glacier-auth-panel::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  border-top: 1px solid var(--glass-highlight);
+  border-bottom: 1px solid var(--glass-line);
+  opacity: 0.5;
+  pointer-events: none;
 }
 .glacier-auth .beta-text-gradient {
   background: none;
   color: var(--text-primary);
   -webkit-text-fill-color: currentColor;
 }
-.glacier-auth input {
-  background: var(--glass-subtle);
+.glacier-world .nova-modal input,
+.synq-app .glacier-auth input {
+  background: var(--glass-input);
+  box-shadow: var(--glass-input-shadow);
   border-color: var(--glass-line);
   color: var(--text-primary);
+  border-radius: var(--radius-control);
+  transition: background var(--motion-glass), box-shadow var(--motion-glass), border-color var(--motion-glass);
+}
+.glacier-world .nova-modal input:focus,
+.synq-app .glacier-auth input:focus {
+  background: var(--glass-control);
+  border-color: var(--brand);
+  box-shadow: var(--glass-input-shadow), 0 0 0 2px var(--glow);
+  outline: none;
 }
 .glacier-auth :is(h2, label) {
   color: var(--text-primary);
 }
-.glacier-auth button[type="submit"] {
+.glacier-auth button[class*="hover:text-white"]:hover {
+  color: var(--text-primary);
+  background-color: var(--glass-control);
+}
+.glacier-world :is(.nova-primary, .nova-send),
+.glacier-landing .glacier-primary,
+.synq-app .glacier-auth .beta-button-electric {
+  background: var(--glass-action) var(--glass-action-color);
+  border: 1px solid var(--glass-action-edge);
+  border-bottom-color: var(--brand-strong);
+  color: var(--on-accent);
   box-shadow:
-    var(--glass-inset),
-    0 5px 14px -8px var(--brand);
+    inset 0 1px 1px #ffffff70,
+    inset 0 -2px 3px #00306726,
+    0 7px 16px -9px var(--brand);
+}
+.glacier-world :is(.nova-primary, .nova-send):hover:not(:disabled),
+.glacier-landing .glacier-primary:hover,
+.synq-app .glacier-auth .beta-button-electric:hover:not(:disabled) {
+  background: var(--glass-action) var(--glass-action-color);
+  box-shadow: inset 0 2px 4px #ffffff80, 0 9px 20px -9px var(--brand);
+  transform: translateY(-1px);
+}
+.glacier-world .nova-secondary,
+.synq-app .glacier-auth .beta-button-glass {
+  background: var(--glass-reflection), var(--glass-control);
+  box-shadow: var(--glass-inset);
+  border-color: var(--glass-line);
+  border-radius: var(--radius-control);
+}
+.glacier-world :is(.nova-primary, .nova-send):active:not(:disabled),
+.glacier-landing .glacier-primary:active,
+.synq-app .glacier-auth button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+}
+.synq-app .glacier-auth .beta-button-electric {
+  border-radius: var(--radius-control);
 }
 .glacier-landing .glacier-primary {
-  background: var(--brand);
-  color: var(--on-accent);
-  box-shadow: var(--glass-inset), var(--glass-shadow);
   border-radius: var(--radius-control);
 }
 .glacier-landing .glacier-entry {
@@ -207,7 +312,7 @@
 @keyframes glacier-enter {
   from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(5px) scale(0.99);
   }
   to {
     opacity: 1;
@@ -221,15 +326,18 @@
 }
 @supports not (backdrop-filter: blur(1px)) {
   .glacier-world .glass-surface,
+  .glacier-world .glass-regular,
+  .glacier-world .glass-elevated,
   .synq-app .glacier-auth .glacier-auth-panel {
-    background: var(--glass-elevated);
+    background: var(--glass-opaque);
   }
 }
 @media (prefers-reduced-transparency: reduce) {
   .glacier-world .glass-surface,
+  .glacier-world .glass-regular,
   .glacier-world .glass-elevated,
   .synq-app .glacier-auth .glacier-auth-panel {
-    background: var(--glass-elevated);
+    background: var(--glass-opaque);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

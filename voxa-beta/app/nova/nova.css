@@ -110,12 +110,15 @@
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--glass-subtle);
+  background: var(--glass-reflection), var(--glass-subtle);
   box-shadow: var(--glass-inset);
   font-size: 14px;
 }
 .nova-suggestions button:hover {
-  border-color: var(--electric);
+  border-color: var(--glass-highlight);
+  background-color: var(--glass-control);
+  box-shadow: var(--glass-inset), 0 5px 12px -8px var(--brand);
+  transform: translateY(-1px);
 }
 .nova-turn {
   animation: glacier-enter var(--motion-glass) ease-out;
@@ -125,7 +128,7 @@
 .nova-turn.user {
   margin-left: auto;
   padding: 16px 20px;
-  background: color-mix(in srgb, var(--brand-subtle) 60%, transparent);
+  background: var(--glass-reflection), color-mix(in srgb, var(--brand-subtle) 65%, transparent);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-inset);
   border-radius: 18px 18px 4px 18px;
@@ -161,11 +164,11 @@
     border-color var(--motion-glass);
 }
 .nova-composer:focus-within {
-  border-color: var(--brand);
+  border-color: var(--glass-border);
   box-shadow:
     var(--glass-inset),
     var(--glass-shadow),
-    0 0 0 3px var(--glow);
+    0 0 0 2px var(--glow);
 }
 .nova-composer[data-state="listening"] {
   border-color: var(--brand);
@@ -308,6 +311,7 @@
   margin-top: 8px;
 }
 .nova-plan {
+  position: relative;
   margin: 20px 0;
   border-radius: 8px;
   padding: 24px;
@@ -391,7 +395,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  animation: glacier-enter var(--motion-glass) ease-out;
+  animation: glacier-sheet var(--motion-glass) cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .nova-history-list {
   flex: 1;
@@ -434,6 +438,7 @@
   padding: 20px;
 }
 .nova-modal {
+  position: relative;
   width: min(420px, 100%);
   max-height: 90dvh;
   overflow: auto;
@@ -468,6 +473,16 @@
 .nova-address {
   overflow-wrap: anywhere;
   font-family: monospace;
+}
+@keyframes glacier-sheet {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @media (max-width: 600px) {
   .nova-header {

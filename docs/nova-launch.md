@@ -210,6 +210,15 @@ requires a separate scoped phase and security review. Neither is enabled here.
 
 ### Local Checkpoint Results
 
+The launch-only Glacier material refinement lives in `app/glacier.css` and
+`app/nova/nova.css`. Thin controls use reflection layers without backdrop filters;
+regular panes use 16px blur; elevated sheets use 20px blur and denser bodies;
+focused controls add restrained edge illumination. Directional masked rims and
+inset bevels sit above static ice-light planes. Repeated action objects deliberately
+disable backdrop filtering. Opaque fallbacks support reduced transparency and
+unsupported filters; motion respects reduced-motion preferences. Authentication,
+recording, approval and execution code are unchanged by this CSS-only refinement.
+
 - Beta lint, standalone typecheck and production build passed.
 - Marketing typecheck/build and SDK typecheck/build passed.
 - 28 Node regression tests passed: the original 14 plus 14 launch tests (25 beta, 3 SDK).
