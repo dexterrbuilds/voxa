@@ -20,6 +20,21 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   permissions: ["microphone"],
 });
+// Observe the real recorder, rather than assuming getUserMedia starts within one second.
+await context.addInitScript(() => {
+  const start = MediaRecorder.prototype.start;
+  MediaRecorder.prototype.start = function (...args) {
+    const capture = { chunks: 0, recording: true };
+    window.__novaCaptureFixture = capture;
+    this.addEventListener("dataavailable", (event) => {
+      if (event.data.size) capture.chunks++;
+    });
+    this.addEventListener("stop", () => {
+      capture.recording = false;
+    });
+    return start.apply(this, args);
+  };
+});
 const page = await context.newPage();
 page.setDefaultTimeout(10000);
 const errors = [];
@@ -48,7 +63,37 @@ async function shot(name) {
     false,
     `overflow ${name}`,
   );
-  await page.screenshot({ path: `${artifacts}/${name}.png`, fullPage: true });
+  await page.screenshot({
+    path: `${artifacts}/${name}.png`,
+    fullPage: true,
+    animations: "disabled",
+  });
+  const contrast = await page
+    .locator(".nova-primary:not(:disabled), button[type=submit]:not(:disabled)")
+    .evaluateAll((elements) =>
+      elements.map((element) => {
+        const style = getComputedStyle(element);
+        const luminance = (color) => {
+          const channels = color
+            .match(/[\d.]+/g)
+            ?.slice(0, 3)
+            .map(Number);
+          if (!channels || !color.startsWith("rgb") || color.endsWith(", 0)")) return null;
+          const linear = channels.map((channel) => {
+            const value = channel / 255;
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+          });
+          return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+        };
+        const foreground = luminance(style.color),
+          background = luminance(style.backgroundColor);
+        return foreground === null || background === null
+          ? null
+          : (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+      }),
+    );
+  for (const ratio of contrast)
+    if (ratio !== null) assert.ok(ratio >= 4.5, `primary control contrast ${name}: ${ratio}`);
 }
 async function idle() {
   await page.getByRole("status").filter({ hasText: "Simulation only" }).waitFor();
@@ -197,13 +242,20 @@ try {
   });
   await page.goto(`${base}/`);
   await page.waitForURL(/\/login/);
+  await page.locator("input[type=email]").waitFor();
   await shot("login-desktop");
+  await page.getByRole("button", { name: /Switch to dark/ }).click();
+  await shot("login-desktop-dark");
+  await page.getByRole("button", { name: /Switch to light/ }).click();
   await page.locator("input[type=email]").fill(user.email);
   await page.locator("input[type=password]").fill("fixture-password");
   await page.locator("button[type=submit]").click();
   await page.waitForURL(`${base}/nova`);
   await page.getByRole("heading", { name: /What do you want/ }).waitFor();
   await shot("nova-desktop-light");
+  await page.getByRole("button", { name: /Switch to dark/ }).click();
+  await shot("nova-desktop-empty-dark");
+  await page.getByRole("button", { name: /Switch to light/ }).click();
   await page.reload();
   await page.getByRole("heading", { name: /What do you want/ }).waitFor();
   await page.getByRole("button", { name: "New conversation", exact: true }).click();
@@ -217,6 +269,16 @@ try {
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await send("Swap 1 SOL to USDC");
   await idle();
+  await shot("nova-desktop-swap-light");
+  await page.getByRole("button", { name: /Switch to dark/ }).click();
+  await shot("nova-desktop-swap-dark");
+  await page.getByRole("button", { name: "Conversation history", exact: true }).click();
+  await shot("nova-desktop-history-dark");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Switch to light/ }).click();
+  await page.getByRole("button", { name: "Conversation history", exact: true }).click();
+  await shot("nova-desktop-history-light");
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Approve simulation" }).click();
   await page
     .getByText("Simulation completed. No funds moved and no transaction was submitted.", {
@@ -300,13 +362,26 @@ try {
   await page.getByRole("button", { name: "1111…1111", exact: true }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   await shot("nova-mobile-light");
+  await page.getByRole("button", { name: "Conversation history", exact: true }).click();
+  await shot("nova-mobile-history-light");
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /Switch to dark/ }).click();
   await shot("nova-mobile-dark");
+  await page.getByRole("button", { name: "Conversation history", exact: true }).click();
+  await shot("nova-mobile-history-dark");
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "New conversation", exact: true }).click();
   await idle();
   await shot("nova-mobile-empty-dark");
+  await page.getByRole("button", { name: /Switch to light/ }).click();
+  await shot("nova-mobile-empty-light");
+  await page.getByRole("button", { name: /Switch to dark/ }).click();
   await page.setViewportSize({ width: 390, height: 500 });
   await page.getByRole("textbox", { name: "Message Nova" }).focus();
+  await page.waitForFunction(() => {
+    const rect = document.querySelector(".nova-composer")?.getBoundingClientRect();
+    return rect && rect.bottom <= innerHeight;
+  });
   const composer = await page.locator(".nova-composer").boundingBox();
   assert.ok(composer.y + composer.height <= 500);
   await shot("nova-mobile-keyboard-height");
@@ -317,7 +392,10 @@ try {
   await page.getByRole("button", { name: "Cancel response" }).click();
   await idle();
   await page.getByRole("button", { name: "Talk to Nova", exact: true }).click();
-  await page.waitForTimeout(1000); // Allow MediaRecorder to produce a real fake-device chunk.
+  await page.getByText("Listening · pause to send", { exact: true }).waitFor();
+  await page.waitForFunction(
+    () => window.__novaCaptureFixture?.recording && window.__novaCaptureFixture.chunks > 0,
+  );
   await page.getByRole("button", { name: "Stop recording and send" }).click();
   await page.getByRole("alert").filter({ hasText: "Voice playback unavailable" }).waitFor();
   assert.equal(audioCaptures, 1);
@@ -325,6 +403,25 @@ try {
   await send("Swap 1 SOL to USDC");
   await idle();
   await shot("nova-mobile-approval-dark");
+  await page.getByRole("button", { name: /Switch to light/ }).click();
+  await shot("nova-mobile-approval-light");
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForFunction(
+    () => document.querySelector(".nova-composer").getBoundingClientRect().bottom <= innerHeight,
+  );
+  await shot("nova-landscape-approval");
+  const landscapeComposer = await page.locator(".nova-composer").boundingBox();
+  assert.ok(landscapeComposer.y + landscapeComposer.height <= 390);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  assert.equal(
+    await page
+      .locator(".nova-turn")
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName),
+    "none",
+  );
+  await page.getByRole("button", { name: /Switch to dark/ }).click();
   await page.reload();
   await page.getByRole("heading", { name: /What do you want/ }).waitFor();
   assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
@@ -332,6 +429,14 @@ try {
   console.log(
     "PASS: Nova launch auth refresh, redirects, history/rename/restore, text NDJSON, swap/perp approvals, cancellation, mutation, stale/duplicate UI, wallet context, voice capture, mobile/light/dark. Fixture providers; no real funds or live Supabase calls.",
   );
+} catch (error) {
+  console.error("Browser fixture failure", {
+    state: await page.locator(".nova-status").allTextContents(),
+    alerts: await page.getByRole("alert").allTextContents(),
+    audioCaptures,
+  });
+  await page.screenshot({ path: `${artifacts}/failure.png`, fullPage: true });
+  throw error;
 } finally {
   await browser.close();
 }

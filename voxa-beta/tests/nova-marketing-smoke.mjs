@@ -27,9 +27,17 @@ try {
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,
     );
-    await page.screenshot({ path: `${dir}/marketing-${name}-light.png`, fullPage: true });
+    await page.screenshot({
+      path: `${dir}/marketing-${name}-light.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
     await page.getByRole("button", { name: /Switch to dark/ }).click();
-    await page.screenshot({ path: `${dir}/marketing-${name}-dark.png`, fullPage: true });
+    await page.screenshot({
+      path: `${dir}/marketing-${name}-dark.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
     await page.getByRole("button", { name: /Switch to light/ }).click();
   }
   await page.goto(`${base}/developers/docs`);

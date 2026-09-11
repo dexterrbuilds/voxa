@@ -128,14 +128,17 @@ function NovaExperience() {
     return () => viewport?.removeEventListener("resize", resize);
   }, []);
   useEffect(() => {
-    if (!walletOpen && !renaming) return;
+    if (!walletOpen && !renaming && !drawer) return;
     const previous = document.activeElement as HTMLElement | null;
-    const dialog = document.querySelector<HTMLElement>(".nova-modal");
+    const dialog = document.querySelector<HTMLElement>(
+      walletOpen || renaming ? ".nova-modal" : ".nova-history",
+    );
     dialog?.querySelector<HTMLElement>("button,input")?.focus();
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setWalletOpen(false);
         setRenaming(false);
+        setDrawer(false);
       }
       if (event.key !== "Tab" || !dialog) return;
       const nodes = [...dialog.querySelectorAll<HTMLElement>("button:not(:disabled),input")];
@@ -152,7 +155,7 @@ function NovaExperience() {
       document.removeEventListener("keydown", key);
       previous?.focus();
     };
-  }, [walletOpen, renaming]);
+  }, [walletOpen, renaming, drawer]);
   useEffect(() => {
     if (pinned.current && log.current) {
       log.current.scrollTop = log.current.scrollHeight;
@@ -494,8 +497,8 @@ function NovaExperience() {
   }
 
   return (
-    <div className="nova-app" style={{ height: viewportHeight }}>
-      <header className="nova-header">
+    <div className="nova-app glacier-world" style={{ height: viewportHeight }}>
+      <header className="nova-header glass-surface">
         <button
           className="nova-icon"
           aria-label="Conversation history"
@@ -525,7 +528,12 @@ function NovaExperience() {
             aria-label="Close history"
             onClick={() => setDrawer(false)}
           />
-          <aside className="nova-history" aria-label="Conversation history">
+          <aside
+            className="nova-history glass-elevated"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Conversation history"
+          >
             <div className="nova-row">
               <h2>History</h2>
               <button
@@ -543,20 +551,33 @@ function NovaExperience() {
             >
               <Plus size={17} /> New conversation
             </button>
-            {conversations.length === 0 && (
-              <p className="nova-muted">Your conversations will appear here.</p>
-            )}
-            {conversations.map((c) => (
+            <div className="nova-history-list">
+              {conversations.length === 0 && (
+                <p className="nova-muted">Your conversations will appear here.</p>
+              )}
+              {conversations.map((c) => (
+                <button
+                  key={c.id}
+                  className="nova-history-item"
+                  aria-current={selected?.id === c.id ? "page" : undefined}
+                  onClick={() => void openConversation(c)}
+                >
+                  {c.title}
+                </button>
+              ))}
+            </div>
+            <div className="nova-history-footer">
+              <p className="nova-muted">Showing your latest 100 conversations.</p>
               <button
-                key={c.id}
-                className="nova-history-item"
-                aria-current={selected?.id === c.id ? "page" : undefined}
-                onClick={() => void openConversation(c)}
+                className="nova-text-action"
+                onClick={() => {
+                  setDrawer(false);
+                  setWalletOpen(true);
+                }}
               >
-                {c.title}
+                <Wallet size={16} /> Account and wallet
               </button>
-            ))}
-            <p className="nova-muted">Showing your latest 100 conversations.</p>
+            </div>
           </aside>
         </>
       )}
@@ -597,7 +618,7 @@ function NovaExperience() {
         <div className="nova-thread">
           {messages.length === 0 ? (
             <section className="nova-empty">
-              <img src="/synq-mark.svg" width={48} height={48} alt="" />
+              <img className="nova-presence" src="/nova-prism.svg" width={92} height={92} alt="" />
               <p className="nova-kicker">Nova, by Synq</p>
               <h1>
                 What do you want
@@ -626,7 +647,12 @@ function NovaExperience() {
           ) : (
             messages.map((turn) => (
               <article className={`nova-turn ${turn.role}`} key={turn.id}>
-                <div className="nova-speaker">{turn.role === "nova" ? "Nova" : "You"}</div>
+                <div className="nova-speaker">
+                  {turn.role === "nova" && (
+                    <img className="nova-presence-small" src="/nova-prism.svg" alt="" />
+                  )}
+                  {turn.role === "nova" ? "Nova" : "You"}
+                </div>
                 <p>{turn.text || (state === "thinking" ? "Thinking…" : "Reply stopped.")}</p>
                 {turn.blocks.map((block, i) => (
                   <Block
@@ -680,7 +706,8 @@ function NovaExperience() {
           </div>
         )}
         <form
-          className="nova-composer"
+          className="nova-composer glass-surface"
+          data-state={state}
           onSubmit={(e) => {
             e.preventDefault();
             void send();
@@ -723,7 +750,7 @@ function NovaExperience() {
                 <>
                   <button
                     type="button"
-                    className="nova-icon"
+                    className="nova-icon glass-control"
                     aria-label="Talk to Nova"
                     disabled={pending}
                     onClick={() => void record()}
@@ -777,7 +804,7 @@ function NovaExperience() {
       {(walletOpen || renaming) && (
         <div className="nova-modal-wrap">
           <section
-            className="nova-modal"
+            className="nova-modal glass-elevated"
             role="dialog"
             aria-modal="true"
             aria-label={walletOpen ? "Account and wallet" : "Rename conversation"}
@@ -882,9 +909,21 @@ function Block({
     const record = saved.find((p) => p.id === plan.id);
     const status = record?.status || plan.status;
     return (
-      <section className="nova-plan">
+      <section className="nova-plan glass-elevated">
         <div className="nova-kicker">Simulation · not a transaction</div>
         <h3>{plan.action.type === "swap" ? "Review swap" : "Review SOL position"}</h3>
+        {plan.action.type === "swap" && (
+          <p className="nova-plan-amount">
+            {plan.action.params.amount} {plan.action.params.input} <span aria-label="to">→</span>{" "}
+            {plan.action.params.output}
+          </p>
+        )}
+        {plan.action.type === "perp_open" && (
+          <p className="nova-plan-amount">
+            {plan.action.params.market} <span>{plan.action.params.side}</span>{" "}
+            <small>{plan.action.params.leverage}×</small>
+          </p>
+        )}
         <dl>
           {Object.entries(plan.action.params).map(([key, value]) => (
             <div key={key}>

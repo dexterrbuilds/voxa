@@ -22,6 +22,29 @@ without Picovoice. The old room Path A and Path B files are unchanged.
 
 ## Architecture
 
+### Glacier presentation
+
+The launch-only `app/glacier.css` material system is shared by Nova, authentication,
+loading and the marketing launch page. It defines separate light/dark glacier palettes,
+surface/elevated/control/subtle materials, luminous edges and focus/motion tokens.
+The abstract Nova prism is a small local SVG asset; no remote asset dependency is added.
+Backdrop layers are limited to floating chrome/composer and open sheets. Repeated action
+objects use the elevated tint without per-message backdrop filtering. Reduced motion,
+reduced transparency and no-backdrop-filter fallbacks are provided.
+
+History remains an on-demand sheet, with focus containment, Escape-to-close and an account
+shortcut. Amount summaries are display-only; the same immutable plans, approval tokens,
+handlers and simulation disclaimers are preserved. Voice illumination reads the existing
+state only. No new environment variables, SQL, provider calls or execution paths are added.
+
+`tests/nova-launch-smoke.mjs` covers desktop/mobile light/dark screenshots, drawer behavior,
+approval controls, reduced viewport/composer layout, reduced motion and primary-control
+contrast. `tests/nova-marketing-smoke.mjs` covers the matching public surface. Screenshots
+are temporary artifacts, not committed. Browser fixtures do not validate live providers or
+physical iOS keyboard/performance behavior; those remain staging/device checks.
+
+### Application boundaries
+
 - `app/lib/nova-launch/types.ts`: response blocks, typed actions, account capabilities,
   model-provider and execution-adapter contracts.
 - `actions.ts`: strict validation, narrow intent recognition, bounded context, simulation adapter.

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BetaShell } from "@/components/BetaChrome";
 import { useAuth } from "@/lib/auth";
+import { platformEnabled } from "@/lib/product-features";
+import Loading from "../loading";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuth();
@@ -18,6 +20,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }, [initialized, pathname, router, user]);
 
   if (!initialized) {
+    if (!platformEnabled) return <Loading />;
     return (
       <BetaShell>
         <div className="grid min-h-screen place-items-center">

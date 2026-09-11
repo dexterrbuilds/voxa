@@ -1,0 +1,245 @@
+/* Launch-only materials. Dormant platform colors and contracts remain untouched. */
+.glacier-world {
+  --canvas: #edf4fb;
+  --text-primary: #182d46;
+  --text-secondary: #516782;
+  --brand: #1764af;
+  --brand-strong: #104d8c;
+  --brand-subtle: #dcecfb;
+  --glow: #89d8ff40;
+  --glass-border: #ffffffd9;
+  --glass-highlight: #ffffffec;
+  --glass-line: #7294b33d;
+  --glass-surface: #ffffffa6;
+  --glass-elevated: #f9fcfff0;
+  --glass-control: #e4eef9a6;
+  --glass-subtle: #ffffff52;
+  --glass-shadow: 0 18px 50px -26px #234a7352, 0 3px 10px #234a730a;
+  --glass-inset: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 #769bbb1a;
+  --glass-blur: 18px;
+  --radius-control: 12px;
+  --radius-floating: 24px;
+  --motion-glass: 220ms;
+  --success: #18764d;
+  --warning: #865307;
+  --danger: #b63145;
+  --background: var(--canvas);
+  --foreground: var(--text-primary);
+  --muted-foreground: var(--text-secondary);
+  --surface: var(--glass-control);
+  --surface-elevated: var(--glass-elevated);
+  --border: var(--glass-line);
+  --electric: var(--brand);
+  --electric-glow: var(--brand-strong);
+  --on-accent: #ffffff;
+  --error: var(--danger);
+  --focus: #2270bf;
+  --card: var(--glass-surface);
+  --primary: var(--brand);
+  --input-bg: var(--glass-subtle);
+  --input-focus-bg: var(--glass-control);
+  --glass-bg: var(--glass-control);
+  --header-bg: var(--glass-elevated);
+  --secondary: var(--glass-control);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--glass-control);
+  --accent: var(--brand-subtle);
+  --accent-foreground: var(--text-primary);
+  --primary-foreground: var(--on-accent);
+  --card-foreground: var(--text-primary);
+  --popover: var(--glass-elevated);
+  --popover-foreground: var(--text-primary);
+  --input: var(--glass-line);
+  --ring: var(--focus);
+  color: var(--text-primary);
+  background-color: var(--canvas);
+  background-image:
+    linear-gradient(122deg, #ffffff99, #ffffff00 38%, #c4e2ff55 62%, #ffffff88),
+    linear-gradient(28deg, #c9e5fb44, #ffffff00 48%, #ffffff99 49%, #ffffff00 72%);
+}
+.dark .glacier-world {
+  --canvas: #101b2b;
+  --text-primary: #eaf3ff;
+  --text-secondary: #a8bdd5;
+  --brand: #9bd6ff;
+  --brand-strong: #c5e8ff;
+  --brand-subtle: #233f5e;
+  --glow: #4fb9ff24;
+  --glass-border: #cce8ff2b;
+  --glass-highlight: #d5eeff30;
+  --glass-line: #96bde336;
+  --glass-surface: #213750ad;
+  --glass-elevated: #1d3047f2;
+  --glass-control: #304b6873;
+  --glass-subtle: #2b456133;
+  --glass-shadow: 0 24px 60px -24px #00000088, 0 4px 12px #00000022;
+  --glass-inset: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 #00000030;
+  --on-accent: #102c46;
+  --success: #8ddbb3;
+  --warning: #f0ca86;
+  --danger: #ffabb5;
+  --focus: #9bd6ff;
+  background-image:
+    linear-gradient(122deg, #213e6033, #101b2b00 38%, #285b8530 62%, #101b2b00),
+    linear-gradient(28deg, #14375244, #101b2b00 48%, #35598022 49%, #101b2b00 72%);
+}
+.glacier-world .glass-surface,
+.glacier-world .glass-elevated {
+  border: 1px solid var(--glass-border);
+  background: var(--glass-surface);
+  box-shadow: var(--glass-inset), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+}
+.glacier-world .glass-elevated {
+  background: var(--glass-elevated);
+}
+.glacier-world .glass-control {
+  background: var(--glass-control);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--glass-inset);
+}
+.glacier-world .glass-subtle {
+  background: var(--glass-subtle);
+  border: 1px solid var(--glass-line);
+}
+.glacier-world :is(button, a, input):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.glacier-world button {
+  transition:
+    background var(--motion-glass),
+    box-shadow var(--motion-glass),
+    transform var(--motion-glass);
+}
+.glacier-world button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+.glacier-world .synq-wordmark {
+  font-weight: 650;
+}
+.nova-presence {
+  width: 92px;
+  height: 92px;
+  filter: drop-shadow(0 10px 18px #458cca30);
+}
+.nova-presence-small {
+  width: 24px;
+  height: 24px;
+}
+.glacier-loading {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.glacier-loading .nova-presence {
+  animation: glacier-breathe 1.8s ease-in-out infinite;
+}
+.synq-app .glacier-auth.beta-page-shell {
+  background-color: var(--canvas);
+}
+.synq-app .glacier-auth::before,
+.synq-app .glacier-auth::after {
+  display: none;
+}
+.glacier-auth .synq-header {
+  background: var(--glass-subtle);
+  border-color: var(--glass-line);
+}
+.glacier-auth .glacier-auth-intro > img {
+  margin-bottom: 28px;
+}
+.synq-app .glacier-auth .glacier-auth-panel {
+  border-radius: var(--radius-floating);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-surface);
+  box-shadow: var(--glass-inset), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+}
+.glacier-auth .beta-text-gradient {
+  background: none;
+  color: var(--text-primary);
+  -webkit-text-fill-color: currentColor;
+}
+.glacier-auth input {
+  background: var(--glass-subtle);
+  border-color: var(--glass-line);
+  color: var(--text-primary);
+}
+.glacier-auth :is(h2, label) {
+  color: var(--text-primary);
+}
+.glacier-auth button[type="submit"] {
+  box-shadow:
+    var(--glass-inset),
+    0 5px 14px -8px var(--brand);
+}
+.glacier-landing .glacier-primary {
+  background: var(--brand);
+  color: var(--on-accent);
+  box-shadow: var(--glass-inset), var(--glass-shadow);
+  border-radius: var(--radius-control);
+}
+.glacier-landing .glacier-entry {
+  border-radius: var(--radius-floating);
+}
+@media (max-width: 600px) {
+  .glacier-auth .glacier-auth-intro > img {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 18px;
+  }
+  .glacier-auth .glacier-auth-intro h1 {
+    font-size: 30px;
+  }
+  .glacier-auth .glacier-auth-intro p {
+    margin-top: 14px;
+    font-size: 16px;
+  }
+}
+@keyframes glacier-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes glacier-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glacier-world .glass-surface,
+  .synq-app .glacier-auth .glacier-auth-panel {
+    background: var(--glass-elevated);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glacier-world .glass-surface,
+  .glacier-world .glass-elevated,
+  .synq-app .glacier-auth .glacier-auth-panel {
+    background: var(--glass-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glacier-world *,
+  .glacier-world *::before,
+  .glacier-world *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

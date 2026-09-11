@@ -8,6 +8,7 @@ import { ArrowRight, Mail } from "lucide-react";
 import { BetaButton, BetaEyebrow, BetaHeader, BetaPanel, BetaShell } from "@/components/BetaChrome";
 import { getDefaultAgent } from "@/lib/agents";
 import { useAuth } from "@/lib/auth";
+import "../glacier.css";
 
 type AuthMode = "login" | "signup" | "check-email";
 
@@ -194,10 +195,11 @@ export default function Login() {
   const displayedVerificationEmail = verificationEmail || email.trim().toLowerCase();
 
   return (
-    <BetaShell>
+    <BetaShell className={!platformEnabled ? "glacier-world glacier-auth" : undefined}>
       <BetaHeader />
       <div className="mx-auto grid max-w-5xl items-start gap-8 px-5 py-8 sm:py-16 lg:grid-cols-2 lg:gap-16">
-        <div>
+        <div className={!platformEnabled ? "glacier-auth-intro" : undefined}>
+          {!platformEnabled && <img className="nova-presence" src="/nova-prism.svg" alt="" />}
           <BetaEyebrow>
             {platformEnabled ? "Humans. Agents. Together." : "Nova, by Synq"}
           </BetaEyebrow>
@@ -222,7 +224,9 @@ export default function Login() {
           </p>
         </div>
 
-        <BetaPanel className="p-6 sm:p-8">
+        <BetaPanel
+          className={`p-6 sm:p-8 ${!platformEnabled ? "glacier-auth-panel glass-elevated" : ""}`}
+        >
           <div>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
