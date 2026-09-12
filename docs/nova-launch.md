@@ -4,6 +4,11 @@ Synq is the underlying platform. Nova is the first-party launch interface for un
 on-chain concepts and rehearsing structured actions. This release **does not execute trades**.
 It preserves the rebrand checkpoint and the broader platform rather than deleting capability.
 
+**Phase 2A extension:** [Solana reads and quote-only swaps](nova-solana.md) documents the
+server-side rollout flag, real read/quote providers, migration and review-only approval.
+The simulation-only descriptions below remain the default when that flag is false.
+Room voice and the existing Glacier material system are not replaced by this extension.
+
 ## Experience
 
 Marketing opens a Nova landing page. After authentication the beta opens `/nova`.

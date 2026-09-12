@@ -1,3 +1,4 @@
+import type { ChainBlock, LiveQuote, ResolvedSwapParams, TransactionFacts } from "./solana";
 export type AccountAccess = "read" | "propose" | "request_signature" | "execute";
 export type ConnectedAccount = {
   chain: "solana";
@@ -20,7 +21,9 @@ export type ActionType =
 export type Action =
   | {
       type: "swap";
-      params: { chain: "solana"; input: "SOL" | "USDC"; output: "SOL" | "USDC"; amount: number };
+      params:
+        | { chain: "solana"; input: "SOL" | "USDC"; output: "SOL" | "USDC"; amount: number }
+        | ResolvedSwapParams;
     }
   | {
       type: "perp_open";
@@ -40,12 +43,14 @@ export type Action =
   | { type: "portfolio_read" | "position_read" | "wallet_read"; params: { address: string } }
   | { type: "token_read"; params: { mint: string } }
   | { type: "transaction_read"; params: { signature: string } };
-export type Quote = {
-  mode: "simulation";
-  description: string;
-  assumptions: string[];
-  expiresAt: string;
-};
+export type Quote =
+  | LiveQuote
+  | {
+      mode: "simulation";
+      description: string;
+      assumptions: string[];
+      expiresAt: string;
+    };
 export type ActionPlan = {
   id: string;
   conversationId: string;
@@ -56,19 +61,20 @@ export type ActionPlan = {
   status: "pending" | "cancelled" | "superseded" | "executed";
 };
 export type ExecutionResult = {
-  mode: "simulation";
+  mode: "simulation" | "quote_only";
   planId: string;
   message: string;
   transactionSignature: null;
 };
 export type NovaBlock =
+  | ChainBlock
   | { type: "text" | "analysis_summary"; text: string }
   | { type: "action_plan" | "approval"; plan: ActionPlan }
   | { type: "quote"; quote: Quote }
   | { type: "execution_result"; result: ExecutionResult }
   | { type: "wallet"; account: ConnectedAccount }
   | {
-      type: "token" | "transaction" | "portfolio" | "position";
+      type: "position";
       label: string;
       address: string;
       verified: false;
@@ -88,6 +94,8 @@ export type NovaModelEvent =
   | { type: "proposal"; action: unknown };
 export interface NovaModelProvider {
   id: string;
+  extractIntent?(prompt: string, signal: AbortSignal): Promise<unknown>;
+  explainTransaction?(facts: TransactionFacts, signal: AbortSignal): Promise<string>;
   stream(input: {
     context: Pick<Turn, "role" | "text">[];
     prompt: string;
@@ -99,7 +107,7 @@ export interface ActionAdapter {
   id: string;
   supports(action: Action): boolean;
   validate(action: unknown): Action;
-  quote(action: Action): Quote;
+  quote(action: Action, signal?: AbortSignal): Quote | Promise<Quote>;
   simulate(plan: ActionPlan, signal: AbortSignal): Promise<ExecutionResult>;
   execute(
     plan: ActionPlan,

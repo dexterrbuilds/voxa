@@ -4,7 +4,8 @@
 
 The public product now opens `/nova`: saved private conversations, streamed text,
 silence-bounded voice input, local reply playback, read-only address context, and approved
-**simulations only**. Existing room voice/LiveKit, external runtime, SDK and permissions are
+simulations by default. Phase 2A optionally enables real public Solana data and **quote-only**
+swaps. Existing room voice/LiveKit, external runtime, SDK and permissions are
 preserved. The platform sections below describe dormant functionality.
 
 **Deployment requires `supabase-nova-launch.sql`.** Run this additive/idempotent file in
@@ -23,6 +24,16 @@ interface. Unknown providers fail closed. No user-facing model selector exists.
 
 See [Nova launch guide](../docs/nova-launch.md) for action security, persistence, provider
 and adapter boundaries, manual tests and staging requirements.
+
+### Phase 2A rollout
+
+Apply `supabase-nova-quotes.sql` after `supabase-nova-launch.sql`. This replaces one
+service-only approval routine; no new tables or RLS relaxation. Set server-only
+`SOLANA_RPC_URL`, `JUPITER_API_KEY`, `NOVA_SOLANA_ENABLED=true`, then deploy. Public
+capabilities are fetched after auth; the platform launch flags remain false. Roll back
+with `NOVA_SOLANA_ENABLED=false`; retain the compatible SQL and existing saved quotes.
+See [Solana reads and quote-only architecture](../docs/nova-solana.md) for full setup,
+security limits, fixtures, live validation and the Phase 2B boundary.
 
 ```sh
 npm run lint

@@ -1,11 +1,18 @@
 # Synq
 
 **Nova, by Synq. What do you want to do on-chain?** The launch experience is a private
-conversation with Nova: text, voice, saved history and explicitly approved simulations.
-No live trades, transfers, wallet balances or positions are connected in this release.
+conversation with Nova: text, voice, saved history and explicitly reviewed action plans.
+Phase 2A adds real Solana reads and Jupiter swap quotes behind `NOVA_SOLANA_ENABLED`.
+No trades or transfers execute; positions and perpetual plans remain simulations.
 Synq's broader communication/agent platform remains intact underneath, dormant by default.
 
 ## Nova Launch Mode
+
+See [Phase 2A rollout and validation](docs/nova-solana.md). Before enabling it, apply
+`voxa-beta/supabase-nova-quotes.sql` **after** the launch migration and configure server-only
+`SOLANA_RPC_URL`, `JUPITER_API_KEY`, and `NOVA_SOLANA_ENABLED=true`. Quote approval records
+review only. No transaction is constructed, signed or submitted. Missing providers do not
+silently fall back to fabricated quotes. The default flag remains false for safe rollout.
 
 Signed-in users land at `/nova`. Apply the additive
 [`supabase-nova-launch.sql`](voxa-beta/supabase-nova-launch.sql) before deployment.

@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { simulationAdapter } from "@/lib/nova-launch/actions";
 import type { ActionPlan } from "@/lib/nova-launch/types";
+import type { Action, Quote } from "@/lib/nova-launch/types";
+import { validateQuoteAction } from "./chain/quotes";
 
 // jsonb does not preserve object key order. Hash the same canonical representation
 // before storage and after loading, while preserving array order and scalar values.
@@ -17,6 +19,14 @@ function canonical(value: unknown): string {
 export function createPlan(conversationId: string, input: unknown): ActionPlan {
   const action = simulationAdapter.validate(input);
   const quote = simulationAdapter.quote(action);
+  return sealPlan(conversationId, action, quote);
+}
+export function createQuotePlan(conversationId: string, input: unknown, quote: Quote): ActionPlan {
+  const action = validateQuoteAction(input);
+  if (quote.mode !== "quote_only") throw new Error("A live quote is required.");
+  return sealPlan(conversationId, action, quote);
+}
+function sealPlan(conversationId: string, action: Action, quote: Quote): ActionPlan {
   const id = randomUUID();
   const hash = createHash("sha256")
     .update(canonical({ id, conversationId, action, quote }))
@@ -43,5 +53,6 @@ export function verifyPlan(plan: ActionPlan) {
     )
     .digest("hex");
   if (hash !== plan.hash) throw new Error("Plan changed. A new approval is required.");
-  simulationAdapter.validate(plan.action);
+  if (plan.quote.mode === "quote_only") validateQuoteAction(plan.action);
+  else simulationAdapter.validate(plan.action);
 }

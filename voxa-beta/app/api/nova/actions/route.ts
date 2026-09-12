@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { launchAccess, storageError, uuid } from "@/lib/server/nova-launch/access";
 import { verifyPlan } from "@/lib/server/nova-launch/plans";
 import { simulationAdapter } from "@/lib/nova-launch/actions";
+import { getSwapAdapter } from "@/lib/server/nova-launch/chain/quotes";
 export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   const a = await launchAccess(request);
@@ -26,7 +27,9 @@ export async function POST(request: NextRequest) {
   try {
     verifyPlan(record.plan);
     if (body.operation === "approve" && record.status !== "executed")
-      await simulationAdapter.simulate(record.plan, request.signal);
+      await (
+        record.plan.quote.mode === "quote_only" ? getSwapAdapter() : simulationAdapter
+      ).simulate(record.plan, request.signal);
     const { data, error: rpcError } = await a.db.rpc("nova_launch_approve", {
       p_owner: a.user.id,
       p_id: body.id,
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch {
     return NextResponse.json(
-      { error: "This plan cannot be approved. Request a new simulation." },
+      { error: "This plan cannot be approved. Request a fresh quote or simulation." },
       { status: 409 },
     );
   }

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { launchAccess, storageError, uuid } from "@/lib/server/nova-launch/access";
 import { understandIntent, actionSchemas, boundedContext } from "@/lib/nova-launch/actions";
-import { createPlan } from "@/lib/server/nova-launch/plans";
+import { createPlan, verifyPlan } from "@/lib/server/nova-launch/plans";
 import { getNovaModelProvider } from "@/lib/server/nova-launch/model";
-import type { NovaBlock } from "@/lib/nova-launch/types";
+import type { ActionPlan, NovaBlock } from "@/lib/nova-launch/types";
+import { handleChainRequest, solanaEnabled } from "@/lib/server/nova-launch/chain/service";
+import { ChainError } from "@/lib/server/nova-launch/chain/transport";
+import { readContext } from "@/lib/server/nova-launch/chain/intent";
+import { SolanaInputError } from "@/lib/nova-launch/solana";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -25,6 +29,37 @@ export async function POST(request: NextRequest) {
     p_conversation: body.conversationId,
     p_request: body.requestId,
   };
+  let requote: ActionPlan | undefined;
+  if (solanaEnabled()) {
+    try {
+      readContext(body.account);
+    } catch {
+      return NextResponse.json({ error: "Enter a valid public Solana address." }, { status: 400 });
+    }
+    if (body.requotePlanId !== undefined) {
+      if (!uuid.test(body.requotePlanId))
+        return NextResponse.json({ error: "Invalid quote." }, { status: 400 });
+      const prior = await a.db
+        .from("nova_action_plans")
+        .select("plan")
+        .eq("id", body.requotePlanId)
+        .eq("owner_id", a.user.id)
+        .eq("conversation_id", body.conversationId)
+        .maybeSingle();
+      if (prior.error) return storageError();
+      if (!prior.data || prior.data.plan.quote.mode !== "quote_only")
+        return NextResponse.json(
+          { error: "Quote unavailable in this conversation." },
+          { status: 404 },
+        );
+      try {
+        verifyPlan(prior.data.plan);
+      } catch {
+        return NextResponse.json({ error: "Quote changed. Request a new quote." }, { status: 409 });
+      }
+      requote = prior.data.plan;
+    }
+  }
   const { error } = await a.db.rpc("nova_launch_turn", {
     ...args,
     p_operation: "start",
@@ -57,22 +92,42 @@ export async function POST(request: NextRequest) {
       };
       try {
         emit({ type: "state", state: "thinking" });
-        const intent = understandIntent(body.text);
+        const recent = history.data.reverse();
+        const chain = solanaEnabled()
+          ? await handleChainRequest({
+              prompt: body.text,
+              owner: a.user.id,
+              conversationId: body.conversationId,
+              account: body.account,
+              history: recent,
+              signal,
+              model: getNovaModelProvider,
+              requote,
+            })
+          : null;
+        const intent = chain ? null : understandIntent(body.text);
         let text = "";
         const blocks: NovaBlock[] = [];
-        let plan = null;
-        if ("action" in intent) {
+        let plan: ActionPlan | null = null;
+        if (chain) {
+          text = chain.text;
+          plan = chain.plan;
+          blocks.push(...chain.blocks);
+          emit({ type: "text", delta: text });
+        } else if (intent && "action" in intent) {
           plan = createPlan(body.conversationId, intent.action);
           text =
             "Here is a simulation plan. Review the exact parameters below. This does not use a live quote or move funds.";
           blocks.push({ type: "action_plan", plan });
           emit({ type: "text", delta: text });
-        } else if ("clarification" in intent) {
-          text = intent.clarification;
+        } else if (intent && "clarification" in intent) {
+          text = solanaEnabled()
+            ? "I can read public Solana accounts and quote swaps. Please specify an address or an exact swap amount and both tokens. Positions remain simulated; transfers and execution are disabled."
+            : intent.clarification;
           emit({ type: "text", delta: text });
         } else {
           for await (const event of getNovaModelProvider().stream({
-            context: boundedContext(history.data.reverse()),
+            context: boundedContext(recent),
             prompt: body.text,
             signal,
             actionSchemas,
@@ -97,10 +152,24 @@ export async function POST(request: NextRequest) {
         });
         if (saved.error) throw new Error("Response not saved.");
         emit({ type: "complete", blocks });
-      } catch {
+      } catch (error) {
+        if (solanaEnabled())
+          console.warn("nova_chain_request", {
+            requestId: body.requestId,
+            status: "failed",
+            code:
+              error instanceof ChainError
+                ? error.code
+                : error instanceof SolanaInputError
+                  ? "invalid_input"
+                  : "unavailable",
+          });
         emit({
           type: "error",
-          error: "Nova couldn't finish this reply. Please try again. No transaction was executed.",
+          error:
+            error instanceof ChainError || error instanceof SolanaInputError
+              ? error.message
+              : "Nova couldn't finish this reply. Please try again. No transaction was executed.",
         });
         await a.db.rpc("nova_launch_turn", { ...args, p_operation: "cancel" });
       } finally {

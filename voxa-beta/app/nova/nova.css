@@ -117,7 +117,9 @@
 .nova-suggestions button:hover {
   border-color: var(--glass-highlight);
   background-color: var(--glass-control);
-  box-shadow: var(--glass-inset), 0 5px 12px -8px var(--brand);
+  box-shadow:
+    var(--glass-inset),
+    0 5px 12px -8px var(--brand);
   transform: translateY(-1px);
 }
 .nova-turn {
@@ -473,6 +475,52 @@
 .nova-address {
   overflow-wrap: anywhere;
   font-family: monospace;
+}
+.nova-chain-object {
+  max-width: 100%;
+}
+.nova-chain-address {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.nova-chain-object dl > div {
+  align-items: start;
+}
+.nova-chain-object dt {
+  min-width: 0;
+  max-width: 65%;
+}
+.nova-chain-object dd {
+  max-width: 45%;
+}
+.nova-plan details {
+  margin: 14px 0;
+  font-size: 14px;
+}
+.nova-plan summary {
+  cursor: pointer;
+  color: var(--brand);
+  padding: 8px 0;
+}
+.nova-plan h4 {
+  font-size: 13px;
+  margin: 12px 0 4px;
+}
+.nova-activity-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--glass-line);
+}
+.nova-activity-list span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.nova-quote-warning {
+  color: var(--warning);
+  font-size: 13px;
 }
 @keyframes glacier-sheet {
   from {

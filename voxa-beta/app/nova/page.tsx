@@ -21,6 +21,8 @@ import { novaFetch } from "@/lib/nova-launch/client";
 import { startCapture } from "@/lib/nova-launch/capture";
 import { useWakeWord } from "@/lib/wake-word/useWakeWord";
 import { isWakeWordEnabled } from "@/lib/wake-word/config";
+import { solanaAddress, type ResolvedSwapParams } from "@/lib/nova-launch/solana";
+import { ChainObject, QuoteFacts } from "./ChainObjects";
 import type {
   ActionPlan,
   ConnectedAccount,
@@ -62,6 +64,7 @@ function NovaExperience() {
   const [walletOpen, setWalletOpen] = useState(false);
   const [address, setAddress] = useState("");
   const [account, setAccount] = useState<ConnectedAccount | null>(null);
+  const [chainEnabled, setChainEnabled] = useState(false);
   const [pending, setPending] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState("");
@@ -102,6 +105,12 @@ function NovaExperience() {
   }
   useEffect(() => {
     mounted.current = true;
+    void novaFetch("capabilities")
+      .then((r) => r.json())
+      .then((data) => {
+        if (mounted.current) setChainEnabled(data.solanaReads === true);
+      })
+      .catch(() => {});
     void novaFetch("conversations")
       .then((r) => r.json())
       .then((data) => {
@@ -209,6 +218,7 @@ function NovaExperience() {
     text = draft,
     conversationOverride: Conversation | null = null,
     readReply = false,
+    requotePlanId?: string,
   ) {
     if (!text.trim() || busy.current || pending) return;
     busy.current = true;
@@ -243,7 +253,16 @@ function NovaExperience() {
       ]);
       const response = await novaFetch("message", {
         method: "POST",
-        body: JSON.stringify({ ...request.current, text }),
+        body: JSON.stringify({
+          ...request.current,
+          text,
+          ...(chainEnabled
+            ? {
+                account: account ? { address: account.address, kind: account.kind } : null,
+                requotePlanId,
+              }
+            : {}),
+        }),
         signal: controller.signal,
       });
       const reader = response.body?.getReader();
@@ -470,7 +489,9 @@ function NovaExperience() {
     }
   }
   function watchAddress(value: string, kind: "watch" | "wallet" = "watch") {
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value.trim())) {
+    try {
+      solanaAddress(value.trim());
+    } catch {
       setError("Enter a Solana address, not a seed phrase or private key.");
       return;
     }
@@ -641,7 +662,9 @@ function NovaExperience() {
                 ))}
               </div>
               <p className="nova-muted">
-                Actions are simulations. No funds move. Live wallet data is not connected yet.
+                {chainEnabled
+                  ? "Read public Solana data and review live quotes. Signing and execution are disabled."
+                  : "Actions are simulations. No funds move. Live wallet data is not connected yet."}
               </p>
             </section>
           ) : (
@@ -658,6 +681,7 @@ function NovaExperience() {
                   <Block
                     key={i}
                     block={block}
+                    refresh={(plan) => send("Refresh this quote", selected, false, plan.id)}
                     saved={plans}
                     disabled={pending || state !== "idle"}
                     approve={approve}
@@ -743,7 +767,9 @@ function NovaExperience() {
                     ? "Responding…"
                     : state === "speaking"
                       ? "Speaking"
-                      : "Simulation only"}
+                      : chainEnabled
+                        ? "Read & quote only"
+                        : "Simulation only"}
             </span>
             <div className="nova-row">
               {state === "idle" ? (
@@ -851,6 +877,11 @@ function NovaExperience() {
                 </button>
                 {account && (
                   <>
+                    <p className="nova-muted">
+                      {account.kind === "wallet"
+                        ? "Connected wallet · read-only"
+                        : "Address being inspected · no ownership claimed"}
+                    </p>
                     <p className="nova-address">{account.address}</p>
                     <button className="nova-text-action" onClick={() => setAccount(null)}>
                       Remove account access
@@ -897,20 +928,44 @@ function Block({
   disabled,
   approve,
   modify,
+  refresh,
 }: {
   block: NovaBlock;
   saved: SavedPlan[];
   disabled: boolean;
   approve: (p: ActionPlan, op: "approve" | "cancel") => Promise<boolean>;
   modify: (p: ActionPlan) => Promise<void>;
+  refresh: (p: ActionPlan) => Promise<void>;
 }) {
+  const [now, setNow] = useState(Date.now);
+  const quoteExpiry =
+    (block.type === "action_plan" || block.type === "approval") &&
+    block.plan.quote.mode === "quote_only"
+      ? Date.parse(block.plan.quote.expiresAt)
+      : null;
+  useEffect(() => {
+    if (quoteExpiry === null) return;
+    const timer = setTimeout(() => setNow(Date.now()), Math.max(0, quoteExpiry - Date.now()) + 20);
+    return () => clearTimeout(timer);
+  }, [quoteExpiry]);
+  if (
+    block.type === "portfolio" ||
+    block.type === "token" ||
+    block.type === "transaction" ||
+    block.type === "activity"
+  )
+    return <ChainObject block={block} />;
   if (block.type === "action_plan" || block.type === "approval") {
     const plan = block.plan;
     const record = saved.find((p) => p.id === plan.id);
     const status = record?.status || plan.status;
+    const realQuote = plan.quote.mode === "quote_only";
+    const expired = Date.parse(plan.quote.expiresAt) <= now;
     return (
       <section className="nova-plan glass-elevated">
-        <div className="nova-kicker">Simulation · not a transaction</div>
+        <div className="nova-kicker">
+          {realQuote ? "Live quote · execution disabled" : "Simulation · not a transaction"}
+        </div>
         <h3>{plan.action.type === "swap" ? "Review swap" : "Review SOL position"}</h3>
         {plan.action.type === "swap" && (
           <p className="nova-plan-amount">
@@ -924,22 +979,31 @@ function Block({
             <small>{plan.action.params.leverage}×</small>
           </p>
         )}
-        <dl>
-          {Object.entries(plan.action.params).map(([key, value]) => (
-            <div key={key}>
-              <dt>{key}</dt>
-              <dd>
-                {String(value)}
-                {key === "collateral" ? " USDC" : key === "leverage" ? "x" : ""}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {realQuote && plan.quote.mode === "quote_only" && plan.action.type === "swap" ? (
+          <QuoteFacts quote={plan.quote} params={plan.action.params as ResolvedSwapParams} />
+        ) : (
+          <dl>
+            {Object.entries(plan.action.params).map(([key, value]) => (
+              <div key={key}>
+                <dt>{key}</dt>
+                <dd>
+                  {String(value)}
+                  {key === "collateral" ? " USDC" : key === "leverage" ? "x" : ""}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         <p className="nova-muted">
-          No live price, fees or liquidation estimate. Expires{" "}
+          {realQuote
+            ? expired
+              ? "Quote expired. Refresh before approving. Quoted until "
+              : "Quote expires "
+            : "No live price, fees or liquidation estimate. Expires "}
           {new Date(plan.quote.expiresAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
+            second: realQuote ? "2-digit" : undefined,
           })}
           .
         </p>
@@ -966,10 +1030,10 @@ function Block({
             </button>
             <button
               className="nova-primary"
-              disabled={disabled || Date.parse(plan.quote.expiresAt) <= Date.now()}
+              disabled={disabled || expired}
               onClick={() => void approve(plan, "approve")}
             >
-              Approve simulation
+              {realQuote ? "Approve quote" : "Approve simulation"}
             </button>
           </div>
         ) : (
@@ -978,6 +1042,11 @@ function Block({
               ? "Replaced by a newer request. Approval invalidated."
               : "Cancelled. Request a new plan to continue."}
           </p>
+        )}
+        {realQuote && (
+          <button className="nova-secondary" disabled={disabled} onClick={() => void refresh(plan)}>
+            Refresh quote
+          </button>
         )}
       </section>
     );

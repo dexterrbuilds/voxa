@@ -119,11 +119,11 @@ export function boundedContext(turns: Pick<Turn, "role" | "text">[]) {
     .reverse();
 }
 
-export const simulationAdapter: ActionAdapter = {
+export const simulationAdapter = {
   id: "simulation-v1",
-  supports: (action) => action.type === "swap" || action.type === "perp_open",
+  supports: (action: Action) => action.type === "swap" || action.type === "perp_open",
   validate: validateAction,
-  quote(action) {
+  quote(action: Action): import("./types").Quote {
     validateAction(action);
     return {
       mode: "simulation",
@@ -136,7 +136,10 @@ export const simulationAdapter: ActionAdapter = {
       expiresAt: new Date(Date.now() + 5 * 60000).toISOString(),
     };
   },
-  async simulate(plan, signal) {
+  async simulate(
+    plan: ActionPlan,
+    signal: AbortSignal,
+  ): Promise<import("./types").ExecutionResult> {
     signal.throwIfAborted();
     validateAction(plan.action);
     if (Date.parse(plan.quote.expiresAt) <= Date.now())
@@ -153,4 +156,4 @@ export const simulationAdapter: ActionAdapter = {
       "Real execution is disabled. A wallet connection never grants transaction permission.",
     );
   },
-};
+} satisfies ActionAdapter;
