@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { LaunchAuthProvider, LaunchGate, useLaunchAuth } from "@/components/identity/LaunchAuth";
 import { privyEnabled } from "@/lib/identity/config";
+import { CapabilityPlanCard } from "@/components/CapabilityPlanCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { novaFetch } from "@/lib/nova-launch/client";
 import { startCapture } from "@/lib/nova-launch/capture";
@@ -998,6 +999,7 @@ function Block({
     block.type === "activity"
   )
     return <ChainObject block={block} />;
+  if (block.type === "capability_plan") return <CapabilityPlanCard plan={block.plan} />;
   if (block.type === "action_plan" || block.type === "approval") {
     const plan = block.plan;
     const record = saved.find((p) => p.id === plan.id);

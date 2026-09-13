@@ -1,4 +1,5 @@
 import type { ChainBlock, LiveQuote, ResolvedSwapParams, TransactionFacts } from "./solana";
+import type { CapabilityPlan } from "./capability-types";
 export type AccountAccess = "read" | "propose" | "request_signature" | "execute";
 export type ConnectedAccount = {
   chain: "solana";
@@ -67,6 +68,7 @@ export type ExecutionResult = {
   transactionSignature: null;
 };
 export type NovaBlock =
+  | { type: "capability_plan"; plan: CapabilityPlan }
   | ChainBlock
   | { type: "text" | "analysis_summary"; text: string }
   | { type: "action_plan" | "approval"; plan: ActionPlan }

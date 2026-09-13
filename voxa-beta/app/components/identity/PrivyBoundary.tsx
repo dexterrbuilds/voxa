@@ -6,6 +6,7 @@ import { LaunchAuthContext } from "./LaunchAuth";
 import { novaFetch } from "@/lib/nova-launch/client";
 import type { SynqIdentity } from "@/lib/identity/wallet";
 import { useTheme } from "@/components/ThemeProvider";
+import { SetupError } from "@/lib/setup-errors";
 
 // Single flight survives rerenders/remounts; SDK createAdditional:false also rejects duplicates.
 const provisioning = new Map<string, Promise<unknown>>();
@@ -64,10 +65,12 @@ function Session({ children }: { children: React.ReactNode }) {
           });
         }
         throw new Error("wallet_not_ready");
-      } catch {
+      } catch (failure) {
         if (!controller.signal.aborted)
           setError(
-            "We couldn't prepare your wallet. Try again; an existing wallet will be reused.",
+            failure instanceof SetupError
+              ? failure.message
+              : "We couldn't prepare your wallet. Try again; an existing wallet will be reused.",
           );
       }
     }

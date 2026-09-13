@@ -9,6 +9,8 @@ import { ChainError } from "@/lib/server/nova-launch/chain/transport";
 import { readContext } from "@/lib/server/nova-launch/chain/intent";
 import { SolanaInputError } from "@/lib/nova-launch/solana";
 import { novaWalletContext } from "@/lib/identity/wallet";
+import { SetupError, missingSchema } from "@/lib/setup-errors";
+import { dexterPlanningDemo, planningDemoPrompt } from "@/lib/server/nova-launch/planning-demo";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
         .eq("owner_id", a.user.id)
         .eq("conversation_id", body.conversationId)
         .maybeSingle();
-      if (prior.error) return storageError();
+      if (prior.error) return storageError(prior.error);
       if (!prior.data || prior.data.plan.quote.mode !== "quote_only")
         return NextResponse.json(
           { error: "Quote unavailable in this conversation." },
@@ -76,6 +78,7 @@ export async function POST(request: NextRequest) {
     p_operation: "start",
     p_text: body.text,
   });
+  if (missingSchema(error)) return storageError(error);
   if (error)
     return NextResponse.json(
       {
@@ -92,7 +95,7 @@ export async function POST(request: NextRequest) {
     .neq("request_id", body.requestId)
     .order("created_at", { ascending: false })
     .limit(12);
-  if (history.error) return storageError();
+  if (history.error) return storageError(history.error);
   const abort = new AbortController();
   const signal = AbortSignal.any([request.signal, abort.signal, AbortSignal.timeout(50000)]);
   const encoder = new TextEncoder();
@@ -104,23 +107,33 @@ export async function POST(request: NextRequest) {
       try {
         emit({ type: "state", state: "thinking" });
         const recent = history.data.reverse();
-        const chain = solanaEnabled()
-          ? await handleChainRequest({
-              prompt: body.text,
-              owner: a.user.id,
-              conversationId: body.conversationId,
-              account: body.account,
-              history: recent,
-              signal,
-              model: getNovaModelProvider,
-              requote,
-            })
-          : null;
+        const demo =
+          body.text.trim().toLowerCase() === planningDemoPrompt.toLowerCase()
+            ? dexterPlanningDemo(a.user.id, body.conversationId)
+            : null;
+        const chain =
+          !demo && solanaEnabled()
+            ? await handleChainRequest({
+                prompt: body.text,
+                owner: a.user.id,
+                conversationId: body.conversationId,
+                account: body.account,
+                history: recent,
+                signal,
+                model: getNovaModelProvider,
+                requote,
+              })
+            : null;
         const intent = chain ? null : understandIntent(body.text);
         let text = "";
         const blocks: NovaBlock[] = [];
         let plan: ActionPlan | null = null;
-        if (chain) {
+        if (demo) {
+          text =
+            "This is a non-executing example plan. Future integrations, allocation validation and wallet approvals are not implemented. No provider has been called.";
+          blocks.push({ type: "capability_plan", plan: demo });
+          emit({ type: "text", delta: text });
+        } else if (chain) {
           text = chain.text;
           plan = chain.plan;
           blocks.push(...chain.blocks);
@@ -161,6 +174,7 @@ export async function POST(request: NextRequest) {
           p_blocks: blocks,
           p_plan: plan,
         });
+        if (missingSchema(saved.error)) throw new SetupError("database_migration_required");
         if (saved.error) throw new Error("Response not saved.");
         emit({ type: "complete", blocks });
       } catch (error) {
@@ -178,7 +192,9 @@ export async function POST(request: NextRequest) {
         emit({
           type: "error",
           error:
-            error instanceof ChainError || error instanceof SolanaInputError
+            error instanceof SetupError ||
+            error instanceof ChainError ||
+            error instanceof SolanaInputError
               ? error.message
               : "Nova couldn't finish this reply. Please try again. No transaction was executed.",
         });
@@ -208,5 +224,5 @@ export async function DELETE(request: NextRequest) {
     p_request: body.requestId,
     p_operation: "cancel",
   });
-  return error ? storageError() : NextResponse.json({ ok: true });
+  return error ? storageError(error) : NextResponse.json({ ok: true });
 }

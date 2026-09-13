@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { privyEnabled } from "@/lib/identity/config";
+import { privyEnabled, privySetupMessage } from "@/lib/identity/config";
 import type { SynqIdentity } from "@/lib/identity/wallet";
 import Loading from "@/loading";
 
@@ -44,6 +44,23 @@ function LegacyBoundary({ children }: { children: React.ReactNode }) {
   );
 }
 export function LaunchAuthProvider({ children }: { children: React.ReactNode }) {
+  if (privyEnabled && !process.env.NEXT_PUBLIC_PRIVY_APP_ID)
+    return (
+      <LaunchAuthContext.Provider
+        value={{
+          user: null,
+          initialized: false,
+          authenticated: false,
+          error: privySetupMessage,
+          status: "",
+          retry: () => {},
+          login: () => {},
+          logout: async () => {},
+        }}
+      >
+        {children}
+      </LaunchAuthContext.Provider>
+    );
   return privyEnabled ? (
     <PrivyBoundary>{children}</PrivyBoundary>
   ) : (

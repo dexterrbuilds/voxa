@@ -1,5 +1,6 @@
 -- Apply AFTER supabase-nova-launch.sql. Additive/idempotent routine extension only.
 -- Existing tables, RLS and historic simulations remain unchanged. No chain execution.
+begin;
 create or replace function public.nova_launch_approve(p_owner uuid,p_id uuid,p_hash text,p_token uuid,p_cancel boolean default false)
 returns jsonb language plpgsql security definer set search_path=public as $$
 declare p public.nova_action_plans; r jsonb; cid uuid; mode text;
@@ -30,3 +31,16 @@ begin
 end $$;
 revoke all on function public.nova_launch_approve(uuid,uuid,text,uuid,boolean) from public,anon,authenticated;
 grant execute on function public.nova_launch_approve(uuid,uuid,text,uuid,boolean) to service_role;
+
+-- Deployment preflight only. No user data or mutations; missing routine means setup is incomplete.
+create or replace function public.nova_launch_readiness() returns jsonb
+language sql security definer set search_path=public as $$
+  select jsonb_build_object('version',2,'ready',
+    to_regclass('public.nova_conversations') is not null and
+    to_regclass('public.nova_messages') is not null and
+    to_regclass('public.nova_action_plans') is not null and
+    to_regprocedure('public.nova_launch_turn(uuid,uuid,uuid,text,text,jsonb,jsonb)') is not null);
+$$;
+revoke all on function public.nova_launch_readiness() from public,anon,authenticated;
+grant execute on function public.nova_launch_readiness() to service_role;
+commit;

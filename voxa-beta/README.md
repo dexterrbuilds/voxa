@@ -2,12 +2,17 @@
 
 ## Privy Authentication Rollout
 
+Start with [the exact staging checklist](../docs/staging-launch-checklist.md) and
+[capability planner architecture](../docs/nova-capability-planning.md). No migrations are
+automatically applied. Missing schema/config returns a setup state; execution remains disabled.
+
 See [Privy setup, identity/RLS migration and staging checks](../docs/privy-auth.md).
-Set `NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=privy` only after configuring Privy and the server-only
+Privy is the default (`NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=privy`) and requires the server-only
 Supabase JWT bridge and applying `supabase-privy-identity.sql` after the two Nova migrations.
 Email and optional Google provision/reuse a canonical embedded Solana wallet. Nova defaults
 to it for reads/quotes; inspected addresses remain separate. No signing or submission is added.
-Unset/the `supabase` setting retains legacy authentication for rollback. Old histories remain
+Legacy login requires provider=supabase plus `NEXT_PUBLIC_SYNQ_LEGACY_AUTH_ENABLED=true` in
+non-production development only. Unset configuration never exposes legacy signup. Old histories remain
 intact but require explicit verified migration, never email-only linking.
 
 ## Nova Launch (Default)

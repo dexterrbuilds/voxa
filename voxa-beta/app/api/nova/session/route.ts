@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSynqUser, verifiedSynqSession } from "@/lib/server/identity/access";
 import { privyEnabled } from "@/lib/identity/config";
+import { novaSchemaStatus } from "@/lib/server/readiness";
 export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   if (!privyEnabled) return NextResponse.json({ error: "Unavailable" }, { status: 404 });
   const a = await requireSynqUser(request);
   if (a instanceof NextResponse) return a;
+  const setup = await novaSchemaStatus(a.db);
+  if (setup) return setup;
   return NextResponse.json({ user: a.user }, { headers: { "Cache-Control": "no-store" } });
 }
 export async function DELETE(request: NextRequest) {

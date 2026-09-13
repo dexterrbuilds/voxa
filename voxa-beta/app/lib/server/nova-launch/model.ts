@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { boundedContext } from "@/lib/nova-launch/actions";
 import type { NovaModelProvider } from "@/lib/nova-launch/types";
+import { SetupError } from "@/lib/setup-errors";
 
 export const geminiLaunchProvider: NovaModelProvider = {
   id: "gemini",
@@ -62,7 +63,7 @@ export const geminiLaunchProvider: NovaModelProvider = {
   },
   async *stream({ context, prompt, signal }) {
     signal.throwIfAborted();
-    if (!process.env.GOOGLE_API_KEY) throw new Error("Nova is unavailable. Try again shortly.");
+    if (!process.env.GOOGLE_API_KEY) throw new SetupError("model_configuration");
     const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
     const response = await ai.models.generateContentStream({
       model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
@@ -91,6 +92,6 @@ Never claim to have executed, signed or moved funds. Quote approval is only reco
 };
 export function getNovaModelProvider(): NovaModelProvider {
   const name = process.env.NOVA_MODEL_PROVIDER || "gemini";
-  if (name !== "gemini") throw new Error("The configured Nova model is unavailable.");
+  if (name !== "gemini") throw new SetupError("model_configuration");
   return geminiLaunchProvider;
 }

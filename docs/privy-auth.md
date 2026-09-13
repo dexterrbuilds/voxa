@@ -1,9 +1,11 @@
 # Privy authentication and Synq wallets
 
 This migration changes Nova launch authentication, not transaction permissions. The
-broader platform and its Supabase authentication remain dormant and intact. Roll out
-explicitly with `NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=privy` after the configuration below.
-Unset/the legacy `supabase` setting retains the previous login for rollback and fixtures.
+broader platform and its Supabase authentication remain dormant and intact. Privy is the
+default; configure it using [the staging checklist](staging-launch-checklist.md).
+Missing configuration shows an explicit setup state. Legacy Supabase forms require BOTH
+`NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=supabase` and `NEXT_PUBLIC_SYNQ_LEGACY_AUTH_ENABLED=true`
+in non-production development. Production always selects Privy, even with these overrides.
 Never silently fall back to Supabase when Privy verification fails in Privy mode.
 
 ## Supported integration
@@ -133,7 +135,7 @@ the same app. Apply SQL, register the Supabase bridge key, set Vercel server sec
 public build settings, then redeploy. Retain existing launch-mode platform flags as false.
 Never commit `.env.local`. Use Node 22/24 LTS in deployment.
 
-## Validation and rollout limits
+## Migration checkpoint validation (historical)
 
 Automated: original 56 regressions unchanged, plus 11 auth/wallet tests. Real Privy ES256
 verification is exercised with generated disposable test keys, including wrong audience,
@@ -151,6 +153,9 @@ Privy SDK adapter and API fixtures. The test entry/aliases never enter Next conf
 or production bundles. Screenshots go to `/private/tmp`, not Git. This does NOT validate
 real OTP delivery, wallet creation, live quotes, real hosted RLS or mobile Privy redirects.
 The unmodified Nova smoke remains the legacy rollback-mode regression.
+For the readiness pass, run that legacy smoke against an explicitly selected development
+server, not a production legacy build. Production legacy forms are now blocked. New readiness
+tests are additive; see the staging checklist for the current validation matrix.
 
 Run from `voxa-beta`: `npm run lint`, `npx tsc --noEmit`, `npm run build`;
 `node --require ./tests/register.cjs --test tests/*.test.cjs`.

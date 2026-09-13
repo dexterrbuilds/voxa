@@ -6,7 +6,7 @@ import { validateQuoteAction } from "./chain/quotes";
 
 // jsonb does not preserve object key order. Hash the same canonical representation
 // before storage and after loading, while preserving array order and scalar values.
-function canonical(value: unknown): string {
+export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value !== null && typeof value === "object")
     return `{${Object.entries(value)

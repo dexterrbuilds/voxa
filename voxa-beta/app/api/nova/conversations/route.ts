@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       .eq("owner_id", a.user.id)
       .order("updated_at", { ascending: false })
       .limit(100);
-    return error ? storageError() : NextResponse.json({ conversations: data });
+    return error ? storageError(error) : NextResponse.json({ conversations: data });
   }
   const { data: conversation, error } = await (a.readDb ?? a.db)
     .from("nova_conversations")
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     .eq("owner_id", a.user.id)
     .eq("id", id)
     .maybeSingle();
-  if (error) return storageError();
+  if (error) return storageError(error);
   if (!conversation)
     return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
   const [messages, plans] = await Promise.all([
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       .eq("owner_id", a.user.id)
       .eq("conversation_id", id),
   ]);
-  if (messages.error || plans.error) return storageError();
+  if (messages.error || plans.error) return storageError(messages.error || plans.error);
   return NextResponse.json({ conversation, messages: messages.data.reverse(), plans: plans.data });
 }
 export async function POST(request: NextRequest) {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     .insert({ owner_id: a.user.id })
     .select("id,title,updated_at")
     .single();
-  return error ? storageError() : NextResponse.json({ conversation: data });
+  return error ? storageError(error) : NextResponse.json({ conversation: data });
 }
 export async function PATCH(request: NextRequest) {
   const a = await launchAccess(request);
@@ -71,5 +71,5 @@ export async function PATCH(request: NextRequest) {
     .eq("owner_id", a.user.id)
     .select("id")
     .maybeSingle();
-  return error ? storageError() : NextResponse.json({ ok: !!data });
+  return error ? storageError(error) : NextResponse.json({ ok: !!data });
 }

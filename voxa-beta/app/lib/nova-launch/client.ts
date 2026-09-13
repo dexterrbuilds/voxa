@@ -1,6 +1,7 @@
 "use client";
 import { getSupabaseClient } from "@/lib/supabase";
 import { privyEnabled } from "@/lib/identity/config";
+import { SetupError, setupMessages } from "@/lib/setup-errors";
 export async function novaFetch(path: string, options: RequestInit = {}) {
   const token = privyEnabled
     ? await (await import("@privy-io/react-auth")).getAccessToken()
@@ -16,6 +17,8 @@ export async function novaFetch(path: string, options: RequestInit = {}) {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (typeof payload.code === "string" && Object.hasOwn(setupMessages, payload.code))
+      throw new SetupError(payload.code as keyof typeof setupMessages);
     throw new Error(payload.error || "Nova is unavailable. Try again.");
   }
   return response;

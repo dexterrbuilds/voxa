@@ -3,6 +3,7 @@ import { launchAccess, storageError, uuid } from "@/lib/server/nova-launch/acces
 import { verifyPlan } from "@/lib/server/nova-launch/plans";
 import { simulationAdapter } from "@/lib/nova-launch/actions";
 import { getSwapAdapter } from "@/lib/server/nova-launch/chain/quotes";
+import { missingSchema } from "@/lib/setup-errors";
 export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   const a = await launchAccess(request);
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     .eq("id", body.id)
     .eq("owner_id", a.user.id)
     .maybeSingle();
-  if (error) return storageError();
+  if (error) return storageError(error);
   if (!record) return NextResponse.json({ error: "Plan unavailable." }, { status: 404 });
   try {
     verifyPlan(record.plan);
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       p_token: body.approvalToken,
       p_cancel: body.operation === "cancel",
     });
+    if (missingSchema(rpcError)) return storageError(rpcError);
     if (rpcError)
       return NextResponse.json(
         { error: "This approval is expired, changed or no longer available. Request a new plan." },

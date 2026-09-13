@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { launchAccess, uuid } from "@/lib/server/nova-launch/access";
+import { launchAccess, storageError, uuid } from "@/lib/server/nova-launch/access";
 import { transcribeWithDeepgram } from "@/lib/server/nova/providers/stt/deepgram";
 import { synthesizeNovaSpeech } from "@/lib/server/nova/providers/tts";
 export const runtime = "nodejs";
@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
       .eq("id", id)
       .eq("owner_id", a.user.id)
       .maybeSingle();
-    if (error || !data)
-      return NextResponse.json({ error: "Conversation unavailable." }, { status: 404 });
+    if (error) return storageError(error);
+    if (!data) return NextResponse.json({ error: "Conversation unavailable." }, { status: 404 });
     request.signal.throwIfAborted();
     const audio = form.get("audio");
     if (audio instanceof Blob) {
@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
       .eq("owner_id", a.user.id)
       .eq("role", "nova")
       .maybeSingle();
-    if (!message.data || message.error) throw new Error("Missing reply.");
+    if (message.error) return storageError(message.error);
+    if (!message.data) throw new Error("Missing reply.");
     const speech = await synthesizeNovaSpeech(message.data.text.slice(0, 6000));
     request.signal.throwIfAborted();
     if (!speech) throw new Error("No voice provider.");
