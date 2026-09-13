@@ -1,8 +1,10 @@
 "use client";
 import { getSupabaseClient } from "@/lib/supabase";
+import { privyEnabled } from "@/lib/identity/config";
 export async function novaFetch(path: string, options: RequestInit = {}) {
-  const session = await getSupabaseClient()?.auth.getSession();
-  const token = session?.data.session?.access_token;
+  const token = privyEnabled
+    ? await (await import("@privy-io/react-auth")).getAccessToken()
+    : (await getSupabaseClient()?.auth.getSession())?.data.session?.access_token;
   if (!token) throw new Error("Please sign in again.");
   const response = await fetch(`/api/nova/${path}`, {
     ...options,

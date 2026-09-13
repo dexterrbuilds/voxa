@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     !["approve", "cancel"].includes(body.operation)
   )
     return NextResponse.json({ error: "Invalid approval." }, { status: 400 });
-  const { data: record, error } = await a.db
+  const { data: record, error } = await (a.readDb ?? a.db)
     .from("nova_action_plans")
     .select("plan,status")
     .eq("id", body.id)

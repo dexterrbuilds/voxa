@@ -1,5 +1,7 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+  // Repository memory is curated locally; Next must not generate/overwrite it.
+  agentRules: false,
   allowedDevOrigins: ["172.20.10.3"],
   devIndicators: false,
   turbopack: {

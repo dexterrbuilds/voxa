@@ -8,6 +8,12 @@ Synq's broader communication/agent platform remains intact underneath, dormant b
 
 ## Nova Launch Mode
 
+**Privy authentication rollout:** [setup and security](docs/privy-auth.md). Nova can use
+Privy email/optional Google login with one canonical user-owned embedded Solana wallet.
+Apply `voxa-beta/supabase-privy-identity.sql`, configure the server RLS bridge, and explicitly
+enable `NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=privy` before redeploying. Existing UUID ownership
+is preserved; old accounts are not silently linked by email. This adds no signing or execution.
+
 See [Phase 2A rollout and validation](docs/nova-solana.md). Before enabling it, apply
 `voxa-beta/supabase-nova-quotes.sql` **after** the launch migration and configure server-only
 `SOLANA_RPC_URL`, `JUPITER_API_KEY`, and `NOVA_SOLANA_ENABLED=true`. Quote approval records

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const id = String(form.get("conversationId") || "");
     if (!uuid.test(id)) throw new Error("Invalid conversation.");
-    const { data, error } = await a.db
+    const { data, error } = await (a.readDb ?? a.db)
       .from("nova_conversations")
       .select("id")
       .eq("id", id)
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
     const messageId = String(form.get("messageId") || "");
     if (!uuid.test(messageId)) throw new Error("Missing reply.");
-    const message = await a.db
+    const message = await (a.readDb ?? a.db)
       .from("nova_messages")
       .select("text")
       .eq("id", messageId)

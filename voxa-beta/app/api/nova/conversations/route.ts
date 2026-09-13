@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (id && !uuid.test(id))
     return NextResponse.json({ error: "Invalid conversation." }, { status: 400 });
   if (!id) {
-    const { data, error } = await a.db
+    const { data, error } = await (a.readDb ?? a.db)
       .from("nova_conversations")
       .select("id,title,updated_at")
       .eq("owner_id", a.user.id)
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       .limit(100);
     return error ? storageError() : NextResponse.json({ conversations: data });
   }
-  const { data: conversation, error } = await a.db
+  const { data: conversation, error } = await (a.readDb ?? a.db)
     .from("nova_conversations")
     .select("id,title,updated_at")
     .eq("owner_id", a.user.id)
@@ -26,14 +26,14 @@ export async function GET(request: NextRequest) {
   if (!conversation)
     return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
   const [messages, plans] = await Promise.all([
-    a.db
+    (a.readDb ?? a.db)
       .from("nova_messages")
       .select("id,role,text,blocks,created_at")
       .eq("owner_id", a.user.id)
       .eq("conversation_id", id)
       .order("created_at", { ascending: false })
       .limit(100),
-    a.db
+    (a.readDb ?? a.db)
       .from("nova_action_plans")
       .select("id,status,result")
       .eq("owner_id", a.user.id)

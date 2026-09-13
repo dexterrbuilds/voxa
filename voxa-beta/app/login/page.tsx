@@ -1,5 +1,8 @@
 "use client";
 
+import { privyEnabled } from "@/lib/identity/config";
+import PrivyLogin from "@/components/identity/PrivyLogin";
+
 import { platformEnabled } from "@/lib/product-features";
 
 import { type FormEvent, useEffect, useState } from "react";
@@ -18,6 +21,9 @@ const defaultAgent = getDefaultAgent();
 const defaultAgentName = defaultAgent?.name ?? "Nova";
 
 export default function Login() {
+  return privyEnabled ? <PrivyLogin /> : <LegacyLogin />;
+}
+function LegacyLogin() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [verificationEmail, setVerificationEmail] = useState("");

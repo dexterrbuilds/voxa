@@ -14,9 +14,9 @@ import {
   X,
   Volume2,
 } from "lucide-react";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import { LaunchAuthProvider, LaunchGate, useLaunchAuth } from "@/components/identity/LaunchAuth";
+import { privyEnabled } from "@/lib/identity/config";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/lib/auth";
 import { novaFetch } from "@/lib/nova-launch/client";
 import { startCapture } from "@/lib/nova-launch/capture";
 import { useWakeWord } from "@/lib/wake-word/useWakeWord";
@@ -43,14 +43,16 @@ const suggestions = [
 
 export default function NovaPage() {
   return (
-    <ProtectedRoute>
-      <NovaExperience />
-    </ProtectedRoute>
+    <LaunchAuthProvider>
+      <LaunchGate>
+        <NovaExperience />
+      </LaunchGate>
+    </LaunchAuthProvider>
   );
 }
 
 function NovaExperience() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useLaunchAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Turn[]>([]);
@@ -63,7 +65,17 @@ function NovaExperience() {
   const [drawer, setDrawer] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [address, setAddress] = useState("");
-  const [account, setAccount] = useState<ConnectedAccount | null>(null);
+  const [inspected, setAccount] = useState<ConnectedAccount | null>(null);
+  const account: ConnectedAccount | null =
+    inspected ??
+    (user?.wallet
+      ? {
+          chain: "solana",
+          address: user.wallet.address,
+          kind: "wallet",
+          access: ["read", "propose"],
+        }
+      : null);
   const [chainEnabled, setChainEnabled] = useState(false);
   const [pending, setPending] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -857,12 +869,37 @@ function NovaExperience() {
                 )}
                 <p className="nova-muted">{user?.email}</p>
                 <p>
-                  Connect a wallet or add a read-only address. Nova cannot sign transactions or move
-                  funds.
+                  {privyEnabled
+                    ? "Your Synq wallet is ready. You can also inspect a different public address. "
+                    : "Connect a wallet or add a read-only address. "}
+                  Nova cannot sign transactions or move funds.
                 </p>
-                <button className="nova-secondary" onClick={() => void connectWallet()}>
-                  <Wallet size={17} /> Connect wallet
-                </button>
+                {!privyEnabled && (
+                  <button className="nova-secondary" onClick={() => void connectWallet()}>
+                    <Wallet size={17} /> Connect wallet
+                  </button>
+                )}
+                {user?.wallet && (
+                  <div className="nova-wallet-summary">
+                    <strong>Your Synq wallet</strong>
+                    <p className="nova-address">{user.wallet.address}</p>
+                    <button
+                      className="nova-text-action"
+                      onClick={() =>
+                        void navigator.clipboard
+                          .writeText(user.wallet!.address)
+                          .catch(() => setError("Couldn't copy. Select the address to copy it."))
+                      }
+                    >
+                      Copy address
+                    </button>
+                    <p className="nova-muted">
+                      {chainEnabled
+                        ? "Solana mainnet reads · execution disabled"
+                        : "Read-only wallet · live data not enabled"}
+                    </p>
+                  </div>
+                )}
                 <label>
                   Solana address
                   <input
@@ -879,20 +916,26 @@ function NovaExperience() {
                   <>
                     <p className="nova-muted">
                       {account.kind === "wallet"
-                        ? "Connected wallet · read-only"
+                        ? privyEnabled
+                          ? "Your Synq wallet · read-only"
+                          : "Connected wallet · read-only"
                         : "Address being inspected · no ownership claimed"}
                     </p>
                     <p className="nova-address">{account.address}</p>
-                    <button className="nova-text-action" onClick={() => setAccount(null)}>
-                      Remove account access
-                    </button>
+                    {(!privyEnabled || inspected) && (
+                      <button className="nova-text-action" onClick={() => setAccount(null)}>
+                        {privyEnabled ? "Use my Synq wallet" : "Remove account access"}
+                      </button>
+                    )}
                   </>
                 )}
                 <button
                   className="nova-text-action"
                   onClick={() => {
                     stop();
-                    void logout();
+                    void logout().catch(() =>
+                      setError("Sign-out could not be completed. Try again."),
+                    );
                   }}
                 >
                   <LogOut size={16} /> Sign out

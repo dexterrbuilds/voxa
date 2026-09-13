@@ -1,5 +1,9 @@
 # Nova Launch Mode
 
+**Authentication extension:** [Privy and embedded Solana wallets](privy-auth.md) describes
+the explicit rollout flag, UUID identity mapping, RLS-preserving database auth bridge,
+canonical wallet and conservative existing-user migration. Transaction execution remains disabled.
+
 Synq is the underlying platform. Nova is the first-party launch interface for understanding
 on-chain concepts and rehearsing structured actions. This release **does not execute trades**.
 It preserves the rebrand checkpoint and the broader platform rather than deleting capability.

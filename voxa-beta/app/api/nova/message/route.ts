@@ -8,6 +8,7 @@ import { handleChainRequest, solanaEnabled } from "@/lib/server/nova-launch/chai
 import { ChainError } from "@/lib/server/nova-launch/chain/transport";
 import { readContext } from "@/lib/server/nova-launch/chain/intent";
 import { SolanaInputError } from "@/lib/nova-launch/solana";
+import { novaWalletContext } from "@/lib/identity/wallet";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -29,6 +30,16 @@ export async function POST(request: NextRequest) {
     p_conversation: body.conversationId,
     p_request: body.requestId,
   };
+  if (a.identity) {
+    try {
+      body.account = novaWalletContext(a.identity.wallet, body.account);
+    } catch {
+      return NextResponse.json(
+        { error: "Use your Synq wallet, or inspect another address in read-only mode." },
+        { status: 400 },
+      );
+    }
+  }
   let requote: ActionPlan | undefined;
   if (solanaEnabled()) {
     try {
@@ -39,7 +50,7 @@ export async function POST(request: NextRequest) {
     if (body.requotePlanId !== undefined) {
       if (!uuid.test(body.requotePlanId))
         return NextResponse.json({ error: "Invalid quote." }, { status: 400 });
-      const prior = await a.db
+      const prior = await (a.readDb ?? a.db)
         .from("nova_action_plans")
         .select("plan")
         .eq("id", body.requotePlanId)
@@ -73,7 +84,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 409 },
     );
-  const history = await a.db
+  const history = await (a.readDb ?? a.db)
     .from("nova_messages")
     .select("role,text")
     .eq("owner_id", a.user.id)

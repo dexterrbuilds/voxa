@@ -17,10 +17,15 @@
     "@livekit/rtc-node": "^0.13.29",
     "@picovoice/porcupine-web": "^4.0.0",
     "@picovoice/web-voice-processor": "^4.0.10",
+    "@privy-io/node": "^0.34.0",
+    "@privy-io/react-auth": "^3.42.0",
+    "@solana-program/memo": "^0.10.0",
+    "@solana/kit": "^5.5.1",
     "@supabase/supabase-js": "^2.106.2",
     "bs58": "^6.0.0",
     "edge-tts": "^1.0.1",
     "framer-motion": "^12.40.0",
+    "jose": "^6.2.12",
     "livekit-client": "^2.19.0",
     "livekit-server-sdk": "^2.15.3",
     "lucide-react": "^0.575.0",
@@ -30,7 +35,9 @@
     "zustand": "^4.5.0"
   },
   "overrides": {
-    "postcss": "8.5.10"
+    "postcss": "8.5.28",
+    "axios": "1.20.0",
+    "ws@^8": "8.21.0"
   },
   "devDependencies": {
     "@types/node": "^22.19.19",

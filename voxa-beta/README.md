@@ -1,5 +1,15 @@
 # Synq App Setup
 
+## Privy Authentication Rollout
+
+See [Privy setup, identity/RLS migration and staging checks](../docs/privy-auth.md).
+Set `NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=privy` only after configuring Privy and the server-only
+Supabase JWT bridge and applying `supabase-privy-identity.sql` after the two Nova migrations.
+Email and optional Google provision/reuse a canonical embedded Solana wallet. Nova defaults
+to it for reads/quotes; inspected addresses remain separate. No signing or submission is added.
+Unset/the `supabase` setting retains legacy authentication for rollback. Old histories remain
+intact but require explicit verified migration, never email-only linking.
+
 ## Nova Launch (Default)
 
 The public product now opens `/nova`: saved private conversations, streamed text,
