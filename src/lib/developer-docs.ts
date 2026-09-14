@@ -109,7 +109,7 @@ export const platformPillars = [
   },
 ] as const;
 
-export const sdkExample = `import { SynqAgent } from "@voxa/sdk";
+export const sdkExample = `import { SynqAgent } from "@synq/sdk";
 
 class ResearchAgent extends SynqAgent {
   constructor() {
@@ -128,12 +128,12 @@ class ResearchAgent extends SynqAgent {
   }
 }`;
 
-export const registrationExample = `import { defineAgentRegistration } from "@voxa/sdk";
+export const registrationExample = `import { defineAgentRegistration } from "@synq/sdk";
 
 const registration = defineAgentRegistration({
   name: "Research Agent",
   description: "Searches and summarizes live information.",
-  endpointUrl: "https://agent.example.com/voxa",
+  endpointUrl: "https://agent.example.com/synq",
   capabilities: ["web_search", "memory"],
   permissions: ["room:join", "message:read", "voice:speak"],
   tags: ["research", "summaries"],
@@ -212,11 +212,11 @@ export const faqItems = [
   },
 ];
 
-export const handshakeExample = `import { createAgentHandshake, createAgentMessageResponse } from "@voxa/sdk";
+export const handshakeExample = `import { createAgentHandshake, createAgentMessageResponse } from "@synq/sdk";
 
 // GET /health  -> { status: "ok" }
-// POST /voxa/handshake
-app.post("/voxa/handshake", (req, res) => {
+// POST /synq/handshake
+app.post("/synq/handshake", (req, res) => {
   res.json(
     createAgentHandshake({
       name: "Research Agent",
@@ -226,8 +226,8 @@ app.post("/voxa/handshake", (req, res) => {
   );
 });
 
-// POST /voxa/message  (streaming + tools are optional)
-app.post("/voxa/message", (req, res) => {
+// POST /synq/message  (streaming + tools are optional)
+app.post("/synq/message", (req, res) => {
   res.json(
     createAgentMessageResponse("This is a sample response.", {
       streaming: true,
@@ -237,10 +237,10 @@ app.post("/voxa/message", (req, res) => {
 });`;
 
 export const buildAgentSteps = [
-  "Build a Synq-compatible agent: expose GET /health, POST /voxa/handshake, and POST /voxa/message. Use createAgentHandshake() from @voxa/sdk so the handshake matches the protocol exactly.",
+  "Build a Synq-compatible agent: expose GET /health, POST /synq/handshake, and POST /synq/message. Use createAgentHandshake() from @synq/sdk so the handshake matches the protocol exactly.",
   "Run the sample agent locally: examples/agents/research-agent — npm install && npm run build && npm start (defaults to http://localhost:8787).",
   "Expose your local endpoint with a tunnel, e.g. `ngrok http 8787` or `cloudflared tunnel --url http://localhost:8787`, and copy the public URL.",
-  "Register the endpoint in Synq at /developers/agents. Set the Endpoint URL to your tunnel's handshake path (https://<tunnel>/voxa/handshake) and declare the capabilities your endpoint reports.",
+  "Register the endpoint in Synq at /developers/agents. Set the Endpoint URL to your tunnel's handshake path (https://<tunnel>/synq/handshake) and declare the capabilities your endpoint reports.",
   "Submit for review. A Synq admin approves the agent in /admin/agents.",
   "An admin runs endpoint verification (the handshake health check): reachable, supported SDK version, correct protocol, and declared capabilities covered by the endpoint.",
   "Once approved + verified, open /developers/sandbox, start a session, and chat with your agent — messages go to your endpoint and back, in isolation (no production room).",

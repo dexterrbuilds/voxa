@@ -1,0 +1,590 @@
+[
+  {
+    "file": "docs/synq-naming-migration.md",
+    "hash": "c11129b73a36af8745967db984717bd7d6f3837ae7311ad3247cae2ede305f22",
+    "count": 1,
+    "reason": "Explicit historical/compatibility documentation; removable after all deprecated consumers migrate"
+  },
+  {
+    "file": "docs/synq-naming-migration.md",
+    "hash": "2c0fcfa47951c988a8cc93f9ea54c74b50dd9c3f6d74bf75e1ca8393fe97213e",
+    "count": 1,
+    "reason": "Explicit historical/compatibility documentation; removable after all deprecated consumers migrate"
+  },
+  {
+    "file": "docs/synq-naming-migration.md",
+    "hash": "42a7ca733e6c62585dacc5cd7f537624c6a41007fb729dd802db676556fa7283",
+    "count": 1,
+    "reason": "Explicit historical/compatibility documentation; removable after all deprecated consumers migrate"
+  },
+  {
+    "file": "packages/sdk-legacy/index.d.ts",
+    "hash": "ffe4e8f7ea817e0a041fcf6aa264baa870b4c0d668cadb4682f1f598c9c7eb47",
+    "count": 1,
+    "reason": "Opt-in deprecated local package bridge; removable after consumers change their package imports"
+  },
+  {
+    "file": "packages/sdk-legacy/index.js",
+    "hash": "598a4b59f141e30446d6485c1f41b7b6a6fdbd22f7d32b1f4320482409612d7e",
+    "count": 1,
+    "reason": "Opt-in deprecated local package bridge; removable after consumers change their package imports"
+  },
+  {
+    "file": "packages/sdk-legacy/package-lock.json",
+    "hash": "2dc6f33794a60af0359c7d13301533b7159714d0f2074eb1ef23b5fc0f3883d4",
+    "count": 2,
+    "reason": "Opt-in deprecated local package bridge; removable after consumers change their package imports"
+  },
+  {
+    "file": "packages/sdk-legacy/package.json",
+    "hash": "2dc6f33794a60af0359c7d13301533b7159714d0f2074eb1ef23b5fc0f3883d4",
+    "count": 1,
+    "reason": "Opt-in deprecated local package bridge; removable after consumers change their package imports"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "c7dfd21b2133ba9d713461fbab38a22705d65801fed7fcd837d18fe01ee7c775",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "8b325263a3b529462f939d899dd498bd52bd84a6e70461f01d0f9b73439bb986",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "a71bf5f6184814aeaa63e04eeb2d8a490a5e00ed66d5fd88101337c4a5c31878",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "8560be7d158fc69ec7faa3bb1c34de48c1a0449b4d0ddb953076d5ef4da80f0b",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "62ec3850426954af8f94a2fa548bbd38c908b2f71b4082b6328269e9cc5a6850",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "5004947988f3b4242262050e77dc5e93b7237d58145cb7b5fa44dee106d025e3",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "1c706e7cc0f8b62a7608241b2772d5fa02963d880eff039b5c694dd0ceae3ada",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "f4f48be9c33d0b953e975ed5793adefc8e60965215e195ac939bf86555c3a506",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "94bf9b2c04bb5fb4bf18fe49bf22d1020297917ce6055a44ced44ec3d18430e5",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "4135d2d1c32793c847144a01a1f06bf72ba689985b891ba65f346f80d9d08e43",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "378966aca35a28723a559f90436944c85e2868af1d531e0c0da3cc6071935c0a",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "7a579e29c06da464fe3c60446aecc69ae49584d3a8b2e83dd9296fce78201ec0",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "2d2680e81031cee5bc240f5b49be2856cc33c2dd92e113c980c195bd2ecf7543",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "86709b4ae113b0731dc55a6517699bf99a937d62ec8ec22f6dd06858777b2830",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "3609eaa2a927d97b22ee827ab8f2b138b1964245dcef59ab8b5fce43a3fae603",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "2739224e80105669ce82129ea561a7183c2e9f4ab7f3c94a98495b7268b621f9",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "d6ea174575f520aeba6cc0962edf4b9a908ce099a6cb23599b3c1a575647616d",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "6d48ddaa5b687b7d8c3cba1dd0754a716cbcddcd5378f2bff7c014f9bdb006e5",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "138a14d10484d0b221378150a32298bd392b56310bb864dcb17106909cb4b34c",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "4e6e1a32ebc3924787c5bca13ac2cb3e4421b474d244220c285289fdd05ac171",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "83f9c8eb529180b6ad1a644347b63cf9ad9cc1051dfa30729c63d5a8136a3e05",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/legacy.ts",
+    "hash": "1d01208e666c4d05471ac9cd5a2866ce157ff6473c4924089a75c83e5e8b07b8",
+    "count": 1,
+    "reason": "Deprecated SDK exports/factories preserve source and wire compatibility; remove in a documented breaking release"
+  },
+  {
+    "file": "packages/sdk/src/protocol-compatibility.ts",
+    "hash": "9a16e84e00a041972106edf01637115333059913f14012275a653384fa160a9b",
+    "count": 1,
+    "reason": "Legacy request normalization; removable when old endpoints/clients are retired"
+  },
+  {
+    "file": "packages/sdk/src/protocol-compatibility.ts",
+    "hash": "1022e97c306158a59400e4d82acbd04049307ef4b24bfccd17c7a823c86f598b",
+    "count": 1,
+    "reason": "Legacy request normalization; removable when old endpoints/clients are retired"
+  },
+  {
+    "file": "packages/sdk/src/protocol-compatibility.ts",
+    "hash": "90025b2640f1960471fff41c870735f57866c42c6e68d2c1eb35dfea8f0b9fa2",
+    "count": 1,
+    "reason": "Legacy request normalization; removable when old endpoints/clients are retired"
+  },
+  {
+    "file": "packages/sdk/src/protocol-compatibility.ts",
+    "hash": "fabbd98600aa8abc6e9fb1e1746d3c1b3415f6832425e2e18ae5f8c1f18b3142",
+    "count": 1,
+    "reason": "Legacy request normalization; removable when old endpoints/clients are retired"
+  },
+  {
+    "file": "packages/sdk/src/protocol-compatibility.ts",
+    "hash": "6e3627ca43ca21ae74d7f4a24dfa82cd5912f649a8b3d5436d7004b1d003d9da",
+    "count": 1,
+    "reason": "Legacy request normalization; removable when old endpoints/clients are retired"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "65a347ea9d037c2999ff096e80054f35a013345337504b69900b58efb3e8e215",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "e652b895b75a5e85cebdae67977fcf0156af9c7f24c27bd30b51f42cfb5e0376",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "d49415e391c0bcf31d303b06f93f1ed69a18b25f9ee2d371afb72c74b36efb8e",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "25a073265e52d93dd6163c132a37e3ae4d844de457dc6db8410020bce62b8246",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "736177b7f2d2c6d6294369c1f2342fc478361ab3b91dce9a918c0438b21e3d84",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "5820029209ce1a7323910b6fa170d4fa600a33e92597bfe53bf2b815f48ee532",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/naming.test.mjs",
+    "hash": "e2c44f807b626df824d319ab2898986452cbae6100a46b7e03013bc802f7bde1",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "scripts/check-naming.cjs",
+    "hash": "b07e2f774881aab87db2f594d3e5cf517adfc092dca2fcae71e625b9a2deceb7",
+    "count": 1,
+    "reason": "The forbidden-name detector itself; not product branding and required for this guard"
+  },
+  {
+    "file": "synq/app/lib/legacy-storage.ts",
+    "hash": "6507b36201aabc70bba39cb615ba0d636163eb11c258bbd5f3e8e847fed4baf5",
+    "count": 1,
+    "reason": "One-time local/session persistence migration; removable after migration support ends"
+  },
+  {
+    "file": "synq/app/lib/legacy-storage.ts",
+    "hash": "3add9e1e93eb640522f0ae470cfafe02992bdb995016709123e3774c95ceeb01",
+    "count": 1,
+    "reason": "One-time local/session persistence migration; removable after migration support ends"
+  },
+  {
+    "file": "synq/app/lib/legacy-storage.ts",
+    "hash": "69721c2510243f6d9a508255f35fb2a7bb585c41ee5b14e547f234f27c3fc573",
+    "count": 1,
+    "reason": "One-time local/session persistence migration; removable after migration support ends"
+  },
+  {
+    "file": "synq/app/lib/legacy-storage.ts",
+    "hash": "7d1fda7048986a490ac2870c27373ef986d5ec91628df990ec4d903299939a9f",
+    "count": 1,
+    "reason": "One-time local/session persistence migration; removable after migration support ends"
+  },
+  {
+    "file": "synq/app/lib/legacy-storage.ts",
+    "hash": "35f7731b3f0a2aad64d68327888ce4c96cea1af6cae5e23437fa38752c2201f0",
+    "count": 1,
+    "reason": "One-time local/session persistence migration; removable after migration support ends"
+  },
+  {
+    "file": "synq-agent/livekit.toml",
+    "hash": "513a8017270c59d639905b56cc27baf69624f20cd6ec7a747599f60307e6264d",
+    "count": 1,
+    "reason": "Existing disabled worker cloud deployment binding; change only in an explicitly authorized infrastructure migration"
+  },
+  {
+    "file": "synq/app/layout.tsx",
+    "hash": "eceeac6791104a8d2690377c9c7daf901e49ddf1cb8f43b14b2ed5d32d34933b",
+    "count": 1,
+    "reason": "Pre-paint one-time theme migration avoids losing old preference/flash; removable after migration window"
+  },
+  {
+    "file": "synq/app/layout.tsx",
+    "hash": "2b7dc56c671f94b3ce3ee4a259d50ec452f4ae44117ddbc7f98b68107aaec645",
+    "count": 1,
+    "reason": "Pre-paint one-time theme migration avoids losing old preference/flash; removable after migration window"
+  },
+  {
+    "file": "synq/app/lib/agents/legacy-livekit.ts",
+    "hash": "48fb96f43e0ced320b001310876ac52ab582c33fae7123edb26ed467dda15fcf",
+    "count": 1,
+    "reason": "Deprecated participant metadata aliases for existing observers; removable after observer migration"
+  },
+  {
+    "file": "synq/app/lib/agents/legacy-livekit.ts",
+    "hash": "1a79e82fb0e106a9eca09421315d32b9a9219b8772563d718d4505e96b48a30f",
+    "count": 1,
+    "reason": "Deprecated participant metadata aliases for existing observers; removable after observer migration"
+  },
+  {
+    "file": "synq/app/lib/agents/protocol-compatibility.ts",
+    "hash": "5d699bf7c543a0e0494c5824e906ccbdeaff52f296e972bd11ebba2a762941b1",
+    "count": 1,
+    "reason": "Legacy external-agent dialect/header adapter; removable after old registrations migrate"
+  },
+  {
+    "file": "synq/app/lib/agents/protocol-compatibility.ts",
+    "hash": "ee916412c912630e1b968042f860aa857bb9407ce8a161754e21078b4aea684d",
+    "count": 1,
+    "reason": "Legacy external-agent dialect/header adapter; removable after old registrations migrate"
+  },
+  {
+    "file": "synq/app/lib/agents/protocol-compatibility.ts",
+    "hash": "33741e604430933336e1a0b657cce5588678ebc65e43f6d86b0a9d7793b1ec46",
+    "count": 1,
+    "reason": "Legacy external-agent dialect/header adapter; removable after old registrations migrate"
+  },
+  {
+    "file": "synq/app/lib/server/developers/profile.ts",
+    "hash": "85d25c8da7f59a66ddd4831d8d5cad12d84b4030fa1e879166c2ddaa4906021e",
+    "count": 1,
+    "reason": "Reserved historical username prevents impersonation; not displayed and should remain reserved"
+  },
+  {
+    "file": "synq/supabase-agent-analytics-schema.sql",
+    "hash": "40324aef74a8237b7fbac7e1a33dd46307607d3c5246fb6cd6f00e6bafac3bc7",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-analytics-schema.sql",
+    "hash": "de9a31bea40bc8bc5494e6f53cfed52bc78f83d5ec0b03c1877c2352b79e7359",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-registration-schema.sql",
+    "hash": "ea54c9bb8081e82df568dbef370e3116f5db4fceb8c3a0ffd93b2ffb6bb7f506",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-registration-schema.sql",
+    "hash": "007fab1348ca9961a0dd3c1f29e9d03c08931b59b119b659abd412c1e22af6fc",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-registration-schema.sql",
+    "hash": "166da94b7d8bbed87bc1360f185c8713646c077da3d4e544159d5f4d5a38d4ce",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-registration-schema.sql",
+    "hash": "e1b80e69be5cb88aa784e65d6dda03e5e6ede55c899f0e72ad71b08ac2db1365",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-registration-schema.sql",
+    "hash": "38e811dc346f0adf236bf0c9cac1d5fed01f728be84c76c562d015cf977c972b",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-agent-registration-schema.sql",
+    "hash": "476ea457811af30ea3dd0ef67b4cc0daba40184a7fd73e2fb3585221fd964f14",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-developer-profiles-schema.sql",
+    "hash": "1243ea68ddd75777c9fc43f17f2a906be37a47f9afcff5f12c3e08c2199d5743",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-developer-profiles-schema.sql",
+    "hash": "2c1ea18a85a617e83495a4fc930c8839a31135763286f21a18bf5f98dfb446d8",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-developer-profiles-schema.sql",
+    "hash": "37d039c68b7d33417bb63c9b5742abeff6e254ce00658733b411a7e91f967491",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-developer-profiles-schema.sql",
+    "hash": "233808063727277217abb88924f06d8e547bf5ad7505679dcb4b2eeb7e6b354f",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-developer-profiles-schema.sql",
+    "hash": "0a0d2f361833aed002cb1d7ac11a609fd6c7ea62e4ffb9c1bd1fd41d2b69913a",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/supabase-developer-profiles-schema.sql",
+    "hash": "2df5c377e9cc5ee0421e7c8f066cb3a949b5adf51ac50ead107be2022ef13b1a",
+    "count": 1,
+    "reason": "Guarded historical policy rename preserves predicates and prevents duplicate policies; removable only after legacy schemas retire"
+  },
+  {
+    "file": "synq/tests/browser-smoke.mjs",
+    "hash": "9028f62f980a23c9ca63b03aeb4708954d46129121c6c36272a95fbcb400c6ef",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/marketing-smoke.mjs",
+    "hash": "9028f62f980a23c9ca63b03aeb4708954d46129121c6c36272a95fbcb400c6ef",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/marketing-smoke.mjs",
+    "hash": "60a8226f301b777000c98075ccb8af34015ad195376949375629caa93b986a8c",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "1b5f0e170c075226cb8514b2403eede696c9a23db29b0ee9bada548d05acb9a8",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "d7d03779825c61420886c7aada93db58c777c77d29978064624983385c0aec3d",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "d27992fe3e73420e43eb110944b0d33e3721c27fba7529c699e9318a21ba84ed",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "2b348a3afff205091ed6352c9026d77e3c4e689b1ff63d946d5c2e07211e81db",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "51c1e277a7be2c42a602635494fed5d1a272a8e37594d39c01a0054a536cf5b0",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "ab1b7cc2a24b17d50224969ab10519c1c91de5d8827e4c9a9be489787c9f3eb4",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "520103a56b7add64e417beaa3e836851346d3b682a02bb2f91afe714d09ed42f",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "5259e4be212af8f2ed18265d165725d3aae59c36a0009af15acfc4178af91eea",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "b2ac4e4bbe27e16ba004458ee8d95fad943d24ab9e514e9af45dbbecda0f3777",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "9f954f73eaf34b26a7809bb9effb5e372c46edbdb493afd1ac1f07eea870a44c",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "1360c1e97d71d7df23b692795b19d230ab1530c9b2c983221929d2f5ec2cae36",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "0e6f17d9848106233c7ebb1fc4fb9f4b99e7844ae7a721b9a345a96efef61832",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "a969f3a25b88ec582b71991d064919e6f63e2886c8ea3123b662478ac110dcec",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/naming.test.cjs",
+    "hash": "da0b872467775fb9f4c64e31f8c6254fb814593de9d23e95611e9fa4c2d34adf",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/nova-launch.test.cjs",
+    "hash": "9230d2df16e1e5fd6e35b5cd166f423f564e466b42a3a888f65f9f6d4b6aa59a",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/nova-launch.test.cjs",
+    "hash": "99026f0b7eb57fd0f224e8e03bf5423f2c82189aa1f7d7fea31ac707aa023142",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/routes.test.cjs",
+    "hash": "622748bcc8f33bc24ee1751fd6123269af7ac3337d106862a21fab429ecf68a2",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "synq/tests/runtime.test.cjs",
+    "hash": "ca358b4058079909d275a382f7c0161603f1ab7515551a2e126a0f4c89d6d015",
+    "count": 1,
+    "reason": "Historical Git baseline or regression asserting old names are absent/compatible; not product branding"
+  },
+  {
+    "file": "bun.lock",
+    "hash": "a017b2eb3b4743f6c6a02bb1fa08b4f9a64e243e5d8ebca2837d76a9b6e9d34e",
+    "count": 1,
+    "reason": "Coincidental substring in dependency integrity hash; never rename or corrupt it"
+  },
+  {
+    "file": "index.html",
+    "hash": "eceeac6791104a8d2690377c9c7daf901e49ddf1cb8f43b14b2ed5d32d34933b",
+    "count": 1,
+    "reason": "Pre-paint one-time theme migration for marketing; removable after migration window"
+  },
+  {
+    "file": "index.html",
+    "hash": "2b7dc56c671f94b3ce3ee4a259d50ec452f4ae44117ddbc7f98b68107aaec645",
+    "count": 1,
+    "reason": "Pre-paint one-time theme migration for marketing; removable after migration window"
+  },
+  {
+    "file": "package-lock.json",
+    "hash": "daabe9a3f63cf6bf1268bf4bae359008397047ac0c8bd0e67cbf3ceca8fea9bc",
+    "count": 1,
+    "reason": "Coincidental substring in dependency integrity hash; never rename or corrupt it"
+  },
+  {
+    "file": "packages/sdk/tests/adapter.test.mjs",
+    "hash": "53d4a3e5f4d111b534d8ea2f2bbb552b9caed912246474c471fc544f2d53e47f",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/adapter.test.mjs",
+    "hash": "c8c7a39a0915a43ecf5d1288565549fdc7f39f24ac282c16aa79ff60700369b2",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  },
+  {
+    "file": "packages/sdk/tests/adapter.test.mjs",
+    "hash": "66724eafd5e88c0c2c1043c0073429795d999ee7fcd4c33795835f459727772a",
+    "count": 1,
+    "reason": "Regression asserting deprecated clients remain compatible; retain while aliases exist"
+  }
+]

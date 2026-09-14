@@ -1,5 +1,5 @@
 {
-  "name": "voxa-openclaw-adapter-example",
+  "name": "synq-openclaw-adapter-example",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "dev": "npm run build && node dist/server.js"
   },
   "dependencies": {
-    "@voxa/sdk": "file:../../../packages/sdk"
+    "@synq/sdk": "file:../../../packages/sdk"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

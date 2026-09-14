@@ -1,8 +1,8 @@
 import { createServer } from "node:http";
 import { Readable } from "node:stream";
-import { createVoxaAgent } from "../../../packages/sdk/dist/index.js";
+import { createSynqAgent } from "../../../packages/sdk/dist/index.js";
 
-const handle = createVoxaAgent({
+const handle = createSynqAgent({
   identity: {
     name: "My Agent",
     description: "A framework-neutral Synq adapter.",

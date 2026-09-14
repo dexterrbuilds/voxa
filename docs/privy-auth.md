@@ -39,7 +39,7 @@ No email matching, client UUID, claimed DID, or client wallet address establishe
 canonical wallet assignment. Subsequent changes/missing pinned wallets are rejected.
 New identities do not create synthetic Supabase Auth accounts.
 
-Apply `voxa-beta/supabase-privy-identity.sql` **after** `supabase-nova-launch.sql` and
+Apply `synq/supabase-privy-identity.sql` **after** `supabase-nova-launch.sql` and
 `supabase-nova-quotes.sql`, through Supabase SQL Editor. It is transactional/reapplicable.
 It adds `synq_users` and `synq_revoked_sessions`, backfills existing Auth UUIDs, and changes
 only the three Nova owner foreign keys to `synq_users`. Existing owner values, messages,
@@ -157,7 +157,7 @@ For the readiness pass, run that legacy smoke against an explicitly selected dev
 server, not a production legacy build. Production legacy forms are now blocked. New readiness
 tests are additive; see the staging checklist for the current validation matrix.
 
-Run from `voxa-beta`: `npm run lint`, `npx tsc --noEmit`, `npm run build`;
+Run from `synq`: `npm run lint`, `npx tsc --noEmit`, `npm run build`;
 `node --require ./tests/register.cjs --test tests/*.test.cjs`.
 SDK: `npm run typecheck`, `npm run build`, `node --test tests/adapter.test.mjs`.
 Browser fixtures require Playwright and esbuild available to Node. The unchanged Nova

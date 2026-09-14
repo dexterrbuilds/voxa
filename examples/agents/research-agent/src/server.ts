@@ -1,9 +1,10 @@
+import { canonicalAgentPath, protocolForPath } from "@synq/sdk";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import {
   createAgentHandshake,
   createAgentMessageResponse,
-  type VoxaMessageRequest,
-} from "@voxa/sdk";
+  type SynqMessageRequest,
+} from "@synq/sdk";
 
 // Minimal Synq-compatible external agent.
 //
@@ -11,10 +12,10 @@ import {
 // the three endpoints Synq expects from an external agent:
 //
 //   GET  /health          -> liveness probe
-//   POST /voxa/handshake  -> identity + capabilities (used by Synq verification)
-//   POST /voxa/message    -> a (mock) agent reply
+//   POST /synq/handshake  -> identity + capabilities (used by Synq verification)
+//   POST /synq/message    -> a (mock) agent reply
 //
-// Register the PUBLIC handshake URL (e.g. https://<tunnel>/voxa/handshake) as the
+// Register the PUBLIC handshake URL (e.g. https://<tunnel>/synq/handshake) as the
 // agent endpoint in Synq. Passing verification only makes the agent eligible for
 // the developer sandbox — it does NOT place the agent into a live Synq room yet.
 
@@ -50,7 +51,8 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 
 const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
-  const url = (req.url ?? "/").split("?")[0];
+  const originalPath = (req.url ?? "/").split("?")[0];
+  const url = canonicalAgentPath(originalPath);
 
   // Liveness probe.
   if (method === "GET" && url === "/health") {
@@ -58,8 +60,8 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Handshake: Synq verification POSTs `{ type: "voxa.handshake" }` here.
-  if (method === "POST" && url === "/voxa/handshake") {
+  // Handshake: Synq verification POSTs `{ type: "synq.handshake" }` here.
+  if (method === "POST" && url === "/synq/handshake") {
     sendJson(
       res,
       200,
@@ -67,15 +69,15 @@ const server = createServer(async (req, res) => {
         name: AGENT_NAME,
         description: AGENT_DESCRIPTION,
         capabilities: AGENT_CAPABILITIES,
-      }),
+      }, protocolForPath(originalPath)),
     );
     return;
   }
 
-  // Message: mock reply. Synq POSTs `{ type: "voxa.message", message, context }`.
-  if (method === "POST" && url === "/voxa/message") {
-    const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
-    // `message` is a string on the wire (see VoxaMessageRequest).
+  // Message: mock reply. Synq POSTs `{ type: "synq.message", message, context }`.
+  if (method === "POST" && url === "/synq/message") {
+    const body = (await readJsonBody(req)) as Partial<SynqMessageRequest> | null;
+    // `message` is a string on the wire (see SynqMessageRequest).
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
     // Optional per-agent thread history (room-text mode). If present, acknowledge
     // the follow-up by referencing the previous user turn.
@@ -112,6 +114,6 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Synq ${AGENT_NAME} example listening on http://localhost:${PORT}`);
   console.log(`  GET  /health`);
-  console.log(`  POST /voxa/handshake`);
-  console.log(`  POST /voxa/message`);
+  console.log(`  POST /synq/handshake`);
+  console.log(`  POST /synq/message`);
 });

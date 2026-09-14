@@ -1,9 +1,10 @@
+import { canonicalAgentPath, protocolForPath } from "@synq/sdk";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import {
   createAgentHandshake,
   createAgentMessageResponse,
-  type VoxaMessageRequest,
-} from "@voxa/sdk";
+  type SynqMessageRequest,
+} from "@synq/sdk";
 
 // Minimal Synq-compatible external agent — a sample CODE ASSISTANT.
 //
@@ -12,8 +13,8 @@ import {
 // the same three endpoints:
 //
 //   GET  /health          -> liveness probe
-//   POST /voxa/handshake  -> identity + capabilities (used by Synq verification)
-//   POST /voxa/message    -> a (mock) reply with streaming + tool metadata
+//   POST /synq/handshake  -> identity + capabilities (used by Synq verification)
+//   POST /synq/message    -> a (mock) reply with streaming + tool metadata
 //
 // Sandbox only: passing verification makes this agent eligible for the developer
 // sandbox after review + approval. It does NOT place the agent into a live room.
@@ -50,14 +51,15 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 
 const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
-  const url = (req.url ?? "/").split("?")[0];
+  const originalPath = (req.url ?? "/").split("?")[0];
+  const url = canonicalAgentPath(originalPath);
 
   if (method === "GET" && url === "/health") {
     sendJson(res, 200, { status: "ok", agent: AGENT_NAME });
     return;
   }
 
-  if (method === "POST" && url === "/voxa/handshake") {
+  if (method === "POST" && url === "/synq/handshake") {
     sendJson(
       res,
       200,
@@ -65,13 +67,13 @@ const server = createServer(async (req, res) => {
         name: AGENT_NAME,
         description: AGENT_DESCRIPTION,
         capabilities: AGENT_CAPABILITIES,
-      }),
+      }, protocolForPath(originalPath)),
     );
     return;
   }
 
-  if (method === "POST" && url === "/voxa/message") {
-    const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
+  if (method === "POST" && url === "/synq/message") {
+    const body = (await readJsonBody(req)) as Partial<SynqMessageRequest> | null;
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
     // Optional per-agent thread history (room-text mode).
     const history = Array.isArray(body?.context?.history) ? body!.context!.history : [];
@@ -102,6 +104,6 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Synq ${AGENT_NAME} example listening on http://localhost:${PORT}`);
   console.log(`  GET  /health`);
-  console.log(`  POST /voxa/handshake`);
-  console.log(`  POST /voxa/message`);
+  console.log(`  POST /synq/handshake`);
+  console.log(`  POST /synq/message`);
 });

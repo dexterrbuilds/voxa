@@ -144,7 +144,7 @@ Wallet Standard/mobile deep links, wallet balances and ownership proofs are inte
 
 ## Deployment and Re-Enabling Platform Features
 
-1. Apply `voxa-beta/supabase-nova-launch.sql` in Supabase SQL Editor. It adds three tables,
+1. Apply `synq/supabase-nova-launch.sql` in Supabase SQL Editor. It adds three tables,
    indexes, owner-read RLS and service-only mutation RPCs. Reapplying preserves data.
    It does not change room, agent, analytics or SDK schemas. Do not run test SQL on Supabase.
 2. Configure existing `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
@@ -169,7 +169,7 @@ root route selection. Page gating is not an API authorization mechanism. Existin
 API access is intentionally preserved, not made public. External-agent room/voice flags remain
 separate and default-off. Use a separate internal deployment for private platform access;
 there is no per-user bypass for dormant pages. Restore both app flags for the old public journey.
-Legacy `voxa.*`, `@voxa/sdk`, `X-Voxa-Request-Id`, DB/env/storage identifiers remain unchanged.
+Legacy `synq.*`, `@synq/sdk`, `X-Synq-Request-Id`, DB/env/storage identifiers remain unchanged.
 
 ## Validation and Staging
 

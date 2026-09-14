@@ -14,18 +14,18 @@ See [capability planning](docs/nova-capability-planning.md) for the non-executin
 
 **Privy authentication:** [setup and security](docs/privy-auth.md). Nova uses
 Privy email/optional Google login with one canonical user-owned embedded Solana wallet.
-Apply `voxa-beta/supabase-privy-identity.sql`, configure the server RLS bridge, and explicitly
+Apply `synq/supabase-privy-identity.sql`, configure the server RLS bridge, and explicitly
 use `NEXT_PUBLIC_SYNQ_AUTH_PROVIDER=privy` (also the unset default). Existing UUID ownership
 is preserved; old accounts are not silently linked by email. This adds no signing or execution.
 
 See [Phase 2A rollout and validation](docs/nova-solana.md). Before enabling it, apply
-`voxa-beta/supabase-nova-quotes.sql` **after** the launch migration and configure server-only
+`synq/supabase-nova-quotes.sql` **after** the launch migration and configure server-only
 `SOLANA_RPC_URL`, `JUPITER_API_KEY`, and `NOVA_SOLANA_ENABLED=true`. Quote approval records
 review only. No transaction is constructed, signed or submitted. Missing providers do not
 silently fall back to fabricated quotes. The default flag remains false for safe rollout.
 
 Signed-in users land at `/nova`. Apply the additive
-[`supabase-nova-launch.sql`](voxa-beta/supabase-nova-launch.sql) before deployment.
+[`supabase-nova-launch.sql`](synq/supabase-nova-launch.sql) before deployment.
 It stores owner-scoped conversations, messages and immutable simulation plans; authenticated
 browser access is SELECT-only and API writes require the existing server-only service key.
 Approval is a dedicated UI request bound to an expiring plan hash and one-time token, never
@@ -41,15 +41,19 @@ Existing review, verification and external-agent permission flags remain unchang
 ## Synq Product Transition
 
 The visible product is now Synq. Shared light/dark tokens live in
-`voxa-beta/app/synq-theme.css` and are imported by both deployments. The room is
+`synq/app/synq-theme.css` and are imported by both deployments. The room is
 participant-first; the developer console separates connection testing from explicit
 confirmation, and Rooms/Sandbox share a reader-aware conversation log.
 
-Stable integration names remain intentional: `@voxa/sdk`, `VoxaAgent`,
-`createVoxaAgent`, `voxa-agent`, `voxa.handshake`, `voxa.message`, `voxa.voice`,
-`X-Voxa-Request-Id`, `/voxa/*`, existing env vars, storage keys and SQL identifiers.
-The SDK also exports identical `SynqAgent` / `createSynqAgent` aliases.
-The existing `usevoxa.tech` domains remain until a separately configured domain migration.
+Canonical integration names are `@synq/sdk`, `SynqAgent`,
+`createSynqAgent`, `synq-agent`, `synq.handshake`, `synq.message`, `synq.voice`,
+`X-Synq-Request-Id`, `/synq/*`, existing env vars, storage keys and SQL identifiers.
+Deprecated SDK exports and wire dialects are isolated in compatibility modules.
+The app directory is now `synq/`; local examples use the private `@synq/sdk` package.
+Browser preferences/session state migrate once to canonical keys. No remote domains changed.
+Configure `VITE_BETA_URL`, `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_MARKETING_URL` before deployment;
+their repository fallbacks are localhost, not an invented production domain.
+See [the complete naming migration](docs/synq-naming-migration.md).
 See [the transition handoff](docs/synq-transition.md) for UX changes, compatibility,
 validation, local vs staging coverage, and rollout notes. No new SQL or secrets are
 required for the rebrand. AGENTS.md and CLAUDE.md remain ignored local context files.
@@ -57,13 +61,13 @@ required for the rebrand. AGENTS.md and CLAUDE.md remain ignored local context f
 ## Platform Hardening
 
 The current pass improves the existing external-agent flow rather than replacing Nova:
-endpoint discovery and prefill, a framework-neutral `createVoxaAgent` adapter, independent
+endpoint discovery and prefill, a framework-neutral `createSynqAgent` adapter, independent
 sandbox reply delivery, cancellable room messages, bounded per-agent context, coalesced room
 refreshes, honest showcase availability, and server-only analytics increments.
 
 See [the hardening guide](docs/platform-hardening.md) for the audit, architecture, rollout,
 tests, and remaining boundaries. **Existing deployments must run**
-`voxa-beta/supabase-agent-analytics-server-writes.sql` and deploy the matching server code.
+`synq/supabase-agent-analytics-server-writes.sql` and deploy the matching server code.
 No new environment variables are required; the existing server-only
 `SUPABASE_SERVICE_ROLE_KEY` is now also used for analytics writes.
 
@@ -78,8 +82,8 @@ unless platform mode is enabled.
 ```text
 .
 ├── src/                  # Vite marketing site and mock-only product prototype
-├── voxa-beta/            # Real Next.js product app
-├── voxa-agent/           # Disabled Python LiveKit Agent path for Nova
+├── synq/            # Real Next.js product app
+├── synq-agent/           # Disabled Python LiveKit Agent path for Nova
 ├── packages/sdk/         # Local SDK v0.1 typed agent contract
 ├── examples/agents/      # Runnable sample external agents (research-agent, code-assistant, openclaw-adapter)
 └── api/subdomain.js      # Vercel subdomain stub
@@ -96,7 +100,7 @@ bun run dev
 bun run build
 ```
 
-The old `src/routes/voxa/*` and `src/components/voxa/*` files are mock UI only. They do
+The old `src/routes/synq/*` and `src/components/synq/*` files are mock UI only. They do
 not represent the real product and should not be extended for product functionality.
 
 Developer docs live in the marketing app at `/developers/docs` with nested static docs
@@ -114,12 +118,12 @@ experience backed by the Vercel serverless endpoint `api/developer-access.js`. I
 production it writes submissions to Supabase table `public.developer_access_requests`.
 Run `supabase/developer-access-requests.sql`, then set `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY` on the marketing Vercel project. Local development falls back
-to browser `localStorage` under `voxa-sdk-beta-requests` when the API endpoint is not
+to browser `localStorage` under `synq-sdk-beta-requests` when the API endpoint is not
 available.
 
 ### Synq Beta Product
 
-`voxa-beta/` is the real app. It contains:
+`synq/` is the real app. It contains:
 
 - Supabase auth
 - private room creation/joining
@@ -135,19 +139,19 @@ available.
 - public developer profiles at `/developers/[username]`
 
 ```bash
-cd voxa-beta
+cd synq
 npm install
 npm run dev
 ```
 
 ### Synq Agent
 
-`voxa-agent/` is a separate Python LiveKit Agent project for the disabled Path B
+`synq-agent/` is a separate Python LiveKit Agent project for the disabled Path B
 implementation. It is the better long-term primitive for deployable agents, but it is
 not the active MVP Nova path.
 
 ```bash
-cd voxa-agent
+cd synq-agent
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -157,7 +161,7 @@ python src/agent.py dev
 ### SDK v0.1
 
 `packages/sdk/` is a local typed SDK foundation for future developer agents. It exposes
-the `VoxaAgent` base class and shared agent types. It does not implement networking,
+the `SynqAgent` base class and shared agent types. It does not implement networking,
 auth, billing, marketplace publishing, onchain identity, or LiveKit dispatch yet.
 
 ```bash
@@ -167,7 +171,7 @@ npm run typecheck
 
 ## Agent Runtime Foundation
 
-The product runtime foundation lives in `voxa-beta/app/lib/runtime/`.
+The product runtime foundation lives in `synq/app/lib/runtime/`.
 
 It defines:
 
@@ -180,11 +184,11 @@ It defines:
 - runtime dispatch surface
 
 Nova is represented as the first first-party runtime agent in
-`voxa-beta/app/lib/agents/nova/`. This currently centralizes Nova metadata and prepares
+`synq/app/lib/agents/nova/`. This currently centralizes Nova metadata and prepares
 the product for future multi-agent support. It does not replace the working Nova voice
 pipeline yet.
 
-The first-party agent manifest lives in `voxa-beta/app/lib/agents/manifest.ts`.
+The first-party agent manifest lives in `synq/app/lib/agents/manifest.ts`.
 It exposes:
 
 - `getAvailableAgents()`
@@ -216,7 +220,7 @@ platform agents, permissions, ownership, and publishing.
 
 ## Agent Registration Scaffold
 
-`voxa-beta/` now includes a future external-agent registration scaffold:
+`synq/` now includes a future external-agent registration scaffold:
 
 - `POST /api/agents/register`
 - `GET /api/agents`
@@ -231,7 +235,7 @@ agents appear in rooms.
 The additive SQL lives in:
 
 ```text
-voxa-beta/supabase-agent-registration-schema.sql
+synq/supabase-agent-registration-schema.sql
 ```
 
 It creates `public.agents` as a review queue with fields for identity, creator,
@@ -244,10 +248,10 @@ permissions enforcement, rate limits, abuse protection, and a DB-backed runtime 
 
 ### Public Agent Showcase
 
-`voxa-beta` exposes a public showcase at **`/agents`** and public detail pages at
+`synq` exposes a public showcase at **`/agents`** and public detail pages at
 **`/agents/[slug]`**.
 
-The server-side query layer in `voxa-beta/app/lib/server/agents/showcase.ts` reads only
+The server-side query layer in `synq/app/lib/server/agents/showcase.ts` reads only
 external agents that are:
 
 - `status = approved`
@@ -265,7 +269,7 @@ create installs, does not add billing, and does not modify Nova Path A.
 
 ### Developer agent registration dashboard
 
-`voxa-beta` ships an authenticated developer UI at **`/developers/agents`** that drives the
+`synq` ships an authenticated developer UI at **`/developers/agents`** that drives the
 scaffold above. Signed-in developers can:
 
 - register agent metadata (name, slug, description, endpoint/avatar URLs, capabilities,
@@ -273,7 +277,7 @@ scaffold above. Signed-in developers can:
 - list their own submissions via `GET /api/agents`,
 - edit draft / pending-review records via `PATCH /api/agents/:id`.
 
-The page lives in voxa-beta (not the marketing SPA) so it shares the Supabase session and
+The page lives in synq (not the marketing SPA) so it shares the Supabase session and
 calls the `/api/agents/*` routes same-origin with the user's bearer token. It enforces the
 same posture as the backend in the UI: only `draft` / `pending_review` status, only
 `private` / `unlisted` visibility, no self-approval, no public publishing. A standing
@@ -288,7 +292,7 @@ registry that lets approved external agents appear in the Agent Selector and joi
 
 Developers can import an existing agent from another runtime (**OpenClaw**, LangChain, CrewAI,
 AutoGen, other) through the same registration flow by wrapping it behind a Synq-compatible
-adapter endpoint (`/voxa/handshake`, `/voxa/message`, optional `/voxa/voice`). Import is
+adapter endpoint (`/synq/handshake`, `/synq/message`, optional `/synq/voice`). Import is
 descriptive provenance only — additive `import_source` / `import_metadata` columns
 (`supabase-agent-import-schema.sql`) — and **never** bypasses review, verification, sandbox,
 permissions, or room gating. OpenClaw and other public runtimes are **not trusted by default**;
@@ -299,14 +303,14 @@ URLs or internal metadata.
 
 ### Agent analytics dashboard
 
-`voxa-beta` adds lightweight usage visibility for developers at **`/developers/agents`**.
+`synq` adds lightweight usage visibility for developers at **`/developers/agents`**.
 This is analytics only — not billing, monetization, metering, quotas, pricing, or token
 accounting.
 
 Run the additive SQL in:
 
 ```text
-voxa-beta/supabase-agent-analytics-schema.sql
+synq/supabase-agent-analytics-schema.sql
 ```
 
 It creates `public.agent_analytics` with one aggregate row per registered agent plus a
@@ -341,7 +345,7 @@ public agents.
 Run the additive SQL in:
 
 ```text
-voxa-beta/supabase-developer-profiles-schema.sql
+synq/supabase-developer-profiles-schema.sql
 ```
 
 It creates `public.developer_profiles` with safe public fields:
@@ -365,7 +369,7 @@ identity only, not a social network: no following, messaging, likes, ratings, or
 
 ### Admin agent review tooling
 
-`voxa-beta` includes an admin-only review console at **`/admin/agents`** plus admin API
+`synq` includes an admin-only review console at **`/admin/agents`** plus admin API
 routes (`GET /api/admin/agents`, `PATCH /api/admin/agents/:id/review`).
 
 - **Admin auth:** server-only `ADMIN_EMAILS` (comma-separated). A caller is admin if their
@@ -375,7 +379,7 @@ routes (`GET /api/admin/agents`, `PATCH /api/admin/agents/:id/review`).
 - **Lifecycle:** `pending_review → approved | rejected`, `approved → disabled`,
   `disabled → approved`, `rejected → pending_review`. Any other transition returns `409`.
   Reviews record `reviewed_by` / `reviewed_at` / `review_note` (additive SQL in
-  `voxa-beta/supabase-agent-review-schema.sql`).
+  `synq/supabase-agent-review-schema.sql`).
 - Non-admins receive a clean `403`; unauthenticated callers `401`.
 
 **Approval is review-only.** Approving an agent does not add it to the Agent Selector or let
@@ -386,13 +390,13 @@ intentionally enabled.
 
 Phase 3 prepares external agents for testing without allowing them into production rooms.
 
-- **Verification axis** (`voxa-beta/supabase-agent-verification-schema.sql`):
+- **Verification axis** (`synq/supabase-agent-verification-schema.sql`):
   `verification_status` (`verification_pending` → `verified` / `verification_failed`) plus
   `verified_at`, `verification_note`, `verification_report`. Orthogonal to the review `status`.
-- **Endpoint health check** (`runAgentVerification`): POSTs a `voxa.handshake` to the agent's
+- **Endpoint health check** (`runAgentVerification`): POSTs a `synq.handshake` to the agent's
   endpoint and checks reachability, SDK/protocol compatibility, and that declared capabilities
   are covered. Admin-triggered via `POST /api/admin/agents/:id/verify`. The handshake contract
-  ships in the SDK (`createAgentHandshake`, `VOXA_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`).
+  ships in the SDK (`createAgentHandshake`, `SYNQ_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`).
 - **Developer sandbox** (`POST /api/agents/sandbox` + `POST /api/agents/sandbox/message`, page
   `/developers/sandbox`): a developer can start an **isolated** sandbox session for one OR MORE of
   their own `approved` + `verified` agents, then **chat** with them (messages go straight to the
@@ -404,7 +408,7 @@ Phase 3 prepares external agents for testing without allowing them into producti
   "Tools Used" panel; Synq never executes tools), and **target / broadcast** routing (**Send to
   {agent}** or **Send to all**, with per-agent labeled replies). It never creates a production room
   or dispatches the agents (`runtimeReady: false`) and is not a public multi-agent room.
-- **Runtime registry merge seam** (`voxa-beta/app/lib/agents/registry.ts`): merges first-party
+- **Runtime registry merge seam** (`synq/app/lib/agents/registry.ts`): merges first-party
   manifest agents with approved+verified DB agents into `RuntimeAgentDescriptor`s. Registered
   agents are always `availableInRooms: false`; nothing wires the merge into rooms yet.
 - **Experimental text-only room mode** (server-only flag `EXPERIMENTAL_EXTERNAL_AGENTS_IN_ROOMS`,
@@ -427,7 +431,7 @@ Phase 3 prepares external agents for testing without allowing them into producti
   Default-off keeps the selector unchanged.
 - **Private voice agent beta** (Phase 4.0, server-only flag `EXPERIMENTAL_EXTERNAL_AGENT_VOICE=false`
   + admin-granted `room_voice_beta`): a **push-to-talk bridge** — the user records a clip, Synq runs
-  STT → the external agent endpoint (`type:"voxa.voice"`) → TTS, and plays the reply back **only to
+  STT → the external agent endpoint (`type:"synq.voice"`) → TTS, and plays the reply back **only to
   that user's browser**. It is **not** room audio: no LiveKit, no room audio stream, no transcript,
   no auto-listen. `room_voice_beta` is admin-only (never developer-requestable); `VoiceAgentRuntime`
   is separate from the sandbox/text runtimes; client capture is separate from Nova's `RoomVoice`.
@@ -453,7 +457,7 @@ metadata from that manifest, and writes the current compatibility participant id
 
 ## Agent Selector UI
 
-The room sidebar uses `voxa-beta/app/components/AgentSelector.tsx` as a small
+The room sidebar uses `synq/app/components/AgentSelector.tsx` as a small
 manifest-driven first-party agent selector. It reads `getAvailableAgents()`, renders
 agent name, description, capabilities, invited/in-room state, and calls
 `inviteAgent(agentId)` / `inviteAgentShared(roomId, agentId)` through the room page.
@@ -464,8 +468,8 @@ can appear from the manifest later without redesigning the room UI.
 
 ## Current Nova Paths
 
-- Path A: active MVP path in `voxa-beta`, turn-based, wake/tap activated.
-- Path B: disabled Python LiveKit Agent in `voxa-agent`, feature-gated for future use.
+- Path A: active MVP path in `synq`, turn-based, wake/tap activated.
+- Path B: disabled Python LiveKit Agent in `synq-agent`, feature-gated for future use.
 
 Do not switch paths casually. The active product depends on Path A.
 

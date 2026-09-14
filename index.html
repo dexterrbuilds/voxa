@@ -8,7 +8,10 @@
     <script>
       (function () {
         try {
-          var theme = localStorage.getItem("voxa-theme") === "dark" ? "dark" : "light";
+          var previous = localStorage.getItem("voxa-theme");
+          if (localStorage.getItem("synq-theme") === null && previous !== null) localStorage.setItem("synq-theme", previous);
+          if (previous !== null) localStorage.removeItem("voxa-theme");
+          var theme = localStorage.getItem("synq-theme") === "dark" ? "dark" : "light";
           document.documentElement.dataset.theme = theme;
           document.documentElement.classList.toggle("dark", theme === "dark");
         } catch (error) {

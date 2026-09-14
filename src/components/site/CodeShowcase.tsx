@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 
 const transcriptCode = `{
-  "type": "voxa.message",
+  "type": "synq.message",
   "message": "Should we move forward?",
   "context": { "sandbox": true }
 }`;

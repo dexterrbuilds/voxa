@@ -1,9 +1,11 @@
 # Synq SDK v0.1
 
-The package remains **`@voxa/sdk`** (local preview, not a new registry release).
-`SynqAgent` and `createSynqAgent` are direct aliases of `VoxaAgent` and
-`createVoxaAgent`; old imports continue to work. Wire types, endpoint paths and
-`X-Voxa-Request-Id` remain unchanged. There is no new `synq.message` protocol.
+The canonical private package is **`@synq/sdk`** (local preview, not a registry release).
+`SynqAgent` and `createSynqAgent` are the implementation, not branding aliases.
+New integrations use `/synq/handshake`, `/synq/message`, `synq.message`, `synq.voice`
+and `X-Synq-Request-Id`. The adapter accepts the deprecated wire dialect as well.
+Deprecated exports live in `src/legacy.ts`; `packages/sdk-legacy` is an opt-in local
+package bridge for old imports. See [compatibility and installation](../../docs/synq-naming-migration.md).
 
 The Synq SDK is the typed foundation for future developer-owned conversational
 agents.
@@ -19,7 +21,7 @@ Nova is the first demonstration agent running on Synq. Nova is not the product.
 ## Minimal Framework-Neutral Adapter
 
 ```ts
-import { createSynqAgent } from "@voxa/sdk";
+import { createSynqAgent } from "@synq/sdk";
 
 export const handle = createSynqAgent({
   identity: {
@@ -37,13 +39,13 @@ export const handle = createSynqAgent({
 ```
 
 Mount the Fetch API handler in your server. It answers `GET /health` and POST bodies
-with `type: "voxa.handshake"` / `"voxa.message"`; optional `onVoice` handles the existing
-private `voxa.voice` **transcribed-text** contract, not raw room audio. JSON inputs are
+with `type: "synq.handshake"` / `"synq.message"`; optional `onVoice` handles the existing
+private `synq.voice` **transcribed-text** contract, not raw room audio. JSON inputs are
 capped at 64 KiB, messages at 4,000 characters, replies at 32,000 characters. Provider
 exceptions return a generic error rather than credentials or stack traces.
 
 Runnable Node bridge: [fetch-adapter example](../../examples/agents/fetch-adapter/README.md).
-Paste its public `/voxa/handshake` URL into Synq's **Test connection** flow. Detection is
+Paste its public `/synq/handshake` URL into Synq's **Test connection** flow. Detection is
 descriptive only: review, verification, ownership and permissions still apply. A reported
 voice capability is not a voice permission. Synq does not execute reported tools or
 automatically integrate any framework. Deploy your own endpoint security/abuse controls.
@@ -63,9 +65,9 @@ npm run typecheck
 ## Example
 
 ```ts
-import { VoxaAgent, type AgentContext, type AgentMessage } from "@voxa/sdk";
+import { SynqAgent, type AgentContext, type AgentMessage } from "@synq/sdk";
 
-class ResearchAgent extends VoxaAgent {
+class ResearchAgent extends SynqAgent {
   constructor() {
     super({
       id: "research-agent",
@@ -89,12 +91,12 @@ External agent registration is not live yet, but the SDK now includes typed meta
 the upcoming registration flow:
 
 ```ts
-import { defineAgentRegistration } from "@voxa/sdk";
+import { defineAgentRegistration } from "@synq/sdk";
 
 const registration = defineAgentRegistration({
   name: "Research Agent",
   description: "Searches and summarizes live information inside Synq rooms.",
-  endpointUrl: "https://agent.example.com/voxa",
+  endpointUrl: "https://agent.example.com/synq",
   capabilities: ["web_search", "memory"],
   permissions: ["room:join", "message:read", "voice:speak"],
   tags: ["research", "summaries"],
@@ -115,49 +117,49 @@ developer authentication, API keys, review tooling, and production publishing.
 ## Endpoint handshake (verification contract)
 
 Before an agent can be sandbox-tested, Synq verifies its endpoint with a health check. The
-endpoint must answer a handshake probe (`POST` with `{ "type": "voxa.handshake" }`) with an
+endpoint must answer a handshake probe (`POST` with `{ "type": "synq.handshake" }`) with an
 `AgentHandshake` JSON body. The SDK provides the contract:
 
 ```ts
-import { createAgentHandshake, VOXA_AGENT_PROTOCOL } from "@voxa/sdk";
+import { createAgentHandshake, SYNQ_AGENT_PROTOCOL } from "@synq/sdk";
 
-// In your endpoint handler, when you receive { type: "voxa.handshake" }:
+// In your endpoint handler, when you receive { type: "synq.handshake" }:
 const handshake = createAgentHandshake({
   id: "research-agent",
   name: "Research Agent",
   capabilities: ["web_search", "memory"],
   permissions: ["room:join", "message:read", "voice:speak"],
 });
-// → { protocol: "voxa-agent", sdkVersion: "0.1", agent: { id, name, capabilities, permissions } }
+// → { protocol: "synq-agent", sdkVersion: "0.1", agent: { id, name, capabilities, permissions } }
 ```
 
 Synq's endpoint health check verifies three things: the endpoint is reachable, the handshake
-`protocol`/`sdkVersion` are compatible (`VOXA_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`), and
+`protocol`/`sdkVersion` are compatible (`SYNQ_AGENT_PROTOCOL`, `SUPPORTED_SDK_VERSIONS`), and
 the reported capabilities cover what was declared at registration. Passing verification makes an
 approved agent eligible for the **developer sandbox only** — it does not place the agent into a
 production room. The external-agent runtime is not live yet.
 
 ### Message contract
 
-Synq's sandbox sends a `voxa.message` request to your agent's `POST /voxa/message` endpoint and
+Synq's sandbox sends a `synq.message` request to your agent's `POST /synq/message` endpoint and
 expects a `{ text }` reply:
 
 ```ts
-import { createVoxaMessageRequest, createAgentMessageResponse, type VoxaMessageRequest } from "@voxa/sdk";
+import { createSynqMessageRequest, createAgentMessageResponse, type SynqMessageRequest } from "@synq/sdk";
 
 // What Synq sends:
-createVoxaMessageRequest("Hello", { sandbox: true });
-// -> { type: "voxa.message", message: "Hello", context: { sandbox: true } }
+createSynqMessageRequest("Hello", { sandbox: true });
+// -> { type: "synq.message", message: "Hello", context: { sandbox: true } }
 
 // In your endpoint handler:
-app.post("/voxa/message", (req, res) => {
-  const { message } = req.body as VoxaMessageRequest; // message is a string
+app.post("/synq/message", (req, res) => {
+  const { message } = req.body as SynqMessageRequest; // message is a string
   res.json(createAgentMessageResponse(`You said: ${message}`));
 });
 ```
 
-`createAgentMessageResponse(text, extra?)` builds the `{ text }` reply. `VoxaMessageRequest` /
-`VoxaMessageResponse` type the wire shapes; `AgentMessageHandler` / `AgentMessageRequest` are the
+`createAgentMessageResponse(text, extra?)` builds the `{ text }` reply. `SynqMessageRequest` /
+`SynqMessageResponse` type the wire shapes; `AgentMessageHandler` / `AgentMessageRequest` are the
 richer internal handler shapes.
 
 #### Streaming + tools (optional, backwards compatible)
@@ -192,7 +194,7 @@ connect your agent into a production room.
 Your agent always implements the **same single-agent** endpoint contract above. Synq's sandbox can
 drive **several** of your approved + verified agents in one session: it sends to one agent
 (targeted) or fans the same message out to all of them (broadcast) and shows each agent's reply
-independently. Nothing changes on your side — each endpoint just answers its own `voxa.message`
+independently. Nothing changes on your side — each endpoint just answers its own `synq.message`
 request. This is still sandbox-only; it is not a production multi-agent room.
 
 #### Per-agent thread history (room-text mode)
@@ -201,16 +203,16 @@ In experimental text-only room mode, Synq keeps a **room-local thread per agent*
 recent turns as `context.history`:
 
 ```ts
-// context = { sandbox: false, roomId, agentId, mode: "room_text", history: VoxaMessageHistoryTurn[] }
-app.post("/voxa/message", (req, res) => {
-  const { message, context } = req.body as VoxaMessageRequest;
+// context = { sandbox: false, roomId, agentId, mode: "room_text", history: SynqMessageHistoryTurn[] }
+app.post("/synq/message", (req, res) => {
+  const { message, context } = req.body as SynqMessageRequest;
   const lastUserTurn = context?.history?.filter((t) => t.role === "user").at(-1)?.text;
   const note = lastUserTurn ? ` (following up on "${lastUserTurn}")` : "";
   res.json(createAgentMessageResponse(`Re: ${message}${note}`));
 });
 ```
 
-`history` (`VoxaMessageHistoryTurn[]`, `{ role:"user"|"agent", text }`) is **only** the recent turns
+`history` (`SynqMessageHistoryTurn[]`, `{ role:"user"|"agent", text }`) is **only** the recent turns
 between this user and **this** agent — never a full room transcript, other agents' messages, Nova
 memory, or audio. Using it is optional and backwards compatible.
 
@@ -219,18 +221,18 @@ memory, or audio. Using it is optional and backwards compatible.
 Two complete, runnable sample agents live under
 [`examples/agents/`](../../examples/agents): [`research-agent`](../../examples/agents/research-agent)
 and [`code-assistant`](../../examples/agents/code-assistant). Each is a minimal Node HTTP server
-implementing `/health`, `/voxa/handshake`, and `/voxa/message` with this SDK (with different
+implementing `/health`, `/synq/handshake`, and `/synq/message` with this SDK (with different
 capabilities + tools), plus a README covering tunneling, registration, verification, and the
 sandbox flow. Run them on different ports to test the multi-agent sandbox.
 
 ## Current Scope
 
-- `VoxaAgent` base class
+- `SynqAgent` base class
 - shared agent status/capability/message/response types
 - join, leave, message, say, and status primitives
 - typed future agent registration metadata
 - endpoint handshake contract for verification (`createAgentHandshake`)
-- message handler helpers (`createAgentMessageResponse`, `createVoxaMessageRequest`, `AgentMessageHandler`)
+- message handler helpers (`createAgentMessageResponse`, `createSynqMessageRequest`, `AgentMessageHandler`)
 - optional streaming hint + tool metadata (`AgentToolInvocation`) on the message reply
 
 ## Not Implemented Yet
@@ -244,6 +246,6 @@ sandbox flow. Run them on different ports to test the multi-agent sandbox.
 - onchain identities
 - avatar/runtime packaging
 
-The next step is wiring these types into `voxa-beta/app/lib/runtime/` so external
+The next step is wiring these types into `synq/app/lib/runtime/` so external
 agents and Nova can share one runtime contract without breaking the current Nova MVP
 pipeline.

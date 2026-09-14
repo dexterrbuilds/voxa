@@ -2,22 +2,22 @@ import type { AgentContext, AgentMessage, AgentResponse } from "./types.js";
 
 // Message handling helpers for external agent endpoints.
 //
-// Synq POSTs a `voxa.message` request to an agent's message endpoint and expects
+// Synq POSTs a `synq.message` request to an agent's message endpoint and expects
 // a `{ text }` JSON body back. These types/helpers let developers implement that
 // handler with the same shapes Synq uses.
 
-// The wire contract Synq sends to an agent's POST /voxa/message endpoint.
-export const VOXA_MESSAGE_TYPE = "voxa.message";
+// The wire contract Synq sends to an agent's POST /synq/message endpoint.
+export const SYNQ_MESSAGE_TYPE = "synq.message";
 
 // One prior turn in a per-agent thread. `history` carries ONLY the recent turns
 // between this user and THIS agent — never room audio, a full room transcript,
 // other agents' messages, or Nova memory.
-export type VoxaMessageHistoryTurn = {
+export type SynqMessageHistoryTurn = {
   role: "user" | "agent";
   text: string;
 };
 
-export type VoxaMessageContext = {
+export type SynqMessageContext = {
   // True when the message originates from the developer sandbox. In experimental
   // room text mode this is false and `mode: "room_text"` is set with `roomId` /
   // `agentId`. Agents receive NO room audio or transcript in either mode.
@@ -27,36 +27,36 @@ export type VoxaMessageContext = {
   roomId?: string;
   agentId?: string;
   // Recent per-agent thread turns (room-text mode). Capped to the last few turns.
-  history?: VoxaMessageHistoryTurn[];
+  history?: SynqMessageHistoryTurn[];
 } & Record<string, unknown>;
 
-export type VoxaMessageRequest = {
-  type: typeof VOXA_MESSAGE_TYPE;
+export type SynqMessageRequest = {
+  type: typeof SYNQ_MESSAGE_TYPE;
   message: string;
-  context?: VoxaMessageContext;
+  context?: SynqMessageContext;
 };
 
 // Private push-to-talk VOICE BETA contract. Synq transcribes the user's clip
-// (STT) and POSTs `voxa.voice` with the TRANSCRIBED TEXT to the same message
+// (STT) and POSTs `synq.voice` with the TRANSCRIBED TEXT to the same message
 // endpoint, then synthesizes the text reply (TTS) and plays it back to the user
 // ONLY. The agent never receives room audio, a room transcript, or a LiveKit
 // stream — it only sees the transcribed text + its own scoped thread history.
-export const VOXA_VOICE_TYPE = "voxa.voice";
+export const SYNQ_VOICE_TYPE = "synq.voice";
 
-export type VoxaVoiceContext = {
+export type SynqVoiceContext = {
   mode: "voice_beta";
   roomId?: string;
   agentId?: string;
-  history?: VoxaMessageHistoryTurn[];
+  history?: SynqMessageHistoryTurn[];
 } & Record<string, unknown>;
 
-export type VoxaVoiceRequest = {
-  type: typeof VOXA_VOICE_TYPE;
+export type SynqVoiceRequest = {
+  type: typeof SYNQ_VOICE_TYPE;
   message: string;
-  context?: VoxaVoiceContext;
+  context?: SynqVoiceContext;
 };
 
-export type VoxaVoiceResponse = {
+export type SynqVoiceResponse = {
   // `text` is REQUIRED — Synq synthesizes it with TTS for playback.
   text: string;
   // Optional voice preference. NOT honored yet — Synq always uses the configured
@@ -67,11 +67,11 @@ export type VoxaVoiceResponse = {
   };
 } & Record<string, unknown>;
 
-export function createVoxaVoiceRequest(
+export function createSynqVoiceRequest(
   message: string,
-  context?: VoxaVoiceContext,
-): VoxaVoiceRequest {
-  return { type: VOXA_VOICE_TYPE, message, context };
+  context?: SynqVoiceContext,
+): SynqVoiceRequest {
+  return { type: SYNQ_VOICE_TYPE, message, context };
 }
 
 // Tool execution model (types only — Synq does not execute tools). An agent may
@@ -85,7 +85,7 @@ export type AgentToolInvocation = {
   detail?: string;
 };
 
-export type VoxaMessageResponse = {
+export type SynqMessageResponse = {
   text: string;
   // Optional: hint that Synq may render the reply progressively (simulated
   // streaming today — no SSE/websocket). Backwards compatible: omit for a plain
@@ -95,11 +95,11 @@ export type VoxaMessageResponse = {
   tools?: AgentToolInvocation[];
 } & Record<string, unknown>;
 
-export function createVoxaMessageRequest(
+export function createSynqMessageRequest(
   message: string,
-  context?: VoxaMessageContext,
-): VoxaMessageRequest {
-  return { type: VOXA_MESSAGE_TYPE, message, context };
+  context?: SynqMessageContext,
+): SynqMessageRequest {
+  return { type: SYNQ_MESSAGE_TYPE, message, context };
 }
 
 // Richer internal handler shapes (used by the runtime contract / future SDK
@@ -119,7 +119,7 @@ export type AgentMessageHandler = (
 // Backwards compatible: `createAgentMessageResponse("hi")` still returns `{ text }`.
 export function createAgentMessageResponse(
   text: string,
-  extra?: Partial<Omit<VoxaMessageResponse, "text">>,
-): VoxaMessageResponse {
+  extra?: Partial<Omit<SynqMessageResponse, "text">>,
+): SynqMessageResponse {
   return { text, ...extra };
 }

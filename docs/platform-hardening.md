@@ -12,7 +12,7 @@ for the subsequent visual/copy changes and compatibility validation.
 ## Audit and Scope
 
 Synq already has distinct sandbox, room-text and private voice-beta runtimes sharing
-`voxaMessageClient`. Nova Path A remains the production voice path; Path B stays off.
+`synqMessageClient`. Nova Path A remains the production voice path; Path B stays off.
 The pass preserves these working boundaries and the existing BYOA/voice-beta changes
 already present in the worktree. It does not enable external agents publicly.
 
@@ -57,7 +57,7 @@ The highest-impact weaknesses were:
 - Developer console: endpoint-first discovery, explicit prefill, source selector retained,
   connection testing for existing records, state-specific next steps and sandbox entry links.
   Usage details collapse to reduce vertical noise. Detection does not save or approve anything.
-- SDK: `createVoxaAgent` is a Fetch handler around any framework, with a runnable local Node
+- SDK: `createSynqAgent` is a Fetch handler around any framework, with a runnable local Node
   bridge in `examples/agents/fetch-adapter`. No framework dependencies, autonomous registration,
   ownership claims, tool execution, marketplace, or publishing were introduced.
 - Sandbox: immediate per-agent pending cards, independent reply arrival, request duration,
@@ -78,7 +78,7 @@ The highest-impact weaknesses were:
 
 1. Keep the existing flags unchanged. No new environment variables or provider changes.
 2. Confirm the existing **server-only** `SUPABASE_SERVICE_ROLE_KEY` on the beta project.
-3. On an existing database, run `voxa-beta/supabase-agent-analytics-server-writes.sql` after
+3. On an existing database, run `synq/supabase-agent-analytics-server-writes.sql` after
    the original analytics schema. It replaces the function, checks service role and ownership,
    and revokes browser execution. It does not delete/reset counters or change read policies.
 4. Deploy the beta app and the SDK/example changes together. During a mismatched deployment,
@@ -93,14 +93,14 @@ the existing history before the Synq pass. Do not re-add them.
 
 New files authored for this pass:
 
-- `voxa-beta/app/api/agents/discover/route.ts`
-- `voxa-beta/app/components/AgentConnectionTest.tsx`
-- `voxa-beta/app/lib/server/agents/runtime/endpoint.ts`
-- `voxa-beta/app/lib/server/agents/runtime/context.ts`
-- `voxa-beta/app/lib/server/agents/runtime/events.ts`
-- `voxa-beta/app/lib/server/agents/runtime/requests.ts`
-- `voxa-beta/supabase-agent-analytics-server-writes.sql`
-- `voxa-beta/tests/register.cjs`, `runtime.test.cjs`, `routes.test.cjs`,
+- `synq/app/api/agents/discover/route.ts`
+- `synq/app/components/AgentConnectionTest.tsx`
+- `synq/app/lib/server/agents/runtime/endpoint.ts`
+- `synq/app/lib/server/agents/runtime/context.ts`
+- `synq/app/lib/server/agents/runtime/events.ts`
+- `synq/app/lib/server/agents/runtime/requests.ts`
+- `synq/supabase-agent-analytics-server-writes.sql`
+- `synq/tests/register.cjs`, `runtime.test.cjs`, `routes.test.cjs`,
   `browser-smoke.mjs`, `analytics.sql`
 - `packages/sdk/src/adapter.ts`, `packages/sdk/tests/adapter.test.mjs`
 - `examples/agents/fetch-adapter/server.mjs`, `README.md`
@@ -108,19 +108,19 @@ New files authored for this pass:
 
 Behavioral updates to existing files:
 
-- `voxa-beta/app/api/agents/sandbox/message/route.ts`
-- `voxa-beta/app/api/agents/room/message/route.ts`, `room/invite/route.ts`
-- `voxa-beta/app/lib/server/agents/runtime/voxaMessageClient.ts`, `types.ts`,
+- `synq/app/api/agents/sandbox/message/route.ts`
+- `synq/app/api/agents/room/message/route.ts`, `room/invite/route.ts`
+- `synq/app/lib/server/agents/runtime/synqMessageClient.ts`, `types.ts`,
   `SandboxRuntime.ts`, `RoomTextRuntime.ts`, `VoiceAgentRuntime.ts`
-- `voxa-beta/app/lib/server/agents/verification.ts`, `analytics.ts`, `room-memory.ts`,
-  `showcase.ts`, and `voxa-beta/app/lib/server/developers/profile.ts`
-- `voxa-beta/app/lib/agents/registry-client.ts`, `showcase-types.ts`
-- `voxa-beta/app/lib/room-sync.ts`, `room.ts`
-- `voxa-beta/app/components/AgentSelector.tsx`
-- `voxa-beta/app/room/[roomId]/page.tsx`
-- `voxa-beta/app/developers/agents/page.tsx`, `developers/sandbox/page.tsx`
-- `voxa-beta/app/agents/AgentDirectoryClient.tsx`, `agents/[slug]/page.tsx`
-- `voxa-beta/supabase-agent-analytics-schema.sql`, `packages/sdk/src/index.ts`
+- `synq/app/lib/server/agents/verification.ts`, `analytics.ts`, `room-memory.ts`,
+  `showcase.ts`, and `synq/app/lib/server/developers/profile.ts`
+- `synq/app/lib/agents/registry-client.ts`, `showcase-types.ts`
+- `synq/app/lib/room-sync.ts`, `room.ts`
+- `synq/app/components/AgentSelector.tsx`
+- `synq/app/room/[roomId]/page.tsx`
+- `synq/app/developers/agents/page.tsx`, `developers/sandbox/page.tsx`
+- `synq/app/agents/AgentDirectoryClient.tsx`, `agents/[slug]/page.tsx`
+- `synq/supabase-agent-analytics-schema.sql`, `packages/sdk/src/index.ts`
 - Root README, beta README, SDK README, local AGENTS and CLAUDE documentation.
 
 The working diff also contains **pre-existing** BYOA/import/private voice-beta changes.
@@ -132,7 +132,7 @@ API route, or Python agent source changed in this pass.
 ## Validation Commands
 
 ```sh
-# From voxa-beta
+# From synq
 npx tsc --noEmit
 npm run build
 npm run lint
@@ -156,7 +156,7 @@ safe logs, cancellation, request locks and context bounds. SDK tests cover hands
 messages, input limits and exception redaction.
 
 For browser checks, run a built app on port 3100, make Playwright available to Node, then
-run `node tests/browser-smoke.mjs` from `voxa-beta`. `SMOKE_URL` changes the base URL;
+run `node tests/browser-smoke.mjs` from `synq`. `SMOKE_URL` changes the base URL;
 `SMOKE_ARTIFACTS` changes screenshot output. The script uses explicit auth/API fixtures
 for signed-in flows and makes no production writes. It also checks real unauthenticated
 API rejection. Never interpret fixture tests as an end-to-end production voice test.

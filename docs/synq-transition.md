@@ -3,8 +3,8 @@
 ## Scope
 
 Synq is where humans and AI agents meet. The committed platform-hardening foundation
-was preserved, not rebuilt. The product remains in `voxa-beta/`, the marketing app in
-`src/`, the compatible SDK in `packages/sdk/`, and the disabled worker in `voxa-agent/`.
+was preserved, not rebuilt. The product remains in `synq/`, the marketing app in
+`src/`, the compatible SDK in `packages/sdk/`, and the disabled worker in `synq-agent/`.
 
 ## Experience Changes
 
@@ -30,23 +30,24 @@ was preserved, not rebuilt. The product remains in `voxa-beta/`, the marketing a
 
 ## Compatibility Inventory
 
-Intentional legacy names:
+Current canonical names (updated by the later naming migration):
 
 | Category | Preserved contract |
 | --- | --- |
-| Package/API | `@voxa/sdk`, `VoxaAgent`, `createVoxaAgent`, exported `Voxa*` types |
-| New names | `SynqAgent`, `createSynqAgent`, `SynqAdapterOptions` are exact aliases |
-| Wire | `voxa-agent`, `voxa.handshake`, `voxa.message`, `voxa.voice` |
-| Request identity | `X-Voxa-Request-Id` in browser, API routes and outbound adapter calls |
-| Routes | `/api/agents/*`, `/voxa/handshake`, `/voxa/message`, legacy mock `/voxa/*` |
+| Package/API | `@synq/sdk`, `SynqAgent`, `createSynqAgent`, exported `Synq*` types |
+| Implementation | `SynqAgent`, `createSynqAgent`, `SynqAdapterOptions` |
+| Wire | `synq-agent`, `synq.handshake`, `synq.message`, `synq.voice` |
+| Request identity | `X-Synq-Request-Id` in browser, API routes and outbound adapter calls |
+| Routes | `/api/agents/*`, `/synq/handshake`, `/synq/message`, legacy mock `/synq/*` |
 | Data | Existing SQL/RPC names, `user_id = nova`, room identifiers and stored user content |
-| Browser | `voxa-theme`, auth/room storage keys, singleton globals, wake-worker caches |
-| Deployment | `voxa-beta`, `voxa-agent`, package names, env vars, `usevoxa.tech` domains |
+| Browser | `synq-theme`, auth/room storage keys, singleton globals, wake-worker caches |
+| Deployment | `synq`, `synq-agent`, explicit deployment URL configuration |
 | History | Historical SQL migrations, protocol tests and integration examples |
 
 A broad display-copy replacement initially changed the request-ID header. It was restored
 before completion. Tests check replay protection and the exact legacy outbound header.
-No protocol version was changed and no `synq.*` wire alias is advertised.
+The later naming migration makes `synq.*` canonical with deprecated dialect support;
+see [the current compatibility contract](synq-naming-migration.md).
 User-authored stored room names/messages are never silently rewritten.
 
 Temporary `/private/tmp/synq-*.cjs` files were implementation helpers only, outside Git.
@@ -66,12 +67,12 @@ No STT/model/TTS configuration, prompt policy, mic state machine or dispatch fla
 ## Rollout
 
 1. No new SQL for the rebrand. If the preceding hardening migration is not deployed yet,
-   apply `voxa-beta/supabase-agent-analytics-server-writes.sql` alongside that server code.
+   apply `synq/supabase-agent-analytics-server-writes.sql` alongside that server code.
 2. No new secrets/flags. Keep existing Supabase, LiveKit and provider configuration.
 3. `NEXT_PUBLIC_APP_URL` (already supported) controls the canonical social image origin;
-   default is the existing beta domain. Do not invent a new domain during the name change.
-4. Deploy marketing and product projects separately, using the same repository roots as before.
-5. SDK consumers may use Synq aliases or existing Voxa names. No external adapter migration.
+   default is localhost. Configure the real domain before building; no domain was invented.
+4. Deploy marketing at repository root and the product from `synq/`.
+5. SDK consumers use canonical names; legacy endpoints retain their deprecated dialect.
 6. Path B remains off. No LiveKit worker redeployment is necessary for the active Path A flow.
 
 ## Validation
@@ -97,7 +98,7 @@ No STT/model/TTS configuration, prompt policy, mic state machine or dispatch fla
   and human microphone control are unchanged. Only visual classes and product identity
   wording changed. Live voice/provider regression remains a staging check, not a local claim.
 
-The `synq` username is reserved alongside `voxa` to protect product identity. No existing
+The `synq` username and historical brand username are reserved to protect product identity. No existing
 profile data is rewritten; check for a pre-existing claimed brand username in staging.
 Generated build/browser files and local AGENTS/CLAUDE memory are excluded from the commit.
 No launch rescope is included in this checkpoint.

@@ -11,7 +11,7 @@ Set `VITE_BETA_URL` to the deployed beta app origin when it is live.
 Marketing site env:
 
 ```env
-VITE_BETA_URL=https://beta.usevoxa.tech
+VITE_BETA_URL=http://localhost:3000
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```

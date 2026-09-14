@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
-const VOXA_TOKEN_CA = "EEnjis1thqMgorpSA9q24R2QgYvCxMG2whRJzJzHpump";
+const SYNQ_TOKEN_CA = "EEnjis1thqMgorpSA9q24R2QgYvCxMG2whRJzJzHpump";
 
 export function TokenContractCard() {
   const [copied, setCopied] = useState(false);
@@ -31,7 +31,7 @@ export function TokenContractCard() {
   const handleCopy = async () => {
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(VOXA_TOKEN_CA);
+        await navigator.clipboard.writeText(SYNQ_TOKEN_CA);
         flash(true);
         return;
       }
@@ -40,7 +40,7 @@ export function TokenContractCard() {
       // Legacy fallback for browsers without the async Clipboard API.
       try {
         const textarea = document.createElement("textarea");
-        textarea.value = VOXA_TOKEN_CA;
+        textarea.value = SYNQ_TOKEN_CA;
         textarea.setAttribute("readonly", "");
         textarea.style.position = "absolute";
         textarea.style.left = "-9999px";
@@ -65,7 +65,7 @@ export function TokenContractCard() {
             </p>
             <div className="mt-1 overflow-x-auto">
               <code className="block whitespace-nowrap font-mono text-xs text-foreground sm:text-sm">
-                {VOXA_TOKEN_CA}
+                {SYNQ_TOKEN_CA}
               </code>
             </div>
           </div>

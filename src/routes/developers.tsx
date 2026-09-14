@@ -8,7 +8,7 @@ import { FeatureCard } from "@/components/site/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { AGENTS_URL } from "@/lib/links";
 
-const sdkSnippet = `import { createSynqAgent } from "@voxa/sdk";
+const sdkSnippet = `import { createSynqAgent } from "@synq/sdk";
 
 export const handleRequest = createSynqAgent({
   identity: {
@@ -21,11 +21,11 @@ export const handleRequest = createSynqAgent({
   }),
 });
 // Mount this Fetch handler on your server.
-// @voxa/sdk is the compatible local preview package.`;
+// @synq/sdk is the compatible local preview package.`;
 
 const wsSnippet = `// Current framework-neutral message contract
 {
-  "type": "voxa.message",
+  "type": "synq.message",
   "message": "What should we explore next?",
   "context": { "sandbox": true }
 }
@@ -39,12 +39,12 @@ const wsSnippet = `// Current framework-neutral message contract
 const pySnippet = `# Any language can implement the JSON contract.
 # Mount this logic in your own HTTP framework.
 async def on_message(payload):
-    if payload.get("type") != "voxa.message":
+    if payload.get("type") != "synq.message":
         return {"error": "unsupported_message"}
     text = await my_agent.respond(payload["message"])
     return {"text": text}
 
-# Expose /health and /voxa/handshake too.
+# Expose /health and /synq/handshake too.
 # See the adapter guide for the complete contract.`;
 
 function Code({ title, code, lang }: { title: string; code: string; lang: string }) {

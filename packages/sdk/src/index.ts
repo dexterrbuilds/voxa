@@ -19,34 +19,33 @@ export {
   createAgentHandshake,
   isSupportedSdkVersion,
   SUPPORTED_SDK_VERSIONS,
-  VOXA_AGENT_PROTOCOL,
-  VOXA_SDK_VERSION,
+  SYNQ_AGENT_PROTOCOL,
+  SYNQ_SDK_VERSION,
 } from "./handshake.js";
 export type {
   AgentMessageHandler,
   AgentMessageRequest,
   AgentToolInvocation,
   AgentToolStatus,
-  VoxaMessageContext,
-  VoxaMessageHistoryTurn,
-  VoxaMessageRequest,
-  VoxaMessageResponse,
-  VoxaVoiceContext,
-  VoxaVoiceRequest,
-  VoxaVoiceResponse,
+  SynqMessageContext,
+  SynqMessageHistoryTurn,
+  SynqMessageRequest,
+  SynqMessageResponse,
+  SynqVoiceContext,
+  SynqVoiceRequest,
+  SynqVoiceResponse,
 } from "./messaging.js";
 export {
   createAgentMessageResponse,
-  createVoxaMessageRequest,
-  createVoxaVoiceRequest,
-  VOXA_MESSAGE_TYPE,
-  VOXA_VOICE_TYPE,
+  createSynqMessageRequest,
+  createSynqVoiceRequest,
+  SYNQ_MESSAGE_TYPE,
+  SYNQ_VOICE_TYPE,
 } from "./messaging.js";
 export { defineAgentRegistration, registerAgent } from "./registration.js";
-export { VoxaAgent } from "./VoxaAgent.js";
-export { createVoxaAgent } from "./adapter.js";
-export type { VoxaAdapterOptions } from "./adapter.js";
-// Branding aliases only. Existing wire contracts and package imports remain compatible.
-export { VoxaAgent as SynqAgent } from "./VoxaAgent.js";
-export { createVoxaAgent as createSynqAgent } from "./adapter.js";
-export type { VoxaAdapterOptions as SynqAdapterOptions } from "./adapter.js";
+export { SynqAgent } from "./SynqAgent.js";
+export { createSynqAgent } from "./adapter.js";
+export type { SynqAdapterOptions } from "./adapter.js";
+// Deprecated exports are isolated from the canonical implementation.
+export * from "./legacy.js";
+export { canonicalAgentPath, protocolForPath } from "./protocol-compatibility.js";

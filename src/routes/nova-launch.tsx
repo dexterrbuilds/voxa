@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { ArrowUpRight, ArrowUp, Mic } from "lucide-react";
 import { BETA_APP_URL } from "@/lib/links";
 import { ThemeToggle } from "@/components/site/ThemeToggle";
-import "../../voxa-beta/app/glacier.css";
+import "../../synq/app/glacier.css";
 
 export default function NovaLaunchPage() {
   const href = `${BETA_APP_URL.replace(/\/$/, "")}/nova`;

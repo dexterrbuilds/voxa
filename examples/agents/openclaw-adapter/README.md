@@ -18,9 +18,9 @@ Synq request  ->  this adapter  ->  OpenClaw / public runtime  ->  Synq response
 | Method | Path              | Purpose                                              |
 | ------ | ----------------- | ---------------------------------------------------- |
 | GET    | `/health`         | Liveness probe                                       |
-| POST   | `/voxa/handshake` | Identity + capabilities (used by Synq verification)  |
-| POST   | `/voxa/message`   | Forward the user message to the upstream runtime     |
-| POST   | `/voxa/voice`     | Optional — text-only voice-beta reply                |
+| POST   | `/synq/handshake` | Identity + capabilities (used by Synq verification)  |
+| POST   | `/synq/message`   | Forward the user message to the upstream runtime     |
+| POST   | `/synq/voice`     | Optional — text-only voice-beta reply                |
 
 This mock needs **no real OpenClaw credentials** — `callUpstreamRuntime()` returns
 a canned reply so you can exercise the whole import → verify → sandbox flow.
@@ -37,17 +37,17 @@ npm start        # -> http://localhost:8789  (set PORT to change)
 
 ```bash
 curl http://localhost:8789/health
-curl -X POST http://localhost:8789/voxa/handshake -d '{"type":"voxa.handshake"}'
-curl -X POST http://localhost:8789/voxa/message \
+curl -X POST http://localhost:8789/synq/handshake -d '{"type":"synq.handshake"}'
+curl -X POST http://localhost:8789/synq/message \
   -H 'content-type: application/json' \
-  -d '{"type":"voxa.message","message":"summarize this","context":{"sandbox":true}}'
+  -d '{"type":"synq.message","message":"summarize this","context":{"sandbox":true}}'
 ```
 
 ## Import into Synq
 
 1. Tunnel this adapter (ngrok / cloudflared) to get a public URL.
 2. On **`/developers/agents`**, choose **Source / runtime → OpenClaw**, set the
-   Endpoint URL to `https://<tunnel>/voxa/handshake`, declare the capabilities your
+   Endpoint URL to `https://<tunnel>/synq/handshake`, declare the capabilities your
    adapter reports, and (optionally) add repository / docs URLs.
 3. Submit for review. An admin **approves**, then **verifies** the endpoint
    (handshake health check — no bypass for imports).

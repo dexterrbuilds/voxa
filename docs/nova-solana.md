@@ -9,7 +9,7 @@ simulations, explicitly labeled. Rooms, LiveKit, wake word, STT/TTS and SDK are 
 ## Rollout
 
 1. Existing Supabase auth and `supabase-nova-launch.sql` must already be installed.
-2. Run `voxa-beta/supabase-nova-quotes.sql` in Supabase SQL Editor. It is idempotent and
+2. Run `synq/supabase-nova-quotes.sql` in Supabase SQL Editor. It is idempotent and
    replaces only `nova_launch_approve`; it adds no tables, columns or browser permissions.
    Apply it AFTER the base launch SQL, including when reapplying the base later.
 3. Set these server-only environment variables in the beta/Vercel project:
@@ -144,7 +144,7 @@ simulation terminal state, NOT an on-chain execution. Existing simulation result
 
 ## Validation and exact reproduction
 
-From `voxa-beta`:
+From `synq`:
 
 ```sh
 npm run lint

@@ -460,7 +460,7 @@ function RegistrationPage() {
         </div>
       </section>
 
-      <CodeBlock code={handshakeExample} language="TypeScript" title="voxa-agent-endpoint.ts" />
+      <CodeBlock code={handshakeExample} language="TypeScript" title="synq-agent-endpoint.ts" />
 
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-5">
         <h3 className="font-semibold tracking-normal">Sandbox chat is live; live rooms are not</h3>

@@ -1,21 +1,22 @@
 import { createAgentHandshake, type AgentHandshake } from "./handshake.js";
-import type { VoxaMessageContext, VoxaMessageResponse } from "./messaging.js";
+import type { SynqMessageContext, SynqMessageResponse } from "./messaging.js";
+import { canonicalMessageType, legacyProtocol } from "./protocol-compatibility.js";
 
-export type VoxaAdapterOptions = {
+export type SynqAdapterOptions = {
   identity: Parameters<typeof createAgentHandshake>[0];
   runtime?: string;
   tools?: boolean;
   onMessage: (
     message: string,
-    context: VoxaMessageContext,
+    context: SynqMessageContext,
     signal?: AbortSignal,
-  ) => Promise<VoxaMessageResponse> | VoxaMessageResponse;
-  onVoice?: VoxaAdapterOptions["onMessage"];
+  ) => Promise<SynqMessageResponse> | SynqMessageResponse;
+  onVoice?: SynqAdapterOptions["onMessage"];
 };
 
 // Framework-neutral Fetch API handler: mount behind your own authentication and hosting.
 // It grants no Synq permissions and never starts a server or executes reported tools.
-export function createVoxaAgent(options: VoxaAdapterOptions) {
+export function createSynqAgent(options: SynqAdapterOptions) {
   const handshake: AgentHandshake = createAgentHandshake(options.identity);
   const discovery = {
     ...handshake,
@@ -25,7 +26,7 @@ export function createVoxaAgent(options: VoxaAdapterOptions) {
       supports: { text: true, voice: Boolean(options.onVoice), tools: options.tools === true },
     },
   };
-  return async function handleVoxaRequest(request: Request): Promise<Response> {
+  return async function handleSynqRequest(request: Request): Promise<Response> {
     const path = new URL(request.url).pathname.replace(/\/$/, "");
     if (request.method === "GET" && path === "/health") return Response.json({ ok: true });
     if (request.method !== "POST")
@@ -33,7 +34,7 @@ export function createVoxaAgent(options: VoxaAdapterOptions) {
     let input: {
       type?: string;
       message?: string;
-      context?: VoxaMessageContext;
+      context?: SynqMessageContext;
       requestId?: string;
     };
     try {
@@ -66,11 +67,16 @@ export function createVoxaAgent(options: VoxaAdapterOptions) {
     } catch {
       return Response.json({ error: "invalid_request" }, { status: 400 });
     }
-    if (input.type === "voxa.handshake") return Response.json(discovery);
+    const type = canonicalMessageType(input.type);
+    if (type === "synq.handshake")
+      return Response.json({
+        ...discovery,
+        protocol: type === input.type ? discovery.protocol : legacyProtocol,
+      });
     const handler =
-      input.type === "voxa.voice"
+      type === "synq.voice"
         ? options.onVoice
-        : input.type === "voxa.message"
+        : type === "synq.message"
           ? options.onMessage
           : undefined;
     if (!handler) return Response.json({ error: "unsupported_message" }, { status: 422 });

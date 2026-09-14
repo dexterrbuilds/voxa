@@ -30,6 +30,9 @@ Public client/build-time:
 | `NEXT_PUBLIC_PRIVY_GOOGLE_ENABLED=false` | Optional, only true after dashboard setup |
 | `NEXT_PUBLIC_SYNQ_PLATFORM_ENABLED=false` | Keep rooms/directory/developers dormant |
 | `VITE_SYNQ_PLATFORM_ENABLED=false` | Same launch mode for the separate marketing app |
+| `NEXT_PUBLIC_APP_URL` | Exact future Nova deployment origin for metadata |
+| `NEXT_PUBLIC_MARKETING_URL` | Exact future marketing origin for dormant docs links |
+| `VITE_BETA_URL` | Exact future Nova origin for marketing CTAs; localhost fallback is development only |
 
 Server-only:
 
@@ -54,7 +57,7 @@ Development-only: the two legacy auth selectors above; public RPC/keyless quotes
 best-effort development fallbacks, not a staging substitute. No fixture env enables a
 production authentication bypass. `NODE_ENV=production` is managed by Next at build/start.
 
-Run `cd voxa-beta` then `node scripts/check-configuration.cjs` for a **names-only** local
+Run `cd synq` then `node scripts/check-configuration.cjs` for a **names-only** local
 audit. It reads `.env.local` using Next's loader and does not contact any provider or DB.
 Optional missing groups do not crash the application. The script uses the repository's
 TypeScript test loader and is a local development tool, not part of the production bundle.
@@ -65,9 +68,9 @@ stay confined to the requested capability. Never prefix any private credential w
 
 Supabase SQL Editor, in the intended **staging** project, run each current file completely:
 
-1. `voxa-beta/supabase-nova-launch.sql`
-2. `voxa-beta/supabase-nova-quotes.sql` (includes the new service-only read-only readiness probe)
-3. `voxa-beta/supabase-privy-identity.sql`
+1. `synq/supabase-nova-launch.sql`
+2. `synq/supabase-nova-quotes.sql` (includes the new service-only read-only readiness probe)
+3. `synq/supabase-privy-identity.sql`
 
 Prerequisites: Supabase's `auth.users`, `auth.uid()`, `auth.role()`, standard roles and UUID
 support. No room/agent schema is required for this Nova-only chain. No new planner table is
@@ -92,7 +95,7 @@ independent proof of both accounts; see [Privy migration](privy-auth.md).
 
 ## 4. Deploy
 
-- Vercel project root: `voxa-beta`, Next.js framework, `npm run build`, default output.
+- Vercel project root: `synq`, Next.js framework, `npm run build`, default output.
   Use supported Node LTS (22/24). Add the public variables before building and server values
   to the same staging environment. Rebuild after public flag/app-ID changes.
 - Configure Supabase to trust the imported ES256 auth bridge key. Verify real PostgREST reads

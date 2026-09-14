@@ -6,7 +6,7 @@ differ. Idempotent constructs do not prove a hosted database already has matchin
 ## Nova launch order
 
 `supabase-nova-launch.sql` -> `supabase-nova-quotes.sql` -> `supabase-privy-identity.sql`
-(all under `voxa-beta/`). These require only standard Supabase Auth/roles/UUID support.
+(all under `synq/`). These require only standard Supabase Auth/roles/UUID support.
 
 - Launch creates three owner tables, guarded owner SELECT policies and service-only turn/
   approval routines. `create table/index if not exists` avoids duplicates; functions replace
@@ -50,7 +50,7 @@ unique indexes when duplicate participants exist; its RLS repair replaces named 
 Room cleanup routines can delete expired/session data when explicitly invoked/scheduled.
 Restore/version/audit these files in a separate room-platform phase before re-enabling rooms.
 
-All `voxa-beta/tests/*.sql` files are destructive/disposable test setup only, NEVER deployment
+All `synq/tests/*.sql` files are destructive/disposable test setup only, NEVER deployment
 input. They must not be pasted into Supabase SQL Editor. No new planner tables are needed.
 
 ## Recovery

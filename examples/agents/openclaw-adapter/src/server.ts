@@ -1,10 +1,11 @@
+import { canonicalAgentPath, protocolForPath } from "@synq/sdk";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import {
   createAgentHandshake,
   createAgentMessageResponse,
-  type VoxaMessageRequest,
-  type VoxaVoiceRequest,
-} from "@voxa/sdk";
+  type SynqMessageRequest,
+  type SynqVoiceRequest,
+} from "@synq/sdk";
 
 // Mock OpenClaw -> Synq ADAPTER.
 //
@@ -63,14 +64,15 @@ function callUpstreamRuntime(message: string): string {
 
 const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
-  const url = (req.url ?? "/").split("?")[0];
+  const originalPath = (req.url ?? "/").split("?")[0];
+  const url = canonicalAgentPath(originalPath);
 
   if (method === "GET" && url === "/health") {
     sendJson(res, 200, { status: "ok", agent: AGENT_NAME, adapter: "openclaw" });
     return;
   }
 
-  if (method === "POST" && url === "/voxa/handshake") {
+  if (method === "POST" && url === "/synq/handshake") {
     sendJson(
       res,
       200,
@@ -78,13 +80,13 @@ const server = createServer(async (req, res) => {
         name: AGENT_NAME,
         description: AGENT_DESCRIPTION,
         capabilities: AGENT_CAPABILITIES,
-      }),
+      }, protocolForPath(originalPath)),
     );
     return;
   }
 
-  if (method === "POST" && url === "/voxa/message") {
-    const body = (await readJsonBody(req)) as Partial<VoxaMessageRequest> | null;
+  if (method === "POST" && url === "/synq/message") {
+    const body = (await readJsonBody(req)) as Partial<SynqMessageRequest> | null;
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
     sendJson(
       res,
@@ -96,10 +98,10 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Optional: Synq's voice route already posts to /voxa/message, but an adapter may
-  // also implement /voxa/voice explicitly. Text is required in the reply.
-  if (method === "POST" && url === "/voxa/voice") {
-    const body = (await readJsonBody(req)) as Partial<VoxaVoiceRequest> | null;
+  // Optional: Synq's voice route already posts to /synq/message, but an adapter may
+  // also implement /synq/voice explicitly. Text is required in the reply.
+  if (method === "POST" && url === "/synq/voice") {
+    const body = (await readJsonBody(req)) as Partial<SynqVoiceRequest> | null;
     const prompt = typeof body?.message === "string" ? body.message.trim() : "";
     sendJson(res, 200, { text: callUpstreamRuntime(prompt) });
     return;
@@ -111,7 +113,7 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Synq OpenClaw adapter (mock) listening on http://localhost:${PORT}`);
   console.log(`  GET  /health`);
-  console.log(`  POST /voxa/handshake`);
-  console.log(`  POST /voxa/message`);
-  console.log(`  POST /voxa/voice   (optional)`);
+  console.log(`  POST /synq/handshake`);
+  console.log(`  POST /synq/message`);
+  console.log(`  POST /synq/voice   (optional)`);
 });

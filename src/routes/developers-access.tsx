@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { readMigratedStorage } from "../../synq/app/lib/legacy-storage";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -36,7 +37,7 @@ type AccessForm = {
 
 type SubmissionResult = "remote" | "local" | "failed";
 
-const STORAGE_KEY = "voxa-sdk-beta-requests";
+const STORAGE_KEY = "synq-sdk-beta-requests";
 
 const developerGets = [
   {
@@ -79,9 +80,9 @@ const comingSoon = [
   "Onchain identity",
 ] as const;
 
-const exampleCode = `import { VoxaAgent } from "@voxa/sdk";
+const exampleCode = `import { SynqAgent } from "@synq/sdk";
 
-class MyAgent extends VoxaAgent {
+class MyAgent extends SynqAgent {
   constructor() {
     super({
       id: "my-agent",
@@ -93,7 +94,7 @@ class MyAgent extends VoxaAgent {
 
 function readStoredRequests(): unknown[] {
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]") as unknown[];
+    return JSON.parse(readMigratedStorage(window.localStorage, STORAGE_KEY) ?? "[]") as unknown[];
   } catch {
     return [];
   }
